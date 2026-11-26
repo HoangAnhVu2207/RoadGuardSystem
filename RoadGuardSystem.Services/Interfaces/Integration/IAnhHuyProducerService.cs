@@ -16,7 +16,10 @@ public sealed record ProjectGeometryContext(string SchemaVersion, Guid ProjectId
     double? DeclaredLengthMeters = null, ChainageCalibrationInput? ChainageCalibration = null,
     bool SampleOnly = false, string OfficialReadiness = "UNKNOWN");
 public sealed record ResolvedCandidateSourceFacts(CandidateSourceFacts DomainFacts, Guid CaseId,
-    Guid[] EvidenceIds, ResolvedEvidenceFacts[] Evidence, ProjectGeometryContext Geometry);
+    Guid[] EvidenceIds, ResolvedEvidenceFacts[] Evidence, ProjectGeometryContext Geometry,
+    ReportMatchingLocationFacts? MatchingLocation = null, string MatchingLocationStatus = "GPS_MISSING");
+public sealed record ReportMatchingLocationFacts(Guid ConfirmationId, Guid[] SegmentIds, Guid? EvidenceId,
+    decimal? Latitude, decimal? Longitude, decimal? AccuracyMeters);
 
 // The accepted Huy integration owns these real read producers. Consumers re-resolve them inside their command
 // transaction/concurrency boundary; a successful preflight read is not a commit lock.

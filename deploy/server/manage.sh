@@ -30,7 +30,11 @@ backup() {
     mv "$RG_DATA/sql/roadguard-$stamp.bak" "$directory/database.bak"
     tar -C / -czf "$directory/storage-keys-config.tar.gz" srv/roadguard/objects srv/roadguard/files srv/roadguard/keys srv/roadguard/ai etc/roadguard
     printf '%s\n' "$backed_up_release" > "$directory/RELEASE"
-    (cd "$directory" && sha256sum database.bak storage-keys-config.tar.gz RELEASE > SHA256SUMS)
+    (
+        cd "$directory"
+        sha256sum database.bak storage-keys-config.tar.gz RELEASE > SHA256SUMS
+        sha256sum --check --strict SHA256SUMS
+    )
     echo "Backup verified and saved: $directory"
 }
 

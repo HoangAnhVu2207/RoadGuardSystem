@@ -20,6 +20,9 @@ public static class Huy01ReporterServiceExtensions
         services.TryAddScoped<IReporterLifecycleService, ReporterLifecycleService>();
         services.TryAddScoped<RoadGuardSystem.Services.Cases.ICaseWorkflowService, RoadGuardSystem.Services.Implementations.Cases.CaseWorkflowService>();
         services.TryAddScoped<RoadGuardSystem.Services.Cases.ICaseReportDetailsService, RoadGuardSystem.Services.Implementations.Cases.CaseReportDetailsService>();
+        services.TryAddScoped<RoadGuardSystem.Services.Cases.IRoutingMapService, RoadGuardSystem.Services.Implementations.Cases.RoutingMapService>();
+        services.TryAddSingleton<RoadGuardSystem.Repositories.Cases.IRoutingCursorCodec>(provider =>
+            new RoadGuardSystem.Services.Implementations.Cases.RoutingCursorCodec(provider.GetRequiredService<Microsoft.Extensions.Options.IOptions<RoadGuardSystem.Services.Options.JwtOptions>>().Value));
         return services;
     }
 
@@ -29,6 +32,7 @@ public static class Huy01ReporterServiceExtensions
         services.TryAddScoped<RoadGuardSystem.Services.Web.WebCoordinationService>();
         services.TryAddScoped<RoadGuardSystem.Services.Defects.ICandidateDecisionService, RoadGuardSystem.Services.Implementations.Defects.CandidateDecisionService>();
         services.TryAddScoped<RoadGuardSystem.Services.Candidates.ICandidateMatchingService, RoadGuardSystem.Services.Implementations.Defects.CandidateMatchingService>();
+        services.TryAddScoped<RoadGuardSystem.Services.Candidates.IReportMatchingLocationService, RoadGuardSystem.Services.Implementations.Defects.ReportMatchingLocationService>();
         services.TryAddScoped<RoadGuardSystem.Services.Implementations.Defects.DefectTypeAdminService>();
         services.TryAddScoped<RoadGuardSystem.Services.Defects.IDefectWorkflowService, RoadGuardSystem.Services.Implementations.Defects.DefectWorkflowService>();
         services.TryAddScoped<RoadGuardSystem.Services.Labels.ITrainingLabelService, RoadGuardSystem.Services.Implementations.Labels.TrainingLabelService>();

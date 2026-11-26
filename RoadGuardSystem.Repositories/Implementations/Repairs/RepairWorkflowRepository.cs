@@ -169,7 +169,7 @@ public sealed partial class RepairWorkflowRepository(RoadGuardDbContext db, Idem
                     .Select(row => EF.Property<byte[]>(row, "RowVersion")).SingleAsync(cancellationToken);
                 var binding = item.CurrentBindingId is Guid bindingId
                     ? await db.Set<RepairFieldTaskBinding>().AsNoTracking()
-                        .Where(row => row.Id == bindingId && row.ProjectId == projectId && row.ItemId == item.Id &&
+                        .Where(row => row.Id == bindingId && row.ProjectId == item.ProjectId && row.ItemId == item.Id &&
                             row.ObligationId == item.ObligationId && row.DefectId == item.DefectId)
                         .Select(row => new RepairCurrentBindingFact(row.Id, row.TaskId, row.AssignmentId, row.PolicyRevisionId,
                             row.PolicyContentHash, row.PlanHash, row.ChecklistVersion)).SingleOrDefaultAsync(cancellationToken)
@@ -180,9 +180,10 @@ public sealed partial class RepairWorkflowRepository(RoadGuardDbContext db, Idem
                     ChecklistVersion = item.ChecklistVersion,
                     ProposalPlanHash = item.ProposalPlanHash,
                     ApprovedPlanHash = item.ApprovedPlanHash,
-                    CurrentBinding = binding
+                    CurrentBinding = binding,
+                    SourceContext = await ItemSourceAsync(item, projectId, cancellationToken)
                 };
-                object value = history ? HistoryView(item, view) : view;
+                object value = history ? await HistoryViewAsync(item, view, cancellationToken) : view;
                 // History includes immutable child appends that intentionally do not mutate the command item head.
                 // Its finite canonical representation has a separate token, never accepted as a command rowversion.
                 var representationVersion = history ? "h4-history-v1-" + Convert.ToHexString(SHA256.HashData(

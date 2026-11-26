@@ -52,6 +52,7 @@ jobs:
       - run: pwsh -File tests/Operations/Verify-DockerCompose.ps1
       - run: pwsh -File tests/CI/Verify-CiWorkflow.ps1
       - run: pwsh -File tests/CI/Verify-TestResults.Tests.ps1
+      - run: pwsh -File tests/CI/Verify-TestLanes.Tests.ps1
       - run: python -m unittest discover -s deploy/server -p 'test_*.py' -v
       - run: python deploy/server/verify_compose.py
       - run: for script in deploy/server/*.sh; do bash -n "$script"; done
@@ -91,9 +92,40 @@ jobs:
           name: unit-coverage
           path: TestResults/UnitTests/**/coverage.cobertura.xml
 
-  api:
-    name: API tests
+  api_lane:
+    name: API lane ${{ matrix.lane }} (${{ matrix.flow }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - lane: 1
+            flow: "Startup, identity and notifications (1/3)"
+            minio: false
+          - lane: 2
+            flow: "Identity, notifications and sandbox concurrency"
+            minio: false
+          - lane: 3
+            flow: "Startup, identity and sandbox project scope"
+            minio: true
+          - lane: 4
+            flow: "Projects, surveys and files (1/2)"
+            minio: true
+          - lane: 5
+            flow: "Projects, surveys and files (2/2)"
+            minio: false
+          - lane: 6
+            flow: "Processing, cases and reporter submissions"
+            minio: false
+          - lane: 7
+            flow: "Processing, defects and cases (2/2)"
+            minio: true
+          - lane: 8
+            flow: "Field operations, exports and sandbox (1/2)"
+            minio: true
+          - lane: 9
+            flow: "Field operations, exports and sandbox (2/2)"
+            minio: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -104,27 +136,49 @@ jobs:
           path: ~/.nuget/packages
           key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'global.json') }}
           restore-keys: nuget-${{ runner.os }}-
-      - run: docker pull ${{ env.SQL_IMAGE }}
-      - name: Build pinned disposable MinIO provider
-        run: docker build --file deploy/fe-handoff/Dockerfile.Minio --tag ${{ env.RG_MINIO_IMAGE }} .
-      - run: dotnet restore tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj
-      - run: dotnet build tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj --no-restore --no-incremental
-      - if: ${{ github.event_name != 'schedule' && inputs.collect_coverage != true }}
-        run: dotnet test tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj --no-build --nologo -v q --logger "trx;LogFileName=api.trx" --results-directory TestResults/ApiTests
-      - if: ${{ github.event_name == 'schedule' || inputs.collect_coverage == true }}
-        run: dotnet test tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj --no-build --nologo -v q --collect:"XPlat Code Coverage" --logger "trx;LogFileName=api.trx" --results-directory TestResults/ApiTests
-      - run: pwsh -File tests/CI/Verify-TestResults.ps1 -ResultsPath TestResults/ApiTests -AllowMinioSmokeSkip
+      - name: Prepare API test assembly and SQL image
+        shell: bash
+        run: |
+          docker pull "$SQL_IMAGE" &
+          sql_pull=$!
+          dotnet restore tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj
+          dotnet build tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj --no-restore --no-incremental
+          wait "$sql_pull"
+      - if: matrix.minio
+        uses: ./.github/actions/pinned-minio
+      - name: Run API tests
+        shell: pwsh
+        run: |
+          $collectCoverage = ("${{ github.event_name }}" -eq "schedule" -or "${{ inputs.collect_coverage }}" -eq "true")
+          & ./tests/CI/Invoke-ApiLane.ps1 -Lane ${{ matrix.lane }} -ResultsPath TestResults/ApiTests -CollectCoverage:$collectCoverage
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: api-results
+          name: api-results-lane-${{ matrix.lane }}
           path: TestResults/ApiTests/**/*.trx
           if-no-files-found: error
       - if: ${{ github.event_name == 'schedule' || inputs.collect_coverage == true }}
         uses: actions/upload-artifact@v4
         with:
-          name: api-coverage
+          name: api-coverage-lane-${{ matrix.lane }}
           path: TestResults/ApiTests/**/coverage.cobertura.xml
+
+  api:
+    name: API tests
+    runs-on: ubuntu-latest
+    needs: [api_lane]
+    if: always()
+    steps:
+      - uses: actions/checkout@v4
+      - if: needs.api_lane.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          pattern: api-results-lane-*
+          path: TestResults/ApiLanes
+      - name: Reconcile API identities and require successful lanes
+        shell: pwsh
+        run: ./tests/CI/Verify-ApiLanes.ps1 -ResultsPath TestResults/ApiLanes -MatrixResult '${{ needs.api_lane.result }}'
 
   integration_lane:
     name: SQL integration lane ${{ matrix.lane }}
@@ -132,7 +186,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        lane: [1, 2, 3, 4]
+        lane: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -143,8 +197,6 @@ jobs:
           path: ~/.nuget/packages
           key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'global.json') }}
           restore-keys: nuget-${{ runner.os }}-
-      - name: Build pinned disposable MinIO provider
-        run: docker build --file deploy/fe-handoff/Dockerfile.Minio --tag ${{ env.RG_MINIO_IMAGE }} .
       - name: Generate ephemeral SQL credential
         shell: pwsh
         run: |
@@ -162,24 +214,28 @@ jobs:
           if ($LASTEXITCODE -ne 0) {
             throw "Failed to restrict the SQL credential file permissions."
           }
-      - name: Start SQL Server container
-        shell: pwsh
+      - name: Start SQL Server container and build integration tests
+        shell: bash
         run: |
-          $credentialPath = Join-Path $env:RUNNER_TEMP 'roadguard-sql-password'
-          docker run --detach `
-            --name roadguard-ci-sqlserver `
-            --publish 1433:1433 `
-            --env-file $credentialPath `
-            --env ACCEPT_EULA=Y `
-            --env MSSQL_PID=Developer `
-            --health-cmd '/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -Q "SELECT 1" -b -o /dev/null' `
-            --health-interval 10s `
-            --health-timeout 5s `
-            --health-retries 10 `
-            mcr.microsoft.com/mssql/server:2019-CU18-ubuntu-20.04
-          if ($LASTEXITCODE -ne 0) {
-            throw "Failed to start the SQL Server container."
-          }
+          docker run --detach \
+            --name roadguard-ci-sqlserver \
+            --publish 1433:1433 \
+            --env-file "$RUNNER_TEMP/roadguard-sql-password" \
+            --env ACCEPT_EULA=Y \
+            --env MSSQL_PID=Developer \
+            --health-cmd '/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -Q "SELECT 1" -b -o /dev/null' \
+            --health-interval 10s \
+            --health-timeout 5s \
+            --health-retries 10 \
+            "$SQL_IMAGE" &
+          sql_start=$!
+          build_status=0
+          (dotnet restore tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj &&
+            dotnet build tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj --no-restore --no-incremental) || build_status=$?
+          wait "$sql_start"
+          exit "$build_status"
+      - if: matrix.lane <= 3 || matrix.lane == 7
+        uses: ./.github/actions/pinned-minio
       - name: Wait for SQL Server readiness
         shell: pwsh
         run: |
@@ -199,9 +255,8 @@ jobs:
 
           docker logs roadguard-ci-sqlserver
           throw 'SQL Server readiness timeout after 3 minutes.'
-      - run: dotnet restore tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj
-      - run: dotnet build tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj --no-restore --no-incremental
       - name: Prepare export crash-recovery worker
+        if: matrix.lane <= 3
         shell: pwsh
         run: |
           dotnet build tools/RoadGuardSystem.ExportTestWorker/RoadGuardSystem.ExportTestWorker.csproj --nologo
@@ -329,7 +384,6 @@ jobs:
         with:
           pattern: integration-results-lane-*
           path: TestResults/SqlLanes
-          merge-multiple: true
       - name: Reconcile SQL identities
         shell: pwsh
         run: ./tests/CI/Verify-SqlLanes.ps1 -ResultsPath TestResults/SqlLanes

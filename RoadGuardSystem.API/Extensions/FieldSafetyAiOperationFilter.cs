@@ -12,6 +12,15 @@ public sealed class FieldSafetyAiOperationFilter : IOperationFilter, ISchemaFilt
     {
         var controller = context.MethodInfo.DeclaringType;
         var action = context.MethodInfo.Name;
+        if (controller == typeof(RoadCoverageController) && action == "HandoverDocuments")
+        {
+            operation.Description = "Supervisor only; Bearer or Web session, no CSRF for GET. " +
+                "Returns all project documents ordered by SQL uniqueidentifier ID, including missing fileId. " +
+                "An empty items array means no documents, not missing authority. canAttachFile is false for a file already attached or any coverage mapping. " +
+                "This inventory does not prove VERIFIED or REAL_SOURCE eligibility. " +
+                "Use document id to select handoverDocumentId. The item version is document rowversion; " +
+                "after upload VERIFIED, GET road-coverage for its aggregate ETag to POST attach. Cache-Control: no-store.";
+        }
         if (controller == typeof(RepairPackagesController) && action is "TemporarySafetySources" or "AddTemporarySafety")
         {
             operation.Description = "Eligible unused, unresolved TemporarySafety obligations within the current NORMAL formal item scope. " +

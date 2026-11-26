@@ -42,10 +42,26 @@ public sealed class SandboxOfflineRouteCatalogTests
                             if (route.StartsWith("/api/v1/", StringComparison.Ordinal))
                                 Assert.True(actual.Add((method, route)), $"Duplicate route: {method} {route} ({controller.Name}.{action.Name})");
                         }
-        Assert.Equal(260, expected.Count);
-        // These newer routes are source-verified; the 260-operation FE handoff is a historical snapshot.
+        Assert.Equal(264, expected.Count);
+        // The historical 260-operation snapshot now also contains the four routing-map operations.
+        foreach (var route in new[]
+        {
+            ("GET", "/api/v1/company/road-map"),
+            ("GET", "/api/v1/cases/{caseId}/routing-candidates"),
+            ("GET", "/api/v1/cases/{caseId}/routing-decisions"),
+            ("POST", "/api/v1/cases/{caseId}/routing-decisions")
+        }) Assert.Contains(route, expected);
+        // Other source-verified additions below predate this task and remain outside that snapshot.
         var additions = new HashSet<(string, string)>
         {
+            ("GET", "/api/v1/projects/{projectId}/reports/{reportId}/matching-location"),
+            ("POST", "/api/v1/projects/{projectId}/reports/{reportId}/matching-location"),
+            ("GET", "/api/v1/projects/{projectId}/repair-packages/{packageId}/items/{itemId}/source-evidence/{evidenceId}/content"),
+            ("GET", "/api/v1/projects/{projectId}/repair-packages/{packageId}/items/{itemId}/source-tasks/{taskId}/geometry"),
+            ("GET", "/api/v1/projects/{projectId}/repair-packages/{packageId}/items/{itemId}/source-tasks/{taskId}/history"),
+            ("GET", "/api/v1/projects/{projectId}/repair-packages/{packageId}/items/{itemId}/source-tasks/{taskId}/submissions/{submissionId}"),
+            ("GET", "/api/v1/projects/{projectId}/repair-packages/{packageId}/items/{itemId}/source-tasks/{taskId}/evidence/{fileId}"),
+            ("GET", "/api/v1/projects/{projectId}/repair-packages/{packageId}/items/{itemId}/source-tasks/{taskId}/evidence/{fileId}/content"),
             ("GET", "/api/v1/projects/{projectId}/repair-packages/{packageId}/items/{itemId}/temporary-safety-obligations"),
             ("POST", "/api/v1/projects/{projectId}/repair-packages/{packageId}/items/{itemId}/temporary-safety-obligations"),
             ("GET", "/api/v1/projects/overviews"),
@@ -66,6 +82,7 @@ public sealed class SandboxOfflineRouteCatalogTests
             ("POST", "/api/v1/catalog/defect-types/admin"),
             ("PUT", "/api/v1/catalog/defect-types/admin/{code}"),
             ("GET", "/api/v1/projects/{projectId}/repair-packages/{packageId}/items/{itemId}/safety-measures"),
+            ("POST", "/api/v1/projects/{projectId}/repair-packages/{packageId}/items/{itemId}/safety-measures/{measureId}/resolution"),
             ("POST", "/api/v1/invitations/preview"),
             ("GET", "/api/v1/projects/{projectId}/members/eligible"),
             ("POST", "/api/v1/projects/{projectId}/members"),
@@ -78,6 +95,7 @@ public sealed class SandboxOfflineRouteCatalogTests
             ("POST", "/api/v1/auth/reporter/password-reset/request"),
             ("POST", "/api/v1/auth/reporter/password-reset/confirm"),
             ("POST", "/api/v1/projects/{projectId}/handover-documents"),
+            ("GET", "/api/v1/projects/{projectId}/handover-documents"),
             ("POST", "/api/v1/projects/handover-upload-intents"),
             ("GET", "/api/v1/survey-tasks/{taskId}/eligible-drones"),
             ("GET", "/api/v1/cases/{caseId}/reports"),

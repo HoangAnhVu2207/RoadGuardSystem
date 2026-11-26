@@ -117,6 +117,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IInspectionTaskQueryService, InspectionTaskQueryService>();
         services.AddScoped<IFieldInspectionWorkflowService, FieldInspectionWorkflowService>();
         services.AddScoped<RoadGuardSystem.Services.Repairs.IRepairWorkflowService, RoadGuardSystem.Services.Implementations.Repairs.RepairWorkflowService>();
+        services.AddScoped<RoadGuardSystem.Services.Repairs.RepairSourceEvidenceService>();
         services.AddScoped<RoadGuardSystem.Services.Repairs.IRepairProducerService, RoadGuardSystem.Services.Implementations.Repairs.RepairProducerService>();
         services.AddScoped<RoadGuardSystem.Services.Repairs.INotificationSupervisorService, RoadGuardSystem.Services.Implementations.Repairs.NotificationSupervisorService>();
         services.AddScoped<RoadGuardSystem.Services.Repairs.IRepairExecutionService, RoadGuardSystem.Services.Implementations.Repairs.RepairExecutionService>();

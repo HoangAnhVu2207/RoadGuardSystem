@@ -11,7 +11,7 @@ internal static class RepairContractMapping
         value.ChecksumSha256,
         value.MediaType,
         value.CapturedAt,
-        value.AttemptChecklist);
+        value.AttemptChecklist, value.SizeBytes);
     public static RepairFieldMeasurementData ToData(FieldMeasurementInput value) => new(value.SampleId,
         value.Type,
         value.Value,
@@ -197,7 +197,12 @@ internal static class RepairContractMapping
     public static RepairHistoryView ToWire(RepairHistoryFact value) => new(value.Item is null ? null! : ToWire(value.Item),
         value.Decisions is null ? null! : value.Decisions.Select(element => element is null ? null! : ToWire(element)).ToArray(),
         value.Attempts is null ? null! : value.Attempts.Select(element => element is null ? null! : ToWire(element)).ToArray(),
-        value.ReviewRequests is null ? null! : value.ReviewRequests.Select(element => element is null ? null! : ToWire(element)).ToArray());
+        value.ReviewRequests is null ? null! : value.ReviewRequests.Select(element => element is null ? null! : ToWire(element)).ToArray(),
+        value.IntakeSubmissions?.Select(row => new RepairIntakeHistoryView(row.Id, row.AttemptId, row.SubmissionId,
+            row.RootSubmissionId, row.PreviousLinkId, row.TaskId, row.ContentHash, row.Effective)).ToArray(),
+        value.AttemptReviews?.Select(row => new RepairReviewHistoryView(row.Id, row.AttemptId, row.IntakeLinkId,
+            row.SubmissionId, row.ContentHash, row.ActorId, row.Role, row.Decision, row.Reason, row.At, row.Current)).ToArray(),
+        value.TaskBindings?.Select(ToWire).ToArray());
     public static RepairItemAssignData ToData(RepairItemAssignInput value) => new(value.Task is null ? null! : ToData(value.Task),
         value.PolicyRevisionId,
         value.Reason);
@@ -222,7 +227,13 @@ internal static class RepairContractMapping
         value.ProposalPlanHash,
         value.ApprovedPlanHash,
         value.CurrentBinding is { } binding ? new(binding.Id, binding.TaskId, binding.AssignmentId,
-            binding.PolicyRevisionId, binding.PolicyContentHash, binding.PlanHash, binding.ChecklistVersion) : null);
+            binding.PolicyRevisionId, binding.PolicyContentHash, binding.PlanHash, binding.ChecklistVersion) : null,
+        value.SourceContext is { } source ? new(source.OriginProjectId, source.ResponsibilityProjectId,
+            source.DefectId, source.DefectTypeCode, source.DefectStatus, source.DefectVersion,
+            source.RouteVersionId, new(source.Scope.PhysicalRoadId, source.Scope.LocationVersion,
+                source.Scope.RouteLabel, source.Scope.FromMeters, source.Scope.ToMeters,
+                source.Scope.OffsetFromMeters, source.Scope.OffsetToMeters),
+            source.Task is { } task ? ToWire(task) : null) : null);
     public static RepairMeasurementAssessmentData ToData(RepairMeasurementAssessmentInput value) => new(value.OriginId,
         value.FieldFirstStartId,
         value.Measurements is null ? null : value.Measurements.Select(element => element is null ? null! : ToData(element)).ToArray(),

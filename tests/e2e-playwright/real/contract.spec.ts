@@ -1,14 +1,48 @@
 import { once } from 'node:events';
 import { createServer } from 'node:http';
+import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
 import { Api, type Event, Session } from './api.js';
 import { assertMutation, byteRange, configuredOrigin, requireStorageUrl, telemetryEvidence, workProgress } from './contract.js';
+import { assertWritableProject, protectedProjectIdsFromEnv, selectedClips } from './video.js';
+
+test('one explicit clip can run without provisioning a second project', () => {
+  expect(selectedClips('KENH_DONG').map(clip => clip.key)).toEqual(['KENH_DONG']);
+  expect(selectedClips('DEMO_01').map(clip => clip.key)).toEqual(['DEMO_01']);
+  expect(() => selectedClips('KENH_DONG,KENH_DONG')).toThrow('invalid_clip_selection');
+  expect(() => selectedClips('KENH-DONG')).toThrow('invalid_clip_selection');
+});
+
+test('the project protection manifest must be outside the repository', async () => {
+  const original = process.env.E2E_PROTECTED_PROJECT_IDS_FILE;
+  process.env.E2E_PROTECTED_PROJECT_IDS_FILE = fileURLToPath(import.meta.url);
+  try {
+    await expect(protectedProjectIdsFromEnv()).rejects.toThrow('missing_protected_project_file');
+  } finally {
+    if (original === undefined) delete process.env.E2E_PROTECTED_PROJECT_IDS_FILE;
+    else process.env.E2E_PROTECTED_PROJECT_IDS_FILE = original;
+  }
+});
+
+test('disposable mode only permits HTTP on the explicit loopback origin', () => {
+  const origin = configuredOrigin('http://127.0.0.1:9443', 'storage', true);
+  expect(requireStorageUrl(origin + '/bucket/part?X-Amz-Signature=opaque', origin)).toContain('127.0.0.1');
+  expect(() => configuredOrigin('http://127.0.0.1:9443', 'storage')).toThrow('invalid_storage_origin');
+  expect(() => configuredOrigin('https://other.example', 'api', true)).toThrow('invalid_api_origin');
+});
 
 test('only the explicit mutation flag permits the real run', () => {
   for (const value of [undefined, '1', 'TRUE', 'false']) {
     expect(() => assertMutation(value)).toThrow('mutation_not_enabled');
   }
   expect(() => assertMutation('true')).not.toThrow();
+});
+
+test('real writes reject projects listed by the external protection manifest', () => {
+  const protectedIds = new Set(['11111111-1111-1111-1111-111111111111']);
+  expect(() => assertWritableProject('11111111-1111-1111-1111-111111111111', protectedIds))
+    .toThrow('protected_project_write_blocked');
+  expect(() => assertWritableProject('22222222-2222-2222-2222-222222222222', protectedIds)).not.toThrow();
 });
 
 test('only the configured TLS storage origin receives video bytes', () => {

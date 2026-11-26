@@ -76,6 +76,29 @@ public sealed class LD07RoadCoverageHttpTests(AuthenticationSqlServerFixture fix
         await db.ProjectMembers.Where(row => row.UserId == supervisor.Id).ExecuteDeleteAsync();
         var path = $"/api/v1/projects/{project.Id}/road-coverage";
         var attachPath = $"/api/v1/projects/{project.Id}/handover-documents";
+        using var inventory = await web.GetAsync(attachPath);
+        Assert.Equal(HttpStatusCode.OK, inventory.StatusCode);
+        Assert.True(inventory.Headers.CacheControl!.NoStore);
+        var existingDocument = Assert.Single((await inventory.Content.ReadFromJsonAsync<HandoverDocumentsReadFact>())!.Items);
+        Assert.Equal(handover.Id, existingDocument.Id);
+        Assert.Null(existingDocument.FileId);
+        Assert.True(existingDocument.CanAttachFile);
+        Assert.False(existingDocument.IsMapped);
+        Assert.Equal(Convert.ToBase64String(handover.RowVersion), existingDocument.Version);
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync(attachPath)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await pmClient.GetAsync(attachPath)).StatusCode);
+        using (var anonymous = factory.CreateClient()) Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.GetAsync(attachPath)).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await web.GetAsync($"/api/v1/projects/{Guid.NewGuid()}/handover-documents")).StatusCode);
+        using var emptyInventory = await web.GetAsync($"/api/v1/projects/{other.Id}/handover-documents");
+        Assert.Equal(HttpStatusCode.OK, emptyInventory.StatusCode);
+        Assert.Empty((await emptyInventory.Content.ReadFromJsonAsync<HandoverDocumentsReadFact>())!.Items);
+        var secondDocument = HandoverDocument.Create(Guid.NewGuid(), project.Id, "SECOND", handover.HandoverDate, supervisor.Id, null, null);
+        db.Add(secondDocument); await db.SaveChangesAsync();
+        using var multipleInventory = await web.GetAsync(attachPath);
+        var documents = (await multipleInventory.Content.ReadFromJsonAsync<HandoverDocumentsReadFact>())!;
+        Assert.Equal(new[] { handover.Id, secondDocument.Id }.Select(id => new System.Data.SqlTypes.SqlGuid(id)).Order(),
+            documents.Items.Select(row => new System.Data.SqlTypes.SqlGuid(row.Id)));
+        output.WriteLine("HANDOVER_INVENTORY_HTTP " + await multipleInventory.Content.ReadAsStringAsync());
         using var noHandover = await web.GetAsync(path);
         Assert.Equal(HttpStatusCode.OK, noHandover.StatusCode);
         Assert.DoesNotContain((await noHandover.Content.ReadFromJsonAsync<RoadCoverageReadFact>())!.Sources, row => row.Kind == "HANDOVER");
@@ -114,7 +137,7 @@ public sealed class LD07RoadCoverageHttpTests(AuthenticationSqlServerFixture fix
         }
 
         var uploadIds = await OpenUpload(project.Id);
-        var attach = new { fileId = uploadIds.FileId };
+        var attach = new { fileId = uploadIds.FileId, handoverDocumentId = existingDocument.Id };
         var version = noHandover.Headers.ETag!.Tag;
         using var pending = await Send(web, attachPath, attach, Guid.NewGuid().ToString(), version);
         Assert.Equal(HttpStatusCode.Conflict, pending.StatusCode);
@@ -137,6 +160,12 @@ public sealed class LD07RoadCoverageHttpTests(AuthenticationSqlServerFixture fix
         // A verified DOCUMENT is itself now visible as a maintenance source, so fetch a fresh aggregate ETag.
         using var beforeAttach = await web.GetAsync(path);
         var attachVersion = beforeAttach.Headers.ETag!.Tag;
+        using var selectionRequired = await Send(web, attachPath, new { fileId = uploadIds.FileId }, Guid.NewGuid().ToString(), attachVersion);
+        Assert.Equal(HttpStatusCode.Conflict, selectionRequired.StatusCode);
+        Assert.Equal("handover_document_selection_required", (await selectionRequired.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("code").GetString());
+        using var wrongPurpose = await Send(web, attachPath, new { fileId = file.Id, handoverDocumentId = existingDocument.Id }, Guid.NewGuid().ToString(), attachVersion);
+        Assert.Equal(HttpStatusCode.Conflict, wrongPurpose.StatusCode);
+        Assert.Equal("handover_file_not_ready", (await wrongPurpose.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("code").GetString());
         Assert.Equal(HttpStatusCode.Forbidden, (await Send(pmClient, attachPath, attach, Guid.NewGuid().ToString(), attachVersion)).StatusCode);
         using var wrongProject = await Send(web, attachPath, new { fileId = outsideUpload.FileId }, Guid.NewGuid().ToString(), attachVersion);
         Assert.Equal(HttpStatusCode.Conflict, wrongProject.StatusCode);
@@ -153,6 +182,11 @@ public sealed class LD07RoadCoverageHttpTests(AuthenticationSqlServerFixture fix
         using var replay = await Send(web, attachPath, attach, attachKey, attachVersion);
         Assert.Equal(HttpStatusCode.OK, replay.StatusCode);
         Assert.Equal(attached.Headers.ETag, replay.Headers.ETag);
+        using var afterInventory = await web.GetAsync(attachPath);
+        var afterDocuments = (await afterInventory.Content.ReadFromJsonAsync<HandoverDocumentsReadFact>())!.Items;
+        Assert.Equal(uploadIds.FileId, afterDocuments.Single(row => row.Id == handover.Id).FileId);
+        Assert.False(afterDocuments.Single(row => row.Id == handover.Id).CanAttachFile);
+        Assert.Null(afterDocuments.Single(row => row.Id == secondDocument.Id).FileId);
         var initial = await web.GetAsync(path); Assert.Equal(HttpStatusCode.OK, initial.StatusCode);
         var view = (await initial.Content.ReadFromJsonAsync<RoadCoverageReadFact>())!;
         var handoverPin = view.Sources.Single(row => row.Kind == "HANDOVER" && row.Id == handover.Id);

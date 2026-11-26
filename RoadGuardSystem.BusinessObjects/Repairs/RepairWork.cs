@@ -75,9 +75,10 @@ public sealed class RepairObligation
     public RepairActualScope Scope { get; private set; } = null!;
     public Guid? EffectiveResolutionDecisionId { get; private set; }
     public Guid? EffectiveResolutionHeadDecisionId { get; private set; }
+    public Guid? SafetyResolutionId { get; private set; }
     public Guid? CurrentRepairItemId { get; private set; }
     public Guid? OriginalCrewFirstStartId { get; private set; }
-    public bool IsResolved => EffectiveResolutionDecisionId is not null;
+    public bool IsResolved => EffectiveResolutionDecisionId is not null || SafetyResolutionId is not null;
     public IReadOnlyList<RepairObligationResolutionEvent> ResolutionHistory => _resolutionHistory.AsReadOnly();
     private readonly List<RepairObligationResolutionEvent> _resolutionHistory = [];
     private RepairObligation() { }
@@ -100,6 +101,13 @@ public sealed class RepairObligation
         _resolutionHistory.Add(new(decision.Id, true, null, decision.At, decision.PreviousObligationHeadDecisionId));
         EffectiveResolutionHeadDecisionId = decision.Id;
         EffectiveResolutionDecisionId = decision.Id;
+    }
+    public void ResolveSafety(Guid resolutionId)
+    {
+        RepairGuards.Id(resolutionId);
+        if (Kind != RepairObligationKind.TemporarySafety || IsResolved)
+            throw new InvalidOperationException("Only an unresolved safety obligation can be resolved once.");
+        SafetyResolutionId = resolutionId;
     }
     public void Reopen(RepairDecision correction)
     {

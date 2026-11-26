@@ -1,24 +1,55 @@
 import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
-import { stat } from 'node:fs/promises';
-import { isAbsolute } from 'node:path';
+import { readFile, realpath, stat } from 'node:fs/promises';
+import { isAbsolute, relative, resolve, sep } from 'node:path';
 import { Readable } from 'node:stream';
 import { setTimeout as delay } from 'node:timers/promises';
 import { etag, idempotency, safeCode, type RecordEvent, type Session } from './api.js';
 import { byteRange, check, CheckError, guid, requireStorageUrl, telemetryEvidence, workProgress } from './contract.js';
 
-export const clips = [
-  { key: 'KENH_DONG', path: 'D:/Project BE/Videotest/1123.mp4' },
-  { key: 'DUONG_SO_2', path: 'D:/Project BE/Videotest/11234.mp4' },
-] as const;
-
-type Clip = (typeof clips)[number];
-type Video = { clip: Clip; path: string; size: number; sha256: string; modifiedAt: number };
+type Clip = { key: string };
+type Asset = { path: string; size: number; sha256: string; modifiedAt: number; kind: 'mp4' | 'srt' };
+type Video = { clip: Clip; video: Asset; telemetry?: Asset };
 type Band = { routeVersionId: string; segmentSetId: string; segmentIds: string[]; targetBand: string };
 type Task = { id: string; projectId: string; operatorId: string; status: string; scope: Band[] };
 type Target = { taskId: string; projectId: string; deviceId: string; recordedAt: string };
 type Upload = { id: string; fileId: string; status: string; partSizeBytes: number };
 type Work = { sourceVideoFileId: string; workId: string; jobId: string; currentAttemptId: string; state: string; errorCode?: string };
+
+const repositoryRoot = resolve(import.meta.dirname, '../../..');
+
+export function selectedClips(input: string | undefined): readonly Clip[] {
+  const keys = (input ?? 'KENH_DONG,DUONG_SO_2').split(',').map(key => key.trim());
+  check(keys.every(key => /^[A-Z][A-Z0-9_]{0,39}$/.test(key)) && new Set(keys).size === keys.length, 'invalid_clip_selection');
+  return keys.map(key => ({ key }));
+}
+
+async function externalPath(source: string | undefined, code: string): Promise<string> {
+  check(source && isAbsolute(source), code);
+  const [root, candidate] = await Promise.all([realpath(repositoryRoot), realpath(source)])
+    .catch(() => { throw new CheckError(code); });
+  const fromRepository = relative(root, candidate);
+  check(isAbsolute(fromRepository) || fromRepository.startsWith(`..${sep}`), code);
+  return candidate;
+}
+
+export async function protectedProjectIdsFromEnv(): Promise<Set<string>> {
+  const path = await externalPath(process.env.E2E_PROTECTED_PROJECT_IDS_FILE, 'missing_protected_project_file');
+  const content = await readFile(path, 'utf8').catch(() => { throw new CheckError('protected_project_file_unreadable'); });
+  const ids = new Set<string>();
+  for (const [index, raw] of content.split(/\r?\n/).entries()) {
+    const value = raw.replace(/#.*/, '').trim();
+    if (!value) continue;
+    check(/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(value), `invalid_protected_project_id_${index + 1}`);
+    ids.add(value.toLowerCase());
+  }
+  check(ids.size > 0, 'protected_project_file_empty');
+  return ids;
+}
+
+export function assertWritableProject(projectId: string, protectedProjectIds: Set<string>): void {
+  check(!protectedProjectIds.has(projectId.toLowerCase()), 'protected_project_write_blocked');
+}
 
 export function targetFromEnv(clip: Clip): Target {
   const prefix = `E2E_${clip.key}`;
@@ -34,15 +65,23 @@ export function targetFromEnv(clip: Clip): Target {
 }
 
 export async function inspectVideo(clip: Clip, record: RecordEvent): Promise<Video> {
-  const path = process.env[`E2E_${clip.key}_VIDEO`] ?? clip.path;
-  check(isAbsolute(path) && /\.mp4$/i.test(path), 'expected_absolute_mp4_path');
+  const videoPath = await externalPath(process.env[`E2E_${clip.key}_VIDEO`], 'missing_video_path');
+  const video = await inspectAsset(videoPath, 'mp4', record);
+  const paired = process.env[`E2E_${clip.key}_SRT`];
+  const telemetry = paired === undefined ? undefined
+    : await inspectAsset(await externalPath(paired, 'invalid_srt_path'), 'srt', record);
+  return { clip, video, telemetry };
+}
+
+async function inspectAsset(path: string, kind: Asset['kind'], record: RecordEvent): Promise<Asset> {
+  check(path.toLowerCase().endsWith(`.${kind}`), 'unexpected_asset_extension');
   try {
     const before = await stat(path);
     check(before.isFile() && before.size > 0, 'empty_or_invalid_video');
     const hash = createHash('sha256');
     let firstChunk = true;
     for await (const chunk of createReadStream(path)) {
-      if (firstChunk) {
+      if (firstChunk && kind === 'mp4') {
         check(Buffer.isBuffer(chunk) && chunk.length >= 12 && chunk.toString('ascii', 4, 8) === 'ftyp',
           'unexpected_mp4_header');
         firstChunk = false;
@@ -52,8 +91,8 @@ export async function inspectVideo(clip: Clip, record: RecordEvent): Promise<Vid
     const after = await stat(path);
     check(before.mtimeMs === after.mtimeMs && before.size === after.size, 'video_changed_during_hash');
     const sha256 = hash.digest('hex');
-    record({ step: 'local_video', bytes: after.size, checksumPrefix: sha256.slice(0, 12) });
-    return { clip, path, size: after.size, sha256, modifiedAt: after.mtimeMs };
+    record({ step: kind === 'mp4' ? 'local_video' : 'local_telemetry', bytes: after.size, checksumPrefix: sha256.slice(0, 12) });
+    return { path, kind, size: after.size, sha256, modifiedAt: after.mtimeMs };
   } catch (error) {
     if (error instanceof CheckError) throw error;
     throw new CheckError('local_video_read_failed');
@@ -64,11 +103,12 @@ const taskPath = (id: string) => `/api/v1/survey-tasks/${id}`;
 const discovery = (projectId: string, datasetId: string) =>
   `/api/v1/projects/${projectId}/ai-videos?datasetId=${datasetId}`;
 
-async function readTask(session: Session, target: Target) {
+async function readTask(session: Session, target: Target, allowAssigned = false) {
   const { body, etag: version } = await session.call<Task>('survey_task', taskPath(target.taskId), 200);
   check(guid(body?.id) === target.taskId && guid(body.projectId) === target.projectId &&
     guid(body.operatorId) === session.actorId, 'survey_task_scope_mismatch');
-  check(['ACCEPTED', 'IN_PROGRESS'].includes(body.status), 'survey_task_not_submittable');
+  check(['ACCEPTED', 'IN_PROGRESS'].includes(body.status) || (allowAssigned && body.status === 'NEW_ASSIGNED'),
+    'survey_task_not_submittable');
   check(Array.isArray(body.scope) && body.scope.length > 0, 'survey_task_scope_missing');
   const scope = body.scope.map(band => {
     check(Array.isArray(band.segmentIds) && band.segmentIds.length > 0 &&
@@ -78,11 +118,11 @@ async function readTask(session: Session, target: Target) {
       segmentIds: band.segmentIds.map(guid), targetBand: band.targetBand,
     };
   });
-  return { scope, version: etag(version) };
+  return { scope, version: etag(version), status: body.status };
 }
 
 export async function preflightTarget(session: Session, target: Target) {
-  await readTask(session, target);
+  await readTask(session, target, true);
   let cursor: string | undefined;
   let found = false;
   for (let page = 0; page < 20 && !found; page++) {
@@ -111,7 +151,7 @@ async function poll<T>(timeoutMs: number, failure: string, read: () => Promise<T
   throw new CheckError(failure);
 }
 
-async function putPart(video: Video, partSize: number, part: number, url: string, timeoutMs: number) {
+async function putPart(video: Asset, partSize: number, part: number, url: string, timeoutMs: number) {
   const { start, end, length } = byteRange(video.size, partSize, part);
   const stream = createReadStream(video.path, { start, end });
   try {
@@ -133,14 +173,15 @@ async function putPart(video: Video, partSize: number, part: number, url: string
   }
 }
 
-async function upload(session: Session, target: Target, video: Video, origin: string, runId: string, record: RecordEvent) {
+async function upload(session: Session, target: Target, video: Asset, origin: string, label: string, record: RecordEvent) {
   const before = await stat(video.path).catch(() => { throw new CheckError('video_unavailable_before_upload'); });
   check(before.size === video.size && before.mtimeMs === video.modifiedAt, 'video_changed_before_upload');
   const { body: created } = await session.call<Upload>('upload_create', '/api/v1/uploads', 201, {
     method: 'POST', headers: idempotency(),
     data: {
-      purpose: 'SURVEY_VIDEO', projectId: target.projectId, targetId: target.taskId,
-      fileName: `E2E-${runId}-${video.clip.key}.mp4`, mediaType: 'video/mp4',
+      purpose: video.kind === 'mp4' ? 'SURVEY_VIDEO' : 'TELEMETRY',
+      projectId: target.projectId, targetId: target.taskId,
+      fileName: `DEMO-${label}.${video.kind}`, mediaType: video.kind === 'mp4' ? 'video/mp4' : 'application/x-subrip',
       sizeBytes: video.size, checksumSha256: video.sha256,
     },
   });
@@ -179,32 +220,54 @@ async function upload(session: Session, target: Target, video: Video, origin: st
     if (body.status === 'VERIFIED') return true;
     check(body.status === 'VERIFYING', 'upload_verification_failed_or_unknown');
   });
-  record({ step: 'upload_verified', status: 'VERIFIED' });
+  record({ step: 'upload_verified', status: 'VERIFIED', asset: video.kind });
   return fileId;
 }
 
 export async function runVideo(
   session: Session, target: Target, video: Video, origin: string, runId: string, record: RecordEvent,
 ) {
-  const fileId = await upload(session, target, video, origin, runId, record);
-  const { scope, version } = await readTask(session, target);
-  const { body: dataset } = await session.call<{ id: string; surveyTaskId: string }>(
-    'dataset_submit', `${taskPath(target.taskId)}/datasets`, 201, {
-      method: 'POST', headers: { ...idempotency(), 'If-Match': version },
-      data: {
-        videoFileIds: [fileId], telemetryFileIds: [], recordedAt: target.recordedAt,
-        deviceId: target.deviceId, scope,
-      },
+  const label = `${runId}-${video.clip.key}`;
+  const task = await readTask(session, target, true);
+  if (task.status === 'NEW_ASSIGNED') {
+    await session.call('survey_task_accept', `${taskPath(target.taskId)}/accept`, 200, {
+      method: 'POST', headers: { ...idempotency(), 'If-Match': task.version },
     });
+    await readTask(session, target);
+  }
+  const fileId = await upload(session, target, video.video, origin, label, record);
+  const telemetryId = video.telemetry && await upload(session, target, video.telemetry, origin, label, record);
+  const { scope, version } = await readTask(session, target);
+  const submit = {
+    method: 'POST', headers: { ...idempotency(), 'If-Match': version },
+    data: {
+      videoFileIds: [fileId], telemetryFileIds: telemetryId ? [telemetryId] : [],
+      ...(telemetryId ? { pairs: [{ videoFileId: fileId, telemetryFileId: telemetryId, timeOffsetMilliseconds: 0 }] } : {}),
+      recordedAt: target.recordedAt, deviceId: target.deviceId, scope,
+    },
+  };
+  const { body: dataset } = await session.call<{ id: string; surveyTaskId: string }>(
+    'dataset_submit', `${taskPath(target.taskId)}/datasets`, 201, submit);
   const datasetId = guid(dataset?.id);
+  check(guid(dataset.surveyTaskId) === target.taskId, 'dataset_task_mismatch');
+  const { body: replay } = await session.call<{ id: string }>(
+    'dataset_submit_replay', `${taskPath(target.taskId)}/datasets`, 201, submit);
+  check(guid(replay?.id) === datasetId, 'dataset_replay_changed_identity');
   record({ step: 'dataset_created', datasetIdPrefix: datasetId.slice(0, 8) });
   const { body: detail } = await session.call<{
     id: string; surveyTaskId: string; projectId: string; sourceFiles: { fileId: string; checksumSha256: string }[];
+    pairs?: { videoFileId: string; telemetryFileId: string; timeOffsetMilliseconds: number }[];
   }>('dataset_read', `/api/v1/datasets/${datasetId}`, 200);
   check(guid(detail?.id) === datasetId && guid(detail.surveyTaskId) === target.taskId &&
     guid(detail.projectId) === target.projectId &&
-    detail.sourceFiles?.some(source => guid(source.fileId) === fileId && source.checksumSha256 === video.sha256),
+    detail.sourceFiles?.some(source => guid(source.fileId) === fileId && source.checksumSha256 === video.video.sha256),
   'dataset_readback_mismatch');
+  if (telemetryId) {
+    check(detail.sourceFiles.some(source => guid(source.fileId) === telemetryId && source.checksumSha256 === video.telemetry?.sha256) &&
+      detail.pairs?.length === 1 && guid(detail.pairs[0].videoFileId) === fileId &&
+      guid(detail.pairs[0].telemetryFileId) === telemetryId && detail.pairs[0].timeOffsetMilliseconds === 0,
+    'telemetry_pair_readback_mismatch');
+  }
 
   let previousState: string | undefined;
   const work = await poll(12 * 60_000, 'real_work_timeout', async () => {

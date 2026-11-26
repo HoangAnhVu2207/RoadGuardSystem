@@ -11,7 +11,7 @@ public sealed class WebReadException(int status, string code) : Exception(code)
 
 public sealed class WebCoordinationService(IWebCoordinationRepository repository, IRepairWorkflowService repairs,
     RoadGuardSystem.Services.Cases.ICaseReportDetailsService reports, RoadGuardSystem.Services.Integration.IAiCandidateFactsReader ai,
-    RoadGuardSystem.Services.Files.IUploadService files)
+    RoadGuardSystem.Services.Files.IUploadService files, RepairSourceEvidenceService? repairEvidence = null)
 {
     public async Task<OrganizationProfile?> OrganizationAsync(Guid actor, UserRoleCode role, Guid user, CancellationToken token)
     {
@@ -53,12 +53,16 @@ public sealed class WebCoordinationService(IWebCoordinationRepository repository
     public async Task<PackagePlanning?> PackageAsync(Guid actor, UserRoleCode role, Guid project, Guid package, CancellationToken token)
     {
         await GuardAsync(actor, role, [project], token);
-        var row = await repository.PackageAsync(project, package, token); return row is null ? null : (PackagePlanning)row;
+        var row = await repository.PackageAsync(project, package, token);
+        await GuardAsync(actor, role, [project], token);
+        return row is null ? null : (PackagePlanning)row;
     }
     public async Task<ItemPlanning?> ItemAsync(Guid actor, UserRoleCode role, Guid project, Guid package, Guid item, CancellationToken token)
     {
         await ItemGuard(actor, role, project, package, item, token);
-        var row = await repository.ItemAsync(project, package, item, token); return row is null ? null : (ItemPlanning)row;
+        var row = await repository.ItemAsync(project, package, item, token);
+        await ItemGuard(actor, role, project, package, item, token);
+        return row is null ? null : (ItemPlanning)row;
     }
     public async Task<DefectSourceReview?> DefectAsync(Guid actor, UserRoleCode role, Guid project, Guid package, Guid item, CancellationToken token)
     {
@@ -66,6 +70,15 @@ public sealed class WebCoordinationService(IWebCoordinationRepository repository
         var stored = await repository.DefectAsync(project, package, item, token);
         var result = stored is null ? null : (DefectSourceReview)stored;
         if (result is null) return null;
+        if (repairEvidence is not null)
+        {
+            var scoped = await repairEvidence.ReadAsync(actor, role, project, package, item, null, token);
+            if (scoped.Code is not null) throw new WebReadException(scoped.Status, scoped.Code);
+            var gaps = result.MissingSections.Concat(scoped.MissingReasons ?? []).ToList();
+            if (result.Sources.Length == 0) gaps.Add("LEGACY_SOURCE_NOT_STORED");
+            else if (scoped.Evidence!.Length == 0) gaps.Add("SOURCE_EVIDENCE_UNAVAILABLE");
+            return result with { Evidence = scoped.Evidence, MissingSections = gaps.Distinct().ToArray() };
+        }
         var evidence = new List<DefectSourceEvidence>();
         var missing = new List<string>(result.MissingSections);
         foreach (var source in result.Sources.Take(100))

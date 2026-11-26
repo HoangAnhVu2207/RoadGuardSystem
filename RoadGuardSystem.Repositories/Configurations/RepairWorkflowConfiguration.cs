@@ -28,6 +28,7 @@ public sealed class RepairObligationConfiguration : IEntityTypeConfiguration<Rep
     {
         builder.ToTable("RepairObligations", table => table.HasTrigger("TR_RepairObligations_Scope")); builder.HasKey(x => x.Id); builder.Property(x => x.Id).ValueGeneratedNever();
         builder.Property<byte[]>("RowVersion").IsRowVersion(); builder.Ignore(x => x.IsResolved);
+        builder.HasOne<RoadGuardSystem.BusinessObjects.Auditing.AuditLog>().WithMany().HasForeignKey(x => x.SafetyResolutionId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<RepairDecision>().WithMany().HasForeignKey(x => x.EffectiveResolutionHeadDecisionId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<RepairDecision>().WithMany().HasForeignKey(x => x.EffectiveResolutionDecisionId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<RepairItem>().WithMany().HasForeignKey(x => x.CurrentRepairItemId).OnDelete(DeleteBehavior.Restrict);

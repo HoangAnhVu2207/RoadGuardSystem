@@ -13,6 +13,8 @@ public sealed partial class ExportService
         if (_repairs is null || _files is null) return new("producer_unavailable", null);
         var selection = await _repo.ResolveRepairItemsAsync(project, request.RepairPackageIds ?? [], request.RepairItemIds ?? [], token);
         if (selection.Length == 0) return new("export_source_unavailable", null);
+        var selectedIds = selection.Select(i => i.ItemId).ToArray();
+        if (!await _repo.CanReadRepairItemsAsync(actor, project, selectedIds, token)) return new("forbidden", null);
         var items = new List<RepairDossierItemDto>();
         var files = new Dictionary<Guid, ExportFileDto>();
         var sections = new List<ExportSectionDto>();
@@ -37,16 +39,31 @@ public sealed partial class ExportService
             foreach (var evidence in history.Attempts.SelectMany(row => row.Evidence).Concat(history.Decisions.SelectMany(row => row.Basis?.Evidence ?? [])))
             {
                 if (!evidence.Verified || evidence.FileVersion is null || evidence.Sha256 is null) continue;
-                var read = await _files.GetFileMetadataAsync(actor, role, evidence.FileId, cancellationToken: token);
-                if (read.File is not { Status: "VERIFIED" } file || file.Version != evidence.FileVersion || file.ChecksumSha256 != evidence.Sha256)
+                var member = await _repo.HasCurrentProjectMembershipAsync(actor, project, token);
+                var read = member ? await _files.GetFileMetadataAsync(actor, role, evidence.FileId, cancellationToken: token)
+                    : new RoadGuardSystem.Services.Files.UploadServiceResult(RoadGuardSystem.Services.Files.UploadServiceStatus.Forbidden);
+                var scoped = read.File is { Status: "VERIFIED" } ? null
+                    : await _repo.ReadRepairFileAsync(actor, project, selectedIds, evidence.FileId, token);
+                var file = read.File;
+                if ((file is null || file.Status != "VERIFIED" || file.Version != evidence.FileVersion || file.ChecksumSha256 != evidence.Sha256) &&
+                    (scoped is null || scoped.FileVersion != evidence.FileVersion || scoped.Checksum != evidence.Sha256))
                 {
+                    // Requested authoritative AFTER originals are mandatory; do not report a complete
+                    // selected-item ZIP while silently dropping its inaccessible post-repair evidence.
+                    if (request.IncludeOriginalFiles && evidence.Purpose == "AFTER" && evidence.SourceKind == "FIELD")
+                        return new("forbidden", null);
                     sections.Add(new($"file/{evidence.FileId}", "UNAVAILABLE", ["EVIDENCE_ACCESS_OR_VERSION_UNAVAILABLE"]));
                     continue;
                 }
-                if (file.MediaType is not ("image/jpeg" or "image/png"))
-                { sections.Add(new($"file/{file.Id}", "UNAVAILABLE", ["REPAIR_ORIGINAL_FORMAT_UNSUPPORTED"])); continue; }
-                var path = request.IncludeOriginalFiles ? $"repair-evidence/{file.Id:D}.{(file.MediaType == "image/png" ? "png" : "jpg")}" : null;
-                files[file.Id] = new(file.Id, file.Version, file.ChecksumSha256, file.SizeBytes, file.MediaType, path,
+                var id = scoped?.FileId ?? file!.Id;
+                var version = scoped?.FileVersion ?? file!.Version;
+                var checksum = scoped?.Checksum ?? file!.ChecksumSha256;
+                var size = scoped?.SizeBytes ?? file!.SizeBytes;
+                var mediaType = scoped?.MediaType ?? file!.MediaType;
+                if (mediaType is not ("image/jpeg" or "image/png"))
+                { sections.Add(new($"file/{id}", "UNAVAILABLE", ["REPAIR_ORIGINAL_FORMAT_UNSUPPORTED"])); continue; }
+                var path = request.IncludeOriginalFiles ? $"repair-evidence/{id:D}.{(mediaType == "image/png" ? "png" : "jpg")}" : null;
+                files[id] = new(id, version, checksum, size, mediaType, path,
                     request.IncludeOriginalFiles, request.IncludeOriginalFiles ? null : "ORIGINALS_NOT_REQUESTED");
             }
         }

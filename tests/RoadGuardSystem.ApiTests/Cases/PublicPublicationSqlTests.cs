@@ -258,7 +258,7 @@ public sealed class PublicPublicationSqlTests(AuthenticationSqlServerFixture sql
         await db.SaveChangesAsync();
         if (mutation == "no-provenance") await db.Defects.Where(x => x.Id == defect.Id).ExecuteUpdateAsync(x => x.SetProperty(v => v.Status, DefectStatus.Verified));
         var caseService = new CaseWorkflowService(new CaseWorkflowRepository(db), new ProjectScopeGuard(new ProjectMembershipReadModel(db), TimeProvider.System),
-            new AnhHuyProducerService(new AnhHuyFactsRepository(db), null!, null!), new IdempotencyOperationService(db));
+            new AnhHuyProducerService(new AnhHuyFactsRepository(db), null!, null!), new IdempotencyOperationService(db), CaseRoutingTestDependencies.Create(db));
         var read = await caseService.ReadAsync(source.Pm, UserRoleCode.ProjectManager, incident.Id, default);
         var concluded = await caseService.CommandAsync(source.Pm, UserRoleCode.ProjectManager, new(incident.Id, read.Case!.Version, "conclude", "Confirmed publication source",
             Outcome: mutation == "unconfirmed-case" ? CaseConclusionOutcome.NoDefect : CaseConclusionOutcome.Confirmed, DefectIds: mutation == "unconfirmed-case" ? [] : [defect.Id], EvidenceIds: [evidence.Id]), Guid.NewGuid().ToString(), null, default);

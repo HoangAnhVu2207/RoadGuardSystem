@@ -20,6 +20,7 @@ public static class Huy01ReporterPersistenceExtensions
         services.TryAddScoped<RoadGuardSystem.Repositories.Cases.IPublicPublicationRepository, RoadGuardSystem.Repositories.Implementations.Cases.PublicPublicationRepository>();
         services.TryAddScoped<RoadGuardSystem.Repositories.Cases.ICaseWorkflowRepository, RoadGuardSystem.Repositories.Implementations.Cases.CaseWorkflowRepository>();
         services.TryAddScoped<RoadGuardSystem.Repositories.Cases.ICaseReportDetailsRepository, RoadGuardSystem.Repositories.Implementations.Cases.CaseReportDetailsRepository>();
+        services.TryAddScoped<RoadGuardSystem.Repositories.Cases.IRoutingMapRepository, RoadGuardSystem.Repositories.Implementations.Cases.RoutingMapRepository>();
         return services;
     }
 
@@ -28,6 +29,7 @@ public static class Huy01ReporterPersistenceExtensions
         services.AddHuy01ReporterCasePersistence();
         services.TryAddScoped<RoadGuardSystem.Repositories.Web.IWebCoordinationRepository, RoadGuardSystem.Repositories.Implementations.Web.WebCoordinationRepository>();
         services.TryAddScoped<RoadGuardSystem.Repositories.Defects.ICandidateDecisionRepository, RoadGuardSystem.Repositories.Implementations.Defects.CandidateDecisionRepository>();
+        services.TryAddScoped<RoadGuardSystem.Repositories.Defects.IReportMatchingLocationRepository, RoadGuardSystem.Repositories.Implementations.Defects.ReportMatchingLocationRepository>();
         services.TryAddScoped<RoadGuardSystem.Repositories.Defects.IDefectTypeAdminRepository, RoadGuardSystem.Repositories.Implementations.Defects.DefectTypeAdminRepository>();
         services.TryAddScoped<RoadGuardSystem.Repositories.Defects.IDefectWorkflowRepository, RoadGuardSystem.Repositories.Implementations.Defects.DefectWorkflowRepository>();
         services.TryAddScoped<RoadGuardSystem.Repositories.Labels.ITrainingLabelRepository, RoadGuardSystem.Repositories.Implementations.Labels.TrainingLabelRepository>();

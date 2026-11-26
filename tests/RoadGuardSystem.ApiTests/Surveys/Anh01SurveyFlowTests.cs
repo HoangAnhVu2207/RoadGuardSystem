@@ -5,6 +5,8 @@ using System.Text.Json;
 using System.Security.Cryptography;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
+using RoadGuardSystem.API.Workers;
 using RoadGuardSystem.Repositories.Storage;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
@@ -18,7 +20,7 @@ using Xunit;
 
 namespace RoadGuardSystem.ApiTests.Surveys;
 
-[Collection(AuthenticationApiFixture.Name)]
+[Collection(SurveyFlowApiFixture.Name)]
 public sealed class Anh01SurveyFlowTests(AuthenticationSqlServerFixture sql)
 {
     [Theory]
@@ -33,7 +35,15 @@ public sealed class Anh01SurveyFlowTests(AuthenticationSqlServerFixture sql)
         var media = new byte[100];
         var checksum = Convert.ToHexString(SHA256.HashData(media)).ToLowerInvariant();
         await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString, configureTestServices: services =>
-        { services.RemoveAll<IUploadObjectStorage>(); services.AddSingleton<IUploadObjectStorage>(new SurveyVideoStorage(media, checksum)); });
+        {
+            // This scenario explicitly drives the real dispatcher below. A hosted consumer
+            // can otherwise lease its message and make the manual dispatcher return IDLE
+            // before the occurrence transaction has committed.
+            services.Remove(Assert.Single(services.Where(descriptor => descriptor.ServiceType == typeof(IHostedService)
+                && descriptor.ImplementationType == typeof(H6NotificationWorker))));
+            services.RemoveAll<IUploadObjectStorage>();
+            services.AddSingleton<IUploadObjectStorage>(new SurveyVideoStorage(media, checksum));
+        });
         using var client = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") });
         await Login(client, supervisor.UserName!);
         var staged = await VerifiedProjectHandoverFixture.StageAsync(sql, supervisor.Id);
@@ -1018,4 +1028,13 @@ public sealed class Anh01SurveyFlowTests(AuthenticationSqlServerFixture sql)
             CancellationToken cancellationToken = default) => Task.FromResult(new UploadObjectVerification(media.Length, checksum, "video/mp4"));
         public Task<Stream> OpenReadAsync(string objectKey, CancellationToken cancellationToken = default) => Task.FromResult<Stream>(new MemoryStream(media, false));
     }
+}
+
+// The dispatcher claims globally within its database. Other acceptance classes must
+// not contribute queued/leased work to this scenario's explicit dispatch budget.
+// Keep SQL-heavy collections serialized, just as AuthenticationApiFixture does.
+[CollectionDefinition(Name, DisableParallelization = true)]
+public sealed class SurveyFlowApiFixture : ICollectionFixture<AuthenticationSqlServerFixture>
+{
+    public const string Name = "Survey flow API";
 }

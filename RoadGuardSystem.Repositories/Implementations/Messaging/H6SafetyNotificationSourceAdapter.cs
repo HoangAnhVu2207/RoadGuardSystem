@@ -59,7 +59,7 @@ public sealed class H6SafetyNotificationSourceAdapter(RoadGuardDbContext db) : I
                 db.Set<RepairObligation>().Any(obligation => obligation.Id == row.SafetyObligationId &&
                     obligation.ProjectId == claim.ProjectId && obligation.DefectId == measure.DefectId &&
                     obligation.Kind == RepairObligationKind.TemporarySafety &&
-                    obligation.EffectiveResolutionDecisionId == null), cancellationToken))
+                    obligation.EffectiveResolutionDecisionId == null && obligation.SafetyResolutionId == null), cancellationToken))
             return new("REJECTED", "notification_source_relation_invalid");
         var item = await db.Set<RepairItem>().AsNoTracking().SingleOrDefaultAsync(row => row.Id == action.ItemId,
             cancellationToken);

@@ -15,4 +15,7 @@ public interface IRepairWorkflowRepository
     Task<RepairWorkflowResult> RequestReviewAsync(RepairReviewRequestCommand command, CancellationToken cancellationToken);
     Task<RepairWorkflowResult> ReadItemAsync(Guid actorId, UserRoleCode role, Guid projectId,
         Guid packageId, Guid itemId, bool history, CancellationToken cancellationToken);
+    Task<RepairWorkflowResult> ReadSourceTaskAsync(Guid actor, UserRoleCode role, Guid project,
+        Guid package, Guid item, Guid task, string kind, Guid? resource, CancellationToken token)
+        => Task.FromResult(new RepairWorkflowResult(404, "not_found"));
 }

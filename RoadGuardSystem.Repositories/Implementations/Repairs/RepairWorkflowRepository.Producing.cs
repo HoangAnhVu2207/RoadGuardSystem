@@ -483,7 +483,7 @@ public sealed partial class RepairWorkflowRepository : IRepairProducerRepository
                     }
                     catch (ArgumentException) { Deny(400, "validation_error"); throw; }
                     var existing = await db.Set<RepairObligation>().AsNoTracking().Include(row => row.Scope)
-                        .Where(row => row.DefectId == defect.Id && row.Kind == kind && row.EffectiveResolutionDecisionId == null).ToArrayAsync(ct);
+                        .Where(row => row.DefectId == defect.Id && row.Kind == kind && row.EffectiveResolutionDecisionId == null && row.SafetyResolutionId == null).ToArrayAsync(ct);
                     if (existing.Any(row => scope.Compare(row.Scope) != RepairScopeComparison.Disjoint) ||
                         obligations.Where(row => row.Kind == kind).Any(row => scope.Compare(row.Scope) != RepairScopeComparison.Disjoint))
                         Deny(409, "active_scope_conflict");

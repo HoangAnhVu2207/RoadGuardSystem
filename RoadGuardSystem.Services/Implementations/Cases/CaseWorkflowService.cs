@@ -12,7 +12,7 @@ using RoadGuardSystem.Services.Reports;
 namespace RoadGuardSystem.Services.Implementations.Cases;
 
 public sealed class CaseWorkflowService(ICaseWorkflowRepository repository, IProjectScopeGuard scope,
-    IAnhHuyProducerService producer, IdempotencyOperationService idempotency) : ICaseWorkflowService
+    IAnhHuyProducerService producer, IdempotencyOperationService idempotency, IRoutingMapRepository routing) : ICaseWorkflowService
 {
     public Task<CaseWorkflowResult> ReadAsync(Guid actor, UserRoleCode role, Guid id, CancellationToken ct)
         => Run(async () => new(200, Case: await repository.ReadAsync(actor, role, id, async (p, token) => await scope.AuthorizeAsync(actor, role, p, token) is not null, ct)));
@@ -24,6 +24,17 @@ public sealed class CaseWorkflowService(ICaseWorkflowRepository repository, IPro
         => Run(async () =>
         {
             if (command.CaseId == Guid.Empty || string.IsNullOrWhiteSpace(command.Reason) || command.Reason.Trim().Length > 1000) return Invalid("reason");
+            if (command.RoutingSource is { } pin && (command.Action != "triage" || pin.ReportId == Guid.Empty || pin.EvidenceId == Guid.Empty || pin.RoadSectionId == Guid.Empty)) return Invalid("reportId");
+            if (command.RoutingSource is not null)
+                command = command with
+                {
+                    RoutingSource = command.RoutingSource with
+                    {
+                        RouteVersionId = command.RouteVersionId,
+                        SegmentSetId = command.SegmentSetId,
+                        GeometryVersion = command.GeometryVersion
+                    }
+                };
             if (!ValidVersion(command.ExpectedVersion)) return Invalid("If-Match");
             if (key is null || key.Any(c => c is < ' ' or > '~') || key.Trim(' ').Length is < 1 or > 200) return Invalid("Idempotency-Key");
             command = command with { Reason = command.Reason.Trim(), SourceCaseVersions = command.SourceCaseVersions?.OrderBy(k => k.Key).ToDictionary(k => k.Key, k => k.Value) };
@@ -47,16 +58,25 @@ public sealed class CaseWorkflowService(ICaseWorkflowRepository repository, IPro
             async Task<bool> AuthorizeAsync(Guid project, CancellationToken token) => await scope.AuthorizeAsync(actor, role, project, token) is not null;
             await repository.ReadAsync(actor, role, command.CaseId, ProjectAccess, ct);
             var fingerprint = Convert.ToHexString(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(command))).ToLowerInvariant();
-            Func<CancellationToken, Task>? geometry = command.RouteVersionId is null ? null : async token =>
+            Func<CancellationToken, Task>? geometry = command.Action != "triage" ? null : async token =>
             {
-                var facts = await producer.ResolveGeometryAsync(actor, role, normalized.ProjectId!.Value, normalized.RouteVersionId!.Value,
-                    normalized.SegmentSetId!.Value, normalized.GeometryVersion, true, token);
-                if (facts.Status != AnhHuyProducerStatus.Ready) throw new CaseWorkflowException(facts.Status == AnhHuyProducerStatus.Forbidden ? 403 : facts.Status == AnhHuyProducerStatus.NotFound ? 404 : 409,
-                    facts.Status == AnhHuyProducerStatus.Forbidden ? "access_forbidden" : facts.Status == AnhHuyProducerStatus.NotFound ? "not_found" : facts.Status == AnhHuyProducerStatus.StaleGeometry ? "candidate_stale" : "source_not_ready");
+                if (normalized.RouteVersionId is not null)
+                {
+                    var facts = await producer.ResolveGeometryAsync(actor, role, normalized.ProjectId!.Value, normalized.RouteVersionId!.Value,
+                        normalized.SegmentSetId!.Value, normalized.GeometryVersion, true, token);
+                    if (facts.Status != AnhHuyProducerStatus.Ready) throw new CaseWorkflowException(facts.Status == AnhHuyProducerStatus.Forbidden ? 403 : facts.Status == AnhHuyProducerStatus.NotFound ? 404 : 409,
+                        facts.Status == AnhHuyProducerStatus.Forbidden ? "access_forbidden" : facts.Status == AnhHuyProducerStatus.NotFound ? "not_found" : facts.Status == AnhHuyProducerStatus.StaleGeometry ? "candidate_stale" : "source_not_ready");
+                }
+                await routing.ValidateTriageAsync(actor, role, normalized, token);
+                await routing.RecordTriageAsync(actor, normalized, token);
             };
             var operation = $"huy01.case.{normalized.Action}.v1";
-            Task ReceiptGuard(CancellationToken token) => repository.GuardCommandAsync(actor, role, normalized, ProjectAccess, token);
-            var result = await Huy01CommandExecution.ExecuteAsync(handler => normalized.RepairProgressStatus is null
+            async Task ReceiptGuard(CancellationToken token)
+            {
+                await repository.GuardCommandAsync(actor, role, normalized, ProjectAccess, token);
+                if (normalized.Action == "triage") await routing.ValidateTriageAsync(actor, role, normalized, token);
+            }
+            var result = await Huy01CommandExecution.ExecuteAsync(handler => normalized.RepairProgressStatus is null && normalized.Action != "triage"
                 ? idempotency.ExecuteAsync(actor, null, operation, key.Trim(' '), fingerprint, handler, ct, ReceiptGuard)
                 : idempotency.ExecuteSerializableAsync(actor, null, operation, key.Trim(' '), fingerprint, handler, ct, ReceiptGuard), async token =>
                 {

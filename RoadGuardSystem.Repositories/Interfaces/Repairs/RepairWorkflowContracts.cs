@@ -3,7 +3,8 @@ namespace RoadGuardSystem.Repositories.Repairs;
 // Internal typed command and persisted fact contracts. Property order preserves existing receipts and hashes.
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record RepairFieldEvidenceData(Guid CaptureOriginId, Guid? FileId, string Purpose,
-    string ChecksumSha256, string MediaType, DateTimeOffset? CapturedAt, string? AttemptChecklist);
+    string ChecksumSha256, string MediaType, DateTimeOffset? CapturedAt, string? AttemptChecklist,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] long? SizeBytes = null);
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record RepairFieldMeasurementData(string SampleId, string Type, decimal? Value, string State,
     string? UnknownReason, string Dimension, string Unit, double? Longitude, double? Latitude,
@@ -66,7 +67,13 @@ public sealed record RepairExecutionStartData(Guid OriginId, Guid FieldFirstStar
 public sealed record RepairExecutionStartFact(Guid Id, Guid ItemId, Guid TaskId, Guid AssessmentId, Guid FirstStartId,
     DateTimeOffset ClaimedAt, DateTimeOffset ServerReceivedAt, DateTimeOffset? VerifiedOriginalAt, string TimeProvenance);
 public sealed record RepairHistoryFact(RepairItemFact Item, RepairDecisionHistoryFact[] Decisions,
-    RepairAttemptHistoryFact[] Attempts, RepairReviewRequestHistoryFact[] ReviewRequests);
+    RepairAttemptHistoryFact[] Attempts, RepairReviewRequestHistoryFact[] ReviewRequests,
+    RepairIntakeHistoryFact[]? IntakeSubmissions = null, RepairReviewHistoryFact[]? AttemptReviews = null,
+    RepairTaskBindingFact[]? TaskBindings = null);
+public sealed record RepairIntakeHistoryFact(Guid Id, Guid AttemptId, Guid SubmissionId, Guid RootSubmissionId,
+    Guid? PreviousLinkId, Guid TaskId, string ContentHash, bool Effective);
+public sealed record RepairReviewHistoryFact(Guid Id, Guid AttemptId, Guid IntakeLinkId, Guid SubmissionId,
+    string ContentHash, Guid ActorId, string Role, string Decision, string Reason, DateTimeOffset At, bool Current);
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record RepairItemAssignData(RepairFieldTaskData Task, Guid? PolicyRevisionId, string Reason);
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
@@ -76,7 +83,11 @@ public sealed record RepairCurrentBindingFact(Guid Id, Guid TaskId, Guid Assignm
 public sealed record RepairItemFact(Guid Id, Guid ProjectId, Guid DefectId, Guid ObligationId, string Mode,
     string State, string Result, Guid? EffectiveDecisionId, Guid[] AttemptIds, Guid[] DecisionIds, string Version,
     string? RepairPlan = null, string? ChecklistVersion = null, string? ProposalPlanHash = null,
-    string? ApprovedPlanHash = null, RepairCurrentBindingFact? CurrentBinding = null);
+    string? ApprovedPlanHash = null, RepairCurrentBindingFact? CurrentBinding = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] RepairItemSourceFact? SourceContext = null);
+public sealed record RepairItemSourceFact(Guid OriginProjectId, Guid ResponsibilityProjectId,
+    Guid DefectId, string DefectTypeCode, string DefectStatus, string DefectVersion,
+    Guid? RouteVersionId, SafetyObligationScopeFact Scope, RepairTaskBindingFact? Task);
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record RepairMeasurementAssessmentData(Guid OriginId, Guid FieldFirstStartId,
     RepairFieldMeasurementData[]? Measurements, RepairFieldEvidenceData[]? Evidence,

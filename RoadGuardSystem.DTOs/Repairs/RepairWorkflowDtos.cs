@@ -71,6 +71,10 @@ public sealed record RepairCurrentBindingView(Guid Id, Guid TaskId, Guid Assignm
 public sealed record RepairItemView(Guid Id, Guid ProjectId, Guid DefectId, Guid ObligationId, string Mode,
     string State, string Result, Guid? EffectiveDecisionId, Guid[] AttemptIds, Guid[] DecisionIds, string Version,
     string? RepairPlan = null, string? ChecklistVersion = null, string? ProposalPlanHash = null,
-    string? ApprovedPlanHash = null, RepairCurrentBindingView? CurrentBinding = null);
+    string? ApprovedPlanHash = null, RepairCurrentBindingView? CurrentBinding = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] RepairItemSourceView? SourceContext = null);
+public sealed record RepairItemSourceView(Guid OriginProjectId, Guid ResponsibilityProjectId,
+    Guid DefectId, string DefectTypeCode, string DefectStatus, string DefectVersion,
+    Guid? RouteVersionId, SafetyObligationScopeView Scope, RepairTaskBindingView? Task);
 public sealed record RepairPackageView(Guid Id, Guid ProjectId, Guid DefectId, bool AllMandatoryResolved,
     Guid[] UnresolvedMandatoryObligationIds, RepairItemView[] Items, string Version);

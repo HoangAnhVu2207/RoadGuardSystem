@@ -11,6 +11,7 @@ public sealed partial class ExportRepository
         var today = DateOnly.FromDateTime(_clock.GetUtcNow().UtcDateTime);
         return await _db.ProjectMembers.AsNoTracking().AnyAsync(member => member.UserId == actorId &&
             member.ProjectId == projectId && member.Status == ProjectMemberStatus.Active &&
+            _db.Users.Any(user => user.Id == actorId && user.RoleCode == member.RoleCode) &&
             member.ValidFrom <= today && (member.ValidTo == null || member.ValidTo >= today), ct);
     }
 
@@ -30,6 +31,23 @@ public sealed partial class ExportRepository
     {
         ArgumentNullException.ThrowIfNull(query);
         if (query.ManifestProjectId != projectId) return false;
+        if (query.ScopedRepairDossier)
+        {
+            if (query.CaseFacts is not null || query.HasAvailableRepairMetric) return false;
+            var ids = query.RepairSources.Where(r => r.Kind == "RepairItem").Select(r => r.Id).Distinct().ToArray();
+            if (!await CanReadRepairItemsAsync(actorId, projectId, ids, ct)) return false;
+            foreach (var source in query.RepairSources)
+            {
+                if (source.Kind == "RepairItem") continue;
+                if (source.Kind != "RepairDecision" || !await (from decision in _db.RepairDecisions.AsNoTracking()
+                                                               join item in _db.RepairItems.AsNoTracking() on decision.ItemId equals item.Id
+                                                               where decision.Id == source.Id && ids.Contains(item.Id) && decision.ObligationId == item.ObligationId &&
+                                                                   decision.DefectId == item.DefectId && decision.Mode == item.Mode
+                                                               select decision.Id).AnyAsync(ct)) return false;
+            }
+            return true;
+        }
+        if (!await HasCurrentProjectMembershipAsync(actorId, projectId, ct)) return false;
         var repairRefs = query.RepairSources;
         var caseFacts = query.CaseFacts;
         var privateRepair = repairRefs.Length != 0 || query.HasAvailableRepairMetric;

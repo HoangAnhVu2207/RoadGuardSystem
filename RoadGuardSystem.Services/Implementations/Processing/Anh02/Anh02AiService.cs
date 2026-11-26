@@ -283,28 +283,7 @@ public sealed class Anh02AiService(IAnh02AiRepository repository, IAnhHuyProduce
         var facts = await repository.ReadCandidateAsync(projectId, detectionId, cancellationToken);
         if (facts is null) return new(await repository.DetectionProjectAsync(detectionId, cancellationToken) == projectId
             ? AnhHuyProducerStatus.SourceNotReady : AnhHuyProducerStatus.NotFound);
-        if (facts.Result.RunId != facts.Run.Id || facts.Result.ProcessingJobId != facts.Run.ProcessingJobId
-            || facts.Detection.ProcessingJobId != facts.Run.ProcessingJobId || facts.Detection.ModelVersionId != facts.Run.ModelVersionId
-            || facts.Proof.FrameFileVersion != facts.FrameSha256 || facts.FrameBytes != SyntheticAiFixture.FrameBytes
-            || facts.FrameSha256 != SyntheticAiFixture.FrameHash || facts.Result.ManifestHash != facts.Run.ManifestHash)
-            return new(AnhHuyProducerStatus.SourceNotReady);
-        try
-        {
-            var parsed = ParseResult(facts.Result);
-            var detection = parsed.Detections.SingleOrDefault(d => d.DetectionId == detectionId);
-            if (parsed.RunId != facts.Run.Id || parsed.JobId != facts.Run.ProcessingJobId || parsed.AttemptId != facts.Run.AttemptId
-                || AiManifestCanonicalizer.Hash(Encoding.UTF8.GetBytes(facts.Run.CanonicalManifest)) != facts.Run.ManifestHash
-                || detection is null || detection.SourceVideoFileId != facts.Proof.SourceVideoFileId
-                || detection.FrameFileId != facts.Proof.FrameFileId || detection.FrameFileVersion != facts.Proof.FrameFileVersion
-                || detection.TimestampMs != facts.Proof.TimestampMilliseconds || detection.Confidence != facts.Detection.Confidence
-                || detection.TypeCode != facts.Detection.DefectTypeCode || detection.SegmentId != facts.Proof.SegmentId
-                || !detection.Bbox.SequenceEqual(new[] { facts.Proof.BoxX, facts.Proof.BoxY, facts.Proof.BoxWidth, facts.Proof.BoxHeight })
-                || facts.Proof.SourceVideoFileVersion != facts.SourceVideoVersion
-                || facts.SourceVideoSha256 != SyntheticAiFixture.VideoHash || facts.SourceVideoBytes != SyntheticAiFixture.VideoBytes
-                || facts.FrameMediaType != "image/png") return new(AnhHuyProducerStatus.SourceNotReady);
-        }
-        catch (Exception ex) when (ex is AiRequestException or JsonException or InvalidOperationException or NullReferenceException)
-        { return new(AnhHuyProducerStatus.SourceNotReady); }
+        if (!ValidCandidateProof(facts, detectionId)) return new(AnhHuyProducerStatus.SourceNotReady);
         if (expectedGeometryVersion is not null && expectedGeometryVersion != facts.Run.GeometryVersion) return new(AnhHuyProducerStatus.StaleGeometry);
         var context = await geometry.ResolveGeometryAsync(actorId, role, projectId, facts.Run.RouteVersionId, facts.Run.SegmentSetId,
             facts.Run.GeometryVersion, true, cancellationToken);
@@ -319,6 +298,32 @@ public sealed class Anh02AiService(IAnh02AiRepository repository, IAnhHuyProduce
             facts.FrameMediaType, facts.Proof.TimestampMilliseconds, facts.Detection.DefectTypeCode!, facts.Detection.Confidence,
             new(facts.Proof.BoxX, facts.Proof.BoxY, facts.Proof.BoxWidth, facts.Proof.BoxHeight), facts.Run.RouteVersionId,
             facts.Run.SegmentSetId, facts.Proof.SegmentId, facts.Run.GeometryVersion, "UNKNOWN", sourceVersion, facts.Disposition, facts.DispositionVersion));
+    }
+    internal static bool ValidCandidateProof(AiCandidateReadFacts facts, Guid detectionId)
+    {
+        if (facts.Result.RunId != facts.Run.Id || facts.Result.ProcessingJobId != facts.Run.ProcessingJobId
+            || facts.Detection.ProcessingJobId != facts.Run.ProcessingJobId || facts.Detection.ModelVersionId != facts.Run.ModelVersionId
+            || facts.Proof.FrameFileVersion != facts.FrameSha256 || facts.FrameBytes != SyntheticAiFixture.FrameBytes
+            || facts.FrameSha256 != SyntheticAiFixture.FrameHash || facts.Result.ManifestHash != facts.Run.ManifestHash)
+            return false;
+        try
+        {
+            var parsed = ParseResult(facts.Result);
+            var detection = parsed.Detections.SingleOrDefault(d => d.DetectionId == detectionId);
+            if (parsed.RunId != facts.Run.Id || parsed.JobId != facts.Run.ProcessingJobId || parsed.AttemptId != facts.Run.AttemptId
+                || AiManifestCanonicalizer.Hash(Encoding.UTF8.GetBytes(facts.Run.CanonicalManifest)) != facts.Run.ManifestHash
+                || detection is null || detection.SourceVideoFileId != facts.Proof.SourceVideoFileId
+                || detection.FrameFileId != facts.Proof.FrameFileId || detection.FrameFileVersion != facts.Proof.FrameFileVersion
+                || detection.TimestampMs != facts.Proof.TimestampMilliseconds || detection.Confidence != facts.Detection.Confidence
+                || detection.TypeCode != facts.Detection.DefectTypeCode || detection.SegmentId != facts.Proof.SegmentId
+                || !detection.Bbox.SequenceEqual(new[] { facts.Proof.BoxX, facts.Proof.BoxY, facts.Proof.BoxWidth, facts.Proof.BoxHeight })
+                || facts.Proof.SourceVideoFileVersion != facts.SourceVideoVersion
+                || facts.SourceVideoSha256 != SyntheticAiFixture.VideoHash || facts.SourceVideoBytes != SyntheticAiFixture.VideoBytes
+                || facts.FrameMediaType != "image/png") return false;
+        }
+        catch (Exception ex) when (ex is AiRequestException or JsonException or InvalidOperationException or NullReferenceException)
+        { return false; }
+        return true;
     }
     private static void Validate(CreateAiMockRunRequest request)
     {

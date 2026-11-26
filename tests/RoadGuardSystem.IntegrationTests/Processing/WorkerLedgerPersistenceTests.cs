@@ -16,7 +16,7 @@ using Xunit;
 namespace RoadGuardSystem.IntegrationTests.Processing;
 
 // Always use a fixture-owned container, ignoring any configured shared SQL server.
-public sealed class WorkerLedgerPersistenceTests : IAsyncLifetime
+public sealed class WorkerLedgerPersistenceTests : IAsyncLifetime, IClassFixture<SqlServerTestFixture.OwnedContainerLifetime>
 {
     private readonly IdentitySqlServerFixture _fixture = new(
         new SqlServerTestFixture(_ => null, createSpatialProbeSchema: false));

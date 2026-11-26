@@ -13,6 +13,7 @@ namespace RoadGuardSystem.Repositories.Implementations.Offline;
 public sealed partial class OfflineWorkflowRepository
 {
     private sealed record StagedBatch(OfflineSyncBatch Batch, Dictionary<Guid, OfflineOperationAdmission> Admissions);
+    private sealed class EvidencePending(string code) : Exception { public string Code { get; } = code; }
 
     private async Task<OfflineWorkflowFact> SynchronizeAsync(OfflineWorkflowCommand command,
         OfflineWorkflowAlgorithms algorithms, Func<CancellationToken, Task> currentGuard, CancellationToken cancellationToken)
@@ -124,6 +125,12 @@ public sealed partial class OfflineWorkflowRepository
                     outcomes.Add(operation.OriginId, await ApplyItemAsync(command, input.SourceDeviceRegistrationId, staged.Batch,
                         admission, operation, outcomes, currentGuard, imported, algorithms, input, cancellationToken));
                 }
+                catch (EvidencePending pending)
+                {
+                    outcomes.Add(operation.OriginId, await RetainFailureAsync(command, input.SourceDeviceRegistrationId,
+                        staged.Batch, admission, operation, "PENDING_DEPENDENCY", pending.Code,
+                        currentGuard, imported, algorithms, input, cancellationToken));
+                }
                 catch (FieldCoreRejectedException rejected)
                 {
                     outcomes.Add(operation.OriginId, await RetainFailureAsync(command, input.SourceDeviceRegistrationId,
@@ -167,8 +174,22 @@ public sealed partial class OfflineWorkflowRepository
             return await db.Set<FieldInspectionOperationOrigin>().AsNoTracking().Where(row => row.ProjectId == command.ProjectId && ids.Contains(row.OriginId))
                 .ToDictionaryAsync(row => row.OriginId, row => row.Id, token);
         }, cancellationToken);
-        var items = input.Operations.Select(operation => ItemView(outcomes[operation.OriginId], operation.Kind,
-            canonicalIds.GetValueOrDefault(operation.OriginId))).ToArray();
+        var items = await OwnTransactionAsync(async token =>
+        {
+            await currentGuard(token);
+            await GuardBatchStatusAsync(command, algorithms, staged.Batch, token);
+            var views = new List<OfflineItemFact>();
+            foreach (var operation in input.Operations)
+            {
+                var outcome = outcomes[operation.OriginId];
+                var view = ItemView(outcome, operation.Kind, canonicalIds.GetValueOrDefault(operation.OriginId));
+                try { view = view with { Admission = await AdmissionViewAsync(staged.Batch, staged.Admissions[operation.OriginId], operation, outcome, token) }; }
+                catch (OfflineAdmissionRejectedException rejected) when (!outcome.DurableAck && rejected.Status is 403 or 409)
+                { /* A rejected/stale item must not expose a usable admission or suppress independent item results. */ }
+                views.Add(view);
+            }
+            return views.ToArray();
+        }, cancellationToken);
         return new(200, Value: new OfflineBatchFact(staged.Batch.Id, items));
     }
 
@@ -195,6 +216,7 @@ public sealed partial class OfflineWorkflowRepository
                     $"SELECT * FROM [OfflineOperationResults] WITH (UPDLOCK,HOLDLOCK) WHERE [AdmissionId]={admission.Id} AND [DurableAck]=1")
                     .AsNoTracking().SingleOrDefaultAsync(token);
                 if (existingRepair is not null) return existingRepair;
+                await RequireUploadedEvidenceAsync(command.ProjectId, admission, operation, token);
                 if (repairCore is null) throw new OfflineAdmissionRejectedException(409, "repair_adapter_not_ready");
                 var repairExpected = PredecessorVersion(operation, input.Operations, predecessors);
                 if (repairExpected is null)
@@ -247,6 +269,7 @@ public sealed partial class OfflineWorkflowRepository
                 $"SELECT * FROM [OfflineOperationResults] WITH (UPDLOCK,HOLDLOCK) WHERE [AdmissionId]={admission.Id} AND [DurableAck]=1")
                 .AsNoTracking().SingleOrDefaultAsync(token);
             if (existing is not null) return existing;
+            await RequireUploadedEvidenceAsync(command.ProjectId, admission, operation, token);
             if (fieldCore is null) throw new OfflineAdmissionRejectedException(409, "field_adapter_not_ready");
             var effect = await fieldCore.ApplyInternalInTransactionAsync(fieldCommand,
                 async inner => { await currentGuard(inner); return true; }, token);

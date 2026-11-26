@@ -433,7 +433,7 @@ public sealed class Anh02AiHttpTests : IAsyncLifetime
         }
         var aiMatches = await client.GetAsync($"/api/v1/projects/{project}/candidates?sourceKind=AI_DETECTION&sourceId={detectionId}&expand=true");
         Assert.Equal(HttpStatusCode.OK, aiMatches.StatusCode);
-        var aiDecision = await Command(client, $"/api/v1/projects/{project}/candidate-decisions", new
+        var decisionInput = new
         {
             sourceKind = "AI_DETECTION",
             sourceId = detectionId,
@@ -448,7 +448,9 @@ public sealed class Anh02AiHttpTests : IAsyncLifetime
                 defectTypeCode = "CRACK",
                 severity = "LOW"
             }
-        });
+        };
+        var decisionKey = Guid.NewGuid().ToString();
+        var aiDecision = await Command(pmWeb, $"/api/v1/projects/{project}/candidate-decisions", decisionInput, key: decisionKey);
         Assert.Equal(HttpStatusCode.Created, aiDecision.StatusCode);
         var aiDefectId = (await Body(aiDecision)).GetProperty("defectId").GetGuid();
         var decisionId = (await Body(aiDecision)).GetProperty("id").GetGuid();
@@ -460,6 +462,24 @@ public sealed class Anh02AiHttpTests : IAsyncLifetime
         using var currentDecision = await refreshedWeb.GetAsync($"/api/v1/projects/{project}/candidate-decisions/{decisionId}");
         Assert.Equal(HttpStatusCode.OK, currentDecision.StatusCode);
         Assert.Equal(aiDefectId, (await Body(currentDecision)).GetProperty("defectId").GetGuid());
+        Assert.Equal("KEEP_NEW", (await Body(currentDecision)).GetProperty("decision").GetString());
+        Assert.Equal('"' + (await Body(currentDecision)).GetProperty("version").GetString() + '"', currentDecision.Headers.ETag!.Tag);
+        using var replayDecision = await Command(pmWeb, $"/api/v1/projects/{project}/candidate-decisions", decisionInput, key: decisionKey);
+        // Candidate commands replay the persisted 201 contract (unlike safety append's 200 replay).
+        Assert.Equal(HttpStatusCode.Created, replayDecision.StatusCode);
+        Assert.Equal(decisionId, (await Body(replayDecision)).GetProperty("id").GetGuid());
+        await using (var readbackDb = sql.CreateDbContext())
+            Assert.Equal(1, await readbackDb.SourceDecisions.CountAsync(row => EF.Property<Guid>(row, "SourceId") == detectionId));
+        var readbackEvidence = Environment.GetEnvironmentVariable("RG_AI_RELOAD_HTTP_EVIDENCE");
+        if (readbackEvidence is not null)
+            await File.WriteAllTextAsync(readbackEvidence, JsonSerializer.Serialize(new
+            {
+                projectId = project,
+                runId = run,
+                detectionId,
+                candidate = await Body(currentCandidate),
+                decision = await Body(currentDecision)
+            }));
         Assert.Equal(HttpStatusCode.OK, (await refreshedWeb.GetAsync($"/api/v1/projects/{project}/defects/{aiDefectId}")).StatusCode);
         await using (var revokeScope = sql.CreateDbContext())
             await revokeScope.ProjectMembers.Where(x => x.ProjectId == project && x.UserId == manager.Id).ExecuteUpdateAsync(x => x.SetProperty(m => m.Status, ProjectMemberStatus.Ended));
@@ -841,6 +861,75 @@ public sealed class Anh02AiHttpTests : IAsyncLifetime
             Assert.Equal("export_authority_revoked", deniedJob.ErrorCode);
             Assert.Null(deniedJob.ArtifactId);
         }
+        // B3: a separately authorized receiver gets only this accepted obligation's
+        // genuine AI source. Existing revocation assertions above remain unchanged.
+        var sourceReader = await sql.CreateUserAsync("source-read-" + Guid.NewGuid().ToString("N"), "Current1!", UserRoleCode.ProjectManager);
+        var receiverReader = await sql.CreateUserAsync("receiver-read-" + Guid.NewGuid().ToString("N"), "Current1!", UserRoleCode.ProjectManager);
+        var receiverProject = Project.Create(Guid.NewGuid(), Guid.NewGuid().ToString("N"), "AI receiver fixture", null, 32648, null, null, DateTimeOffset.UtcNow);
+        await using (var scopedDb = sql.CreateDbContext())
+        {
+            scopedDb.AddRange(receiverProject,
+                ProjectMember.CreatePrimaryProjectManager(Guid.NewGuid(), project, sourceReader.Id, new(2000, 1, 1)),
+                ProjectMember.CreatePrimaryProjectManager(Guid.NewGuid(), receiverProject.Id, receiverReader.Id, new(2000, 1, 1)));
+            await scopedDb.SaveChangesAsync();
+        }
+        using var sourceWeb = await WebCookieTestClient.Login(factory, sourceReader.Email!);
+        using var receivingWeb = await WebCookieTestClient.Login(factory, receiverReader.Email!);
+        using var decidingWeb = await WebCookieTestClient.Login(factory, supervisor.Email!);
+        using var sourceDefectRead = await sourceWeb.GetAsync($"/api/v1/projects/{project}/defects/{aiDefectId}");
+        Assert.Equal(HttpStatusCode.OK, sourceDefectRead.StatusCode);
+        var versionForPackage = sourceDefectRead.Headers.ETag!.Tag;
+        var packagesPath = $"/api/v1/projects/{project}/repair-packages";
+        using var createdPackage = await Command(sourceWeb, packagesPath, new
+        {
+            defectId = aiDefectId,
+            defectVersion = versionForPackage.Trim('"'),
+            reason = "Scoped AI source read",
+            obligations = new[] { new { kind = "FORMAL_REPAIR", mandatory = true, reason = "Exact scope",
+                scope = new { physicalRoadId = section, routeVersionId = route, segmentSetId = set,
+                    fromMeters = 0m, toMeters = 20m, offsetFromMeters = 0m, offsetToMeters = 1m } } }
+        }, versionForPackage);
+        Assert.True(createdPackage.StatusCode == HttpStatusCode.Created, await createdPackage.Content.ReadAsStringAsync());
+        var sourcePackage = (await Body(createdPackage)).GetProperty("id").GetGuid(); Guid sourceObligation;
+        await using (var scopedDb = sql.CreateDbContext()) sourceObligation = await scopedDb.RepairObligations
+            .Where(row => EF.Property<Guid?>(row, "PackageId") == sourcePackage).Select(row => row.Id).SingleAsync();
+        using var proposedSourceItem = await Command(sourceWeb, packagesPath + $"/{sourcePackage}/items", new
+        { obligationId = sourceObligation, mode = "FAST_TRACK", repairPlan = "Read-only source fixture", checklistVersion = "source-v1", reason = "Proposal" }, createdPackage.Headers.ETag!.Tag);
+        Assert.True(proposedSourceItem.StatusCode == HttpStatusCode.Created, await proposedSourceItem.Content.ReadAsStringAsync());
+        var sourceItem = (await Body(proposedSourceItem)).GetProperty("id").GetGuid();
+        var sourceLifePath = $"/api/v1/projects/{project}/lifecycle"; var receivingLifePath = $"/api/v1/projects/{receiverProject.Id}/lifecycle";
+        using var life = await decidingWeb.GetAsync(sourceLifePath);
+        var transferable = (await Body(life)).GetProperty("transferableObligations").EnumerateArray().Single(row => row.GetProperty("id").GetGuid() == sourceObligation);
+        using var transfer = await Command(decidingWeb, sourceLifePath + "/obligation-transfers", new
+        { reason = "Exact source transfer", evidenceFileIds = Array.Empty<Guid>(), obligationId = sourceObligation, receivingProjectId = receiverProject.Id, scopeHash = transferable.GetProperty("scopeHash").GetString() }, life.Headers.ETag!.Tag);
+        Assert.Equal(HttpStatusCode.Created, transfer.StatusCode);
+        var offered = (await Body(transfer)).GetProperty("actions").EnumerateArray().Single(row => row.GetProperty("kind").GetString() == "IssueTransfer" && row.GetProperty("obligationId").GetGuid() == sourceObligation);
+        using var receiverLife = await decidingWeb.GetAsync(receivingLifePath);
+        using var acceptedSource = await Command(decidingWeb, receivingLifePath + "/obligation-transfer-acceptances", new
+        { reason = "Accept exact source", evidenceFileIds = Array.Empty<Guid>(), sourceActionId = offered.GetProperty("id").GetGuid(), obligationId = sourceObligation, scopeHash = offered.GetProperty("scopeHash").GetString() }, receiverLife.Headers.ETag!.Tag);
+        Assert.Equal(HttpStatusCode.Created, acceptedSource.StatusCode);
+        var scopedItemPath = $"/api/v1/projects/{receiverProject.Id}/repair-packages/{sourcePackage}/items/{sourceItem}";
+        using var scopedSourceRead = await receivingWeb.GetAsync(scopedItemPath + "/source-defect");
+        Assert.Equal(HttpStatusCode.OK, scopedSourceRead.StatusCode);
+        var scopedImages = (await Body(scopedSourceRead)).GetProperty("evidence").EnumerateArray().ToArray();
+        Assert.Equal(2, scopedImages.Length); // KEEP_NEW plus the explicit LINK_EXISTING tested above.
+        Assert.All(scopedImages, image => Assert.Equal("AI_FRAME", image.GetProperty("sourceKind").GetString()));
+        var scopedImage = scopedImages.Single(image => image.GetProperty("evidenceId").GetGuid() == proof.GetProperty("frameFileId").GetGuid());
+        Assert.Equal("AI_FRAME", scopedImage.GetProperty("sourceKind").GetString());
+        var scopedContentPath = scopedImage.GetProperty("contentPath").GetString();
+        using var scopedFrameRead = await receivingWeb.GetAsync(scopedContentPath);
+        Assert.True(scopedFrameRead.StatusCode == HttpStatusCode.OK, await scopedFrameRead.Content.ReadAsStringAsync());
+        Assert.Equal(SyntheticAiFixture.FrameHash, AiManifestCanonicalizer.Hash(await scopedFrameRead.Content.ReadAsByteArrayAsync()));
+        Assert.Equal(HttpStatusCode.Forbidden, (await receivingWeb.GetAsync(framePath + "/content")).StatusCode);
+        sourceStorage.AfterFrameOpen = async () =>
+        {
+            await using var revoke = sql.CreateDbContext();
+            await revoke.ProjectMembers.Where(row => row.ProjectId == receiverProject.Id && row.UserId == receiverReader.Id)
+                .ExecuteUpdateAsync(update => update.SetProperty(row => row.Status, ProjectMemberStatus.Ended));
+        };
+        try { Assert.Equal(HttpStatusCode.Forbidden, (await receivingWeb.GetAsync(scopedContentPath)).StatusCode); }
+        finally { sourceStorage.AfterFrameOpen = null; }
+        Assert.Equal(HttpStatusCode.Forbidden, (await receivingWeb.GetAsync(scopedContentPath)).StatusCode);
     }
     private sealed class MatchingFixtureReader : IMatchingCandidateSnapshotReader
     {

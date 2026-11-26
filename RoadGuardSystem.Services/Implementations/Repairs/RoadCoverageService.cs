@@ -7,6 +7,12 @@ namespace RoadGuardSystem.Services.Implementations.Repairs;
 
 public sealed class RoadCoverageService(IRoadCoverageRepository repository) : IRoadCoverageService
 {
+    public async Task<HandoverDocumentsServiceResult> ReadHandoverDocumentsAsync(Guid actor, UserRoleCode role, Guid project, CancellationToken token)
+    {
+        if (actor == Guid.Empty || project == Guid.Empty) return new(400, "validation_error");
+        var result = await repository.ReadHandoverDocumentsAsync(actor, role, project, token);
+        return new(result.Status, result.Code, result.Value);
+    }
     public async Task<RoadCoverageServiceResult> ReadAsync(Guid actor, UserRoleCode role, Guid project, CancellationToken token)
     {
         if (actor == Guid.Empty || project == Guid.Empty) return new(400, "validation_error");

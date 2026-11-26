@@ -38,6 +38,29 @@ public sealed class Huy01RetentionInventoryContributor(RoadGuardDbContext db) : 
             Version(new { row.Id, row.ReportId, row.FileVersion }))));
         references.AddRange(supplements.Select(row => new RetentionReferenceViewFact("REPORT_SUPPLEMENT_EVIDENCE", row.Id, null,
             Version(new { row.Id, row.ReportId, row.FileVersion }))));
+        var matching = await db.Set<ReportMatchingLocation>().AsNoTracking()
+            .Where(row => reportIds.Contains(row.ReportId)).OrderBy(row => row.Id).ToArrayAsync(token);
+        references.AddRange(matching.Select(row => new RetentionReferenceViewFact("REPORT_MATCHING_LOCATION", row.Id,
+            row.ProjectId, Version(new
+            {
+                row.ReportId,
+                row.Sequence,
+                row.CaseId,
+                row.ProjectId,
+                row.ActorId,
+                row.ConfirmedAt,
+                row.RouteVersionId,
+                row.SegmentSetId,
+                row.GeometryVersion,
+                row.ReportVersion,
+                row.CaseVersion,
+                row.EvidenceId,
+                row.SegmentIdsJson,
+                row.Latitude,
+                row.Longitude,
+                row.AccuracyMeters,
+                row.Reason
+            }))));
 
         var supplementRows = await db.Set<ReportSupplement>().AsNoTracking()
             .Where(s => s.Evidence.Any(e => e.FileId == fileId))
@@ -212,7 +235,8 @@ public sealed class Huy01RetentionInventoryContributor(RoadGuardDbContext db) : 
     public async Task<IReadOnlyList<Guid>> KnownProjectFilesAsync(Guid projectId, CancellationToken token)
     {
         var reports = db.Reports.AsNoTracking().Where(report => db.Set<HuyCaseReportLink>()
-            .Any(link => link.ReportId == report.Id && db.IncidentCases.Any(incident => incident.Id == link.CaseId && incident.ProjectId == projectId)));
+            .Any(link => link.ReportId == report.Id && db.IncidentCases.Any(incident => incident.Id == link.CaseId && incident.ProjectId == projectId)) ||
+            db.Set<ReportMatchingLocation>().Any(location => location.ReportId == report.Id && location.ProjectId == projectId));
         var original = await reports.SelectMany(report => report.OriginalEvidence).Select(e => e.FileId).ToArrayAsync(token);
         var supplemental = await reports.SelectMany(report => report.Supplements).SelectMany(s => s.Evidence)
             .Select(e => e.FileId).ToArrayAsync(token);

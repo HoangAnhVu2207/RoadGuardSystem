@@ -34,11 +34,20 @@ public sealed record OfflineRepairPayload(Guid ResourceId, string Action,
     RepairExecutionStartInput? Start = null, RepairExecutionFinishInput? Finish = null,
     RepairMeasurementAssessmentInput? Assessment = null);
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+[method: JsonConstructor]
 public sealed record OfflineOperationInput(int SchemaVersion, Guid OriginId, Guid EffectId, string Kind,
     Guid OriginalActorId, Guid SourceDeviceId, Guid SnapshotId, Guid TaskId, Guid AssignmentId,
     string TaskVersion, string CorePayloadHash, Guid[] Dependencies, DateTimeOffset? ClaimedFinishedAt,
     FieldStartInput? FieldStart = null, FieldSubmissionInput? FieldSubmission = null,
-    OfflineRepairPayload? Repair = null, FieldTaskActionInput? FieldAction = null);
+    OfflineRepairPayload? Repair = null, FieldTaskActionInput? FieldAction = null)
+{
+    // MVC validates the record properties without caching a positional constructor mapping.
+    // JSON continues to use the positional constructor for the signed transport.
+    public OfflineOperationInput() : this(0, default, default, null!, default, default, default,
+        default, default, null!, null!, null!, null)
+    {
+    }
+}
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record OfflineSignedBatchInput(Guid BatchId, Guid SourceDeviceRegistrationId,
     OfflineOperationInput[] Operations, string Signature);
@@ -54,6 +63,12 @@ public sealed record OfflineWorkflowResult(int Status, string? Code = null, obje
 public sealed record OfflineItemResult(Guid OriginId, string Kind, string State, string? Code,
     Guid? EffectId, Guid? CanonicalOriginId, bool DurableAcknowledgment, DateTimeOffset ServerReceivedAt,
     string TimeProvenance, string SyncLateness, DateTimeOffset? ClaimedFinishedAt,
-    DateTimeOffset? VerifiedFinishedAt, DateTimeOffset? VerifiedSyncDueAt, object? Outcome);
+    DateTimeOffset? VerifiedFinishedAt, DateTimeOffset? VerifiedSyncDueAt, object? Outcome,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] OfflineAdmissionReadback? Admission = null);
+public sealed record OfflineAdmissionReadback(Guid Id, Guid ProjectId, Guid BatchId, Guid SourceBatchId,
+    Guid SourceDeviceRegistrationId, Guid OriginId, Guid TaskId, Guid AssignmentId, Guid SnapshotId,
+    Guid OriginalActorId, Guid CurrentImporterId, Guid? GrantId, string Status, OfflineCaptureReadback[] Captures);
+public sealed record OfflineCaptureReadback(Guid CaptureOriginId, Guid? FileId, Guid? UploadId,
+    string UploadStatus, string Purpose, string MediaType, string ChecksumSha256, long? DeclaredSizeBytes, long? SizeBytes);
 public sealed record OfflineBatchResult(Guid BatchId, OfflineItemResult[] Items,
     string LocalQueueInstruction = "KEEP_UNACKNOWLEDGED_OR_CONFLICTED_ITEMS");

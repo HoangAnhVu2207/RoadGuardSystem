@@ -36,10 +36,11 @@ public sealed partial class ExportService : IExportService
     {
         var user = await _identity.GetUserSecurityStateAsync(actor, ct);
         if (user is null || user.Status != UserStatus.Active || user.MustChangePassword || user.RoleCode is not (UserRoleCode.ProjectManager or UserRoleCode.Supervisor) || !await _identity.IsRoleActiveAsync(user.RoleCode, ct)) return null;
-        // Export snapshots contain private project evidence; export access is
-        // project-scoped even when reporting permits a global Supervisor.
-        if (await _scope.AuthorizeAsync(actor, user.RoleCode, project, ct) is null ||
-            !await _repo.HasCurrentProjectMembershipAsync(actor, project, ct)) return null;
+        // Entry is distinct from whole-job authority. Resource-only access is checked again
+        // against the exact repair selection/snapshot; it never admits general project exports.
+        var member = await _repo.HasCurrentProjectMembershipAsync(actor, project, ct);
+        if (!member && !await _repo.HasRepairResourceScopeAsync(actor, project, ct)) return null;
+        if (member && await _scope.AuthorizeAsync(actor, user.RoleCode, project, ct) is null) return null;
         return user.RoleCode;
     }
     public async Task<ExportResult<ExportJobViewDto>> CreateAsync(Guid actorId, Guid projectId, CreateExportRequestDto request, string key, Guid? correlationId, CancellationToken ct)
@@ -56,7 +57,10 @@ public sealed partial class ExportService : IExportService
                 return await CaptureAsync(actorId, role.Value, projectId, normalized, snapshotId, now, token);
             }, ct);
         if (result.Export is null) return new(result.ErrorCode ?? "not_found");
-        if (!await CanReadSnapshotSourcesAsync(actorId, projectId, ExportSerialization.Read(result.Export.Snapshot), ct)) return new("forbidden");
+        var canonical = ExportSerialization.Read(result.Export.Snapshot);
+        var currentRole = await AuthorizeAsync(actorId, projectId, ct);
+        if (currentRole is null || !await CanReadSnapshotSourcesAsync(actorId, projectId, canonical, ct) ||
+            !await CanReadFilesAsync(actorId, currentRole.Value, projectId, canonical.Manifest, ct)) return new("forbidden");
         return new("success", View(result.Export));
     }
     public async Task<bool> CanListAsync(Guid actorId, Guid projectId, CancellationToken ct) => await AuthorizeAsync(actorId, projectId, ct) is not null;
@@ -80,6 +84,7 @@ public sealed partial class ExportService : IExportService
     {
         if (request.RepairItemIds is { Length: > 0 } || request.RepairPackageIds is { Length: > 0 })
             return await CaptureRepairAsync(actor, role, project, request, snapshotId, now, ct);
+        if (!await _repo.HasCurrentProjectMembershipAsync(actor, project, ct)) return new("forbidden", null);
         ReportingCaptureDto? dossier = null; ExportLabelDto[]? labels = null; ExportFileDto[] files; ExportSectionDto[] sections; ExportSourceRevisionDto[] revisions; string[] definitions;
         if (request.Kind == "DOSSIER")
         {
@@ -178,7 +183,7 @@ public sealed partial class ExportService : IExportService
                 .Select(source => new ExportSourceAuthorityReference(source.Kind, source.Id)).ToArray(),
             payload.Dossier?.Summary.Metrics.Any(metric => metric.Code == "repairItemsByStatus" && metric.Availability == "AVAILABLE") == true,
             caseFacts is null ? null : new(caseFacts.ProjectId, caseFacts.Cases.Select(value => value.CaseId).ToArray(),
-                caseFacts.Defects.Select(value => value.DefectId).ToArray()));
+                caseFacts.Defects.Select(value => value.DefectId).ToArray()), payload.RepairDossier is not null);
         return _repo.CanReadSnapshotSourcesAsync(actorId, projectId, query, ct);
     }
     private async Task<bool> CanReadFilesAsync(Guid actor, UserRoleCode role, Guid project, ExportManifestV1Dto manifest, CancellationToken ct)
@@ -189,8 +194,15 @@ public sealed partial class ExportService : IExportService
             if (_files is null) return false;
             foreach (var file in manifest.Files)
             {
-                var result = await _files.GetFileMetadataAsync(actor, role, file.FileId, cancellationToken: ct);
-                if (result.File is not { Status: "VERIFIED" } source || source.Version != file.FileVersion || source.ChecksumSha256 != file.Sha256) return false;
+                var member = await _repo.HasCurrentProjectMembershipAsync(actor, project, ct);
+                var result = member ? await _files.GetFileMetadataAsync(actor, role, file.FileId, cancellationToken: ct)
+                    : new RoadGuardSystem.Services.Files.UploadServiceResult(RoadGuardSystem.Services.Files.UploadServiceStatus.Forbidden);
+                if (result.File is { Status: "VERIFIED" } source && source.Version == file.FileVersion && source.ChecksumSha256 == file.Sha256)
+                    continue;
+                var repairIds = manifest.SourceRevisions.Where(r => r.Kind == "RepairItem").Select(r => r.Id).ToArray();
+                var scoped = await _repo.ReadRepairFileAsync(actor, project, repairIds, file.FileId, ct);
+                if (scoped is null || scoped.FileVersion != file.FileVersion || scoped.Checksum != file.Sha256 ||
+                    scoped.SizeBytes != file.SizeBytes || scoped.MediaType != file.MediaType) return false;
             }
             return true;
         }

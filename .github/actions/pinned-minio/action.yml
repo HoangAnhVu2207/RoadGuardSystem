@@ -1,0 +1,19 @@
+name: Prepare pinned disposable MinIO
+description: Reuse the test image built from the pinned upstream source
+runs:
+  using: composite
+  steps:
+    - uses: actions/cache@v4
+      with:
+        path: ${{ runner.temp }}/roadguard-minio-image.tar
+        key: minio-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('deploy/fe-handoff/Dockerfile.Minio') }}
+    - name: Load or build the pinned MinIO provider
+      shell: bash
+      run: |
+        archive="$RUNNER_TEMP/roadguard-minio-image.tar"
+        if [[ -f "$archive" ]]; then
+          docker load --input "$archive"
+        else
+          docker build --file deploy/fe-handoff/Dockerfile.Minio --tag "$RG_MINIO_IMAGE" .
+          docker save --output "$archive" "$RG_MINIO_IMAGE"
+        fi

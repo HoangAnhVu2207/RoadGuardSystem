@@ -202,11 +202,49 @@ public sealed partial class FieldInspectionWorkflowRepository(RoadGuardDbContext
                 };
             return new(200, Value: view, Version: Convert.ToBase64String(task.RowVersion));
         }
-        if (c.Action == "history") return new(200, Value: new
+        if (c.Action == "history")
         {
-            assignments = await db.FieldInspectionAssignments.AsNoTracking().Where(x => x.FieldInspectionTaskId == task.Id).OrderBy(x => x.AssignedAt).Select(x => new { x.Id, x.AssignedToUserId, x.AssignedByUserId, x.AssignedAt, x.EndedAt, x.Status, x.Reason }).ToArrayAsync(token),
-            events = await db.Set<FieldInspectionTaskEvent>().AsNoTracking().Where(x => x.TaskId == task.Id).OrderBy(x => x.OccurredAt).ThenBy(x => x.Id).Select(x => new { x.Id, x.AssignmentId, x.ActorId, x.Kind, x.Reason, x.OccurredAt, x.FactsJson, x.LocationImpactId, x.LocationImpactDecisionId }).ToArrayAsync(token)
-        });
+            var assignments = await db.FieldInspectionAssignments.AsNoTracking().Where(x => x.FieldInspectionTaskId == task.Id).OrderBy(x => x.AssignedAt).ThenBy(x => x.Id).Select(x => new { x.Id, x.AssignedToUserId, x.AssignedByUserId, x.AssignedAt, x.EndedAt, x.Status, x.Reason }).ToArrayAsync(token);
+            var events = await db.Set<FieldInspectionTaskEvent>().AsNoTracking().Where(x => x.TaskId == task.Id).OrderBy(x => x.OccurredAt).ThenBy(x => x.Id).Select(x => new { x.Id, x.AssignmentId, x.ActorId, x.Kind, x.Reason, x.OccurredAt, x.FactsJson, x.LocationImpactId, x.LocationImpactDecisionId }).ToArrayAsync(token);
+            // Keep the Crew representation unchanged. PM/Supervisor already have task
+            // history authority; expose persisted identities rather than parsing messages.
+            if (c.Admission.CallerRole == UserRoleCode.RepairCrew)
+                return new(200, Value: new { assignments, events });
+            var submissions = await db.Set<FieldInspectionSubmission>().AsNoTracking()
+                .Where(x => x.TaskId == task.Id && x.ProjectId == task.ProjectId)
+                .OrderBy(x => x.Revision).ThenBy(x => x.Id)
+                .Select(x => new { x.Id, x.RootId, parentSubmissionId = x.ParentId, x.Revision, x.ContentHash, x.Readiness, x.ServerReceivedAt }).ToArrayAsync(token);
+            var reviews = await db.Set<FieldInspectionReview>().AsNoTracking()
+                .Where(x => x.TaskId == task.Id && x.ProjectId == task.ProjectId &&
+                    db.Set<FieldInspectionSubmission>().Any(s => s.Id == x.SubmissionId && s.TaskId == task.Id && s.ProjectId == task.ProjectId))
+                .OrderBy(x => x.OccurredAt).ThenBy(x => x.Id)
+                .Select(x => new { x.Id, x.SubmissionId, x.ActorId, x.Decision, x.Reason, x.OccurredAt, x.ReceiptActivation }).ToArrayAsync(token);
+            var reuse = await db.Set<FieldInspectionEvidenceReuseDecision>().AsNoTracking()
+                .Where(x => x.TaskId == task.Id && x.ProjectId == task.ProjectId)
+                .OrderBy(x => x.OccurredAt).ThenBy(x => x.Id).ToArrayAsync(token);
+            return new(200, Value: new
+            {
+                assignments,
+                events,
+                details = new
+                {
+                    submissions,
+                    reviews,
+                    evidenceReuse = reuse.Select(x => new
+                    {
+                        x.Id,
+                        x.FileId,
+                        x.SourceEvidenceId,
+                        x.ActorId,
+                        x.SourceKind,
+                        x.FileChecksum,
+                        x.Reason,
+                        x.OccurredAt,
+                        provenance = JsonSerializer.Deserialize<JsonElement>(x.ProvenanceJson)
+                    }).ToArray()
+                }
+            });
+        }
         if (c.Action == "submission")
         {
             var id = c.Input is Guid input ? input : Guid.Empty;

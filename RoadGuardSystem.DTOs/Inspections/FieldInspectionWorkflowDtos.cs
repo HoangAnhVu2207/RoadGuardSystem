@@ -72,14 +72,15 @@ public sealed record FieldMeasurementInput(string SampleId, string Type, decimal
 }
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record FieldEvidenceDeclaration(Guid CaptureOriginId, Guid? FileId, string Purpose,
-    string ChecksumSha256, string MediaType, DateTimeOffset? CapturedAt, string? AttemptChecklist)
+    string ChecksumSha256, string MediaType, DateTimeOffset? CapturedAt, string? AttemptChecklist,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] long? SizeBytes = null)
 {
     [return: System.Diagnostics.CodeAnalysis.NotNullIfNotNull(nameof(value))]
     public static implicit operator global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldEvidenceDeclarationFact?(FieldEvidenceDeclaration? value)
-        => value is null ? null! : new(value.CaptureOriginId, value.FileId, value.Purpose, value.ChecksumSha256, value.MediaType, value.CapturedAt, value.AttemptChecklist);
+        => value is null ? null! : new(value.CaptureOriginId, value.FileId, value.Purpose, value.ChecksumSha256, value.MediaType, value.CapturedAt, value.AttemptChecklist, value.SizeBytes);
     [return: System.Diagnostics.CodeAnalysis.NotNullIfNotNull(nameof(value))]
     public static implicit operator FieldEvidenceDeclaration?(global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldEvidenceDeclarationFact? value)
-        => value is null ? null! : new(value.CaptureOriginId, value.FileId, value.Purpose, value.ChecksumSha256, value.MediaType, value.CapturedAt, value.AttemptChecklist);
+        => value is null ? null! : new(value.CaptureOriginId, value.FileId, value.Purpose, value.ChecksumSha256, value.MediaType, value.CapturedAt, value.AttemptChecklist, value.SizeBytes);
 }
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record FieldPositionProofInput(string Kind, string? Checklist, double? Longitude, double? Latitude, string? ObservedSlabId = null, Guid? ObservedSegmentId = null, Guid? ObservedRouteVersionId = null, double? ObservedChainageMeters = null)

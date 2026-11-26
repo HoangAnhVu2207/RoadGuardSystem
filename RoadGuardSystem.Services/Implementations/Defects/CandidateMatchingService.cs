@@ -13,10 +13,10 @@ namespace RoadGuardSystem.Services.Implementations.Defects;
 
 public sealed class CandidateMatchingService(ICandidateDecisionRepository repository,
     ICaseWorkflowRepository cases, IAnhHuyProducerService producer, IAiCandidateFactsReader ai,
-    IProjectScopeGuard scope)
+    IProjectScopeGuard scope, IReportMatchingLocationRepository? locations = null)
     : ICandidateMatchingService
 {
-    private sealed record Cursor(Guid ProjectId, Guid SourceId, string SourceVersion,
+    private sealed record Cursor(Guid ProjectId, string SourceKind, Guid SourceId, string SourceVersion,
         string GeometryVersion, bool Expand, string TargetHash, int Offset);
 
     public async Task<CandidateMatchResult> MatchAsync(Guid actor, UserRoleCode role, Guid project,
@@ -58,11 +58,15 @@ public sealed class CandidateMatchingService(ICandidateDecisionRepository reposi
                     if (resolved.Status != AnhHuyProducerStatus.Ready) return Failure(resolved.Status);
                     geometry = resolved.Facts;
                 }
-                var assigned = currentAi?.Facts?.SegmentId is Guid segment ? new[] { segment } : [];
+                var location = currentReport?.Facts?.MatchingLocation;
+                var assigned = currentAi?.Facts?.SegmentId is Guid segment ? new[] { segment } :
+                    location?.SegmentIds.Where(id => geometry!.Segments.Any(s => s.Id == id)).ToArray() ?? [];
                 var neighbors = geometry!.Segments.Where(item => assigned.Contains(item.Id))
                     .SelectMany(item => new[] { item.PreviousId, item.NextId }).Where(id => id.HasValue)
                     .Select(id => id!.Value).ToArray();
                 var targets = await repository.MatchTargetsAsync(project, ct);
+                var distances = locations is not null && location?.Latitude is decimal latitude && location.Longitude is decimal longitude
+                    ? await locations.DistancesAsync(project, latitude, longitude, ct) : new Dictionary<Guid, CandidateSpatialDistance>();
                 var targetHash = Convert.ToHexString(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(
                     targets.OrderBy(target => target.DefectId).Select(target => new
                     {
@@ -70,7 +74,8 @@ public sealed class CandidateMatchingService(ICandidateDecisionRepository reposi
                         target.Version,
                         target.RouteVersionId,
                         target.SegmentId,
-                        target.LinkedReportIds
+                        target.LinkedReportIds,
+                        spatial = distances.TryGetValue(target.DefectId, out var measured) ? measured : null
                     })))).ToLowerInvariant();
                 var offset = 0;
                 if (cursor is not null)
@@ -78,7 +83,7 @@ public sealed class CandidateMatchingService(ICandidateDecisionRepository reposi
                     Cursor? decoded;
                     try { decoded = JsonSerializer.Deserialize<Cursor>(Convert.FromBase64String(cursor)); }
                     catch (Exception error) when (error is FormatException or JsonException) { return new(400, "validation_error"); }
-                    if (decoded is null || decoded.ProjectId != project || decoded.SourceId != sourceId ||
+                    if (decoded is null || decoded.ProjectId != project || decoded.SourceKind != sourceKind || decoded.SourceId != sourceId ||
                         decoded.Expand != expand || decoded.Offset < 0) return new(400, "validation_error");
                     if (decoded.SourceVersion != sourceVersion ||
                         decoded.GeometryVersion != geometryVersion ||
@@ -86,24 +91,31 @@ public sealed class CandidateMatchingService(ICandidateDecisionRepository reposi
                     offset = decoded.Offset;
                 }
                 var matched = CandidateMatcher.Match(project, assigned, neighbors, targets.Select(target => new CandidateMatchFact(
-                    target.DefectId, target.ProjectId, target.Version, target.SegmentId, null,
-                    target.LinkedReportIds.Contains(sourceId))).ToArray(), expand, metricGpsAvailable: false);
+                    target.DefectId, target.ProjectId, target.Version, target.SegmentId,
+                    distances.TryGetValue(target.DefectId, out var measured) ? measured.Meters : null,
+                    currentReport is not null && target.LinkedReportIds.Contains(sourceId))).ToArray(), expand,
+                    metricGpsAvailable: location?.Latitude is not null,
+                    unavailableLocationReason: currentReport?.Facts?.MatchingLocationStatus);
                 if (offset > matched.Count) return new(400, "validation_error");
                 var page = matched.Skip(offset).Take(pageSize).Select(item =>
                 {
                     var target = targets.Single(target => target.DefectId == item.DefectId);
                     return new CandidateMatchItemDto(item.DefectId, item.Version, item.SegmentId,
-                        item.PriorityGroup, item.DistanceMeters, null, item.ReasonCodes,
+                        item.PriorityGroup, item.DistanceMeters, (double?)location?.AccuracyMeters, item.ReasonCodes,
                         target.LinkedReportIds.Contains(sourceId) && currentReport is not null ? currentReport.Facts!.EvidenceIds : [],
-                        new(target.LinkedReportIds.Count));
+                        new(target.LinkedReportIds.Count),
+                        currentReport is null ? null : distances.GetValueOrDefault(item.DefectId)?.Status ?? currentReport.Facts!.MatchingLocationStatus,
+                        currentReport is null ? null : distances.GetValueOrDefault(item.DefectId)?.Method,
+                        currentReport is null ? null : location?.AccuracyMeters is null ? "SOURCE_UNCERTAINTY_UNAVAILABLE" : "TARGET_UNCERTAINTY_UNAVAILABLE");
                 }).ToArray();
                 var next = offset + page.Length < matched.Count
-                    ? Convert.ToBase64String(JsonSerializer.SerializeToUtf8Bytes(new Cursor(project, sourceId,
+                    ? Convert.ToBase64String(JsonSerializer.SerializeToUtf8Bytes(new Cursor(project, sourceKind, sourceId,
                         sourceVersion, geometryVersion,
                         expand, targetHash, offset + page.Length))) : null;
                 return new CandidateMatchResult(200, Page: new(new(sourceKind, sourceId,
                     sourceVersion), geometryVersion,
-                    "huy01-1", page, next));
+                    currentReport is null ? "huy01-1" : "report-confirmed-2", page, next,
+                    currentReport?.Facts?.MatchingLocationStatus, currentReport?.Facts?.EvidenceIds));
             }, token);
         }
         catch (CaseWorkflowException error) { return new(error.Status, error.Code); }

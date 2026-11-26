@@ -35,6 +35,14 @@ internal static class H4H5RetentionSources
           (SELECT e.*,c.MeasureId,c.Result,c.At FOR JSON PATH,WITHOUT_ARRAY_WRAPPER),e.Hash
         FROM RepairSafetyCheckEvidence e JOIN RepairSafetyChecks c ON c.Id=e.CheckId JOIN RepairTemporarySafetyMeasures m ON m.Id=c.MeasureId
         UNION ALL
+        SELECT e.FileId,a.Id,m.ProjectId,'REPAIR_SAFETY_RESOLUTION',
+          (SELECT a.Id ResolutionId,a.EntityId SafetyObligationId,a.ActorUserId,a.OccurredAtUtc,a.AfterSnapshot FOR JSON PATH,WITHOUT_ARRAY_WRAPPER),e.Hash
+        FROM RepairObligations o JOIN AuditLogs a ON a.Id=o.SafetyResolutionId
+        JOIN RepairSafetyMonitoring monitoring ON monitoring.SafetyObligationId=o.Id
+        JOIN RepairTemporarySafetyMeasures m ON m.Id=monitoring.MeasureId
+        CROSS APPLY OPENJSON(a.AfterSnapshot,'$.evidence') WITH (FileId uniqueidentifier '$.fileId',Hash nvarchar(64) '$.hash') e
+        WHERE a.EventType='repair_safety_resolved' AND a.EntityType='RepairObligation' AND a.EntityId=o.Id
+        UNION ALL
         SELECT e.FileId,e.Id,a.ProjectId,'REPAIR_ASSESSMENT',
           (SELECT e.*,a.ContentHash,a.ItemId,a.TaskId FOR JSON PATH,WITHOUT_ARRAY_WRAPPER),e.ChecksumSha256
         FROM RepairAssessmentEvidence e JOIN RepairMeasurementAssessments a ON a.Id=e.AssessmentId WHERE e.FileId IS NOT NULL

@@ -13,7 +13,7 @@ using Xunit;
 
 namespace RoadGuardSystem.IntegrationTests.Retention;
 
-public sealed class AiRealRetentionInventorySqlTests : IAsyncLifetime
+public sealed class AiRealRetentionInventorySqlTests : IAsyncLifetime, IClassFixture<SqlServerTestFixture.OwnedContainerLifetime>
 {
     private readonly IdentitySqlServerFixture _fixture = new(new SqlServerTestFixture(_ => null, createSpatialProbeSchema: false));
     public Task InitializeAsync() => _fixture.InitializeAsync();

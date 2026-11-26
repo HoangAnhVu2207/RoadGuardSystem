@@ -33,6 +33,7 @@ public sealed class ServerDeploymentTests
     }
 
     [Theory]
+    [InlineData("*")]
     [InlineData("http://fe.example.com")]
     [InlineData("https://*.example.com")]
     [InlineData("https://fe.example.com/")]

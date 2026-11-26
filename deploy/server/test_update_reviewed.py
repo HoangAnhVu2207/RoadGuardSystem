@@ -82,6 +82,12 @@ df() {{ printf 'Avail\\n21474836480\\n'; }}
         self.assertEqual('', trace)
 
     def test_deployment_backup_records_active_release_and_does_not_restart_services(self):
+        self.exercise_deployment_backup()
+
+    def test_deployment_backup_rejects_corrupted_archive(self):
+        self.exercise_deployment_backup(corrupt=True)
+
+    def exercise_deployment_backup(self, corrupt=False):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             old, new = 'a' * 40, 'b' * 40
@@ -110,6 +116,12 @@ compose() {{
     if [ "$1" = exec ]; then printf 'SQL backup fixture' > "$RG_DATA/sql/roadguard-{stamp}.bak"; fi
 }}
 ''')
+            if corrupt:
+                with (scripts / 'common.sh').open('a') as fixture:
+                    fixture.write(
+                        'sha256sum() { command sha256sum "$@" || return; '
+                        'if [ "$1" = database.bak ]; then printf invalid >> database.bak; fi; }\n'
+                    )
             source = Path(__file__).with_name('manage.sh').read_text()
             script = scripts / 'manage.sh'
             script.write_text(source.replace('/opt/roadguard', str(root))
@@ -117,7 +129,12 @@ compose() {{
                               .replace('tar -C / ', f'tar -C {root} '))
             result = subprocess.run(['bash', str(script), 'backup-for-update', old],
                                     capture_output=True, text=True, timeout=15)
-            self.assertEqual(0, result.returncode, result.stderr)
+            if corrupt:
+                self.assertNotEqual(0, result.returncode)
+                self.assertIn('database.bak: FAILED', result.stdout)
+            else:
+                self.assertEqual(0, result.returncode, result.stderr)
+                self.assertIn('database.bak: OK', result.stdout)
             snapshot = data / 'backups' / stamp
             self.assertEqual(old, (snapshot / 'RELEASE').read_text().strip())
             self.assertTrue((snapshot / 'SHA256SUMS').is_file())

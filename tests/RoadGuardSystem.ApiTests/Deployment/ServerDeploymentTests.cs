@@ -18,21 +18,6 @@ public sealed class ServerDeploymentTests
         Assert.Empty(services);
     }
 
-    [Theory]
-    [InlineData("Development", "https://192.168.1.11:8443")]
-    [InlineData("Production", "*")]
-    [InlineData("Production", "http://192.168.1.11:5173")]
-    [InlineData("Production", "https://example.com/path")]
-    [InlineData("Production", "https://example.com/")]
-    [InlineData("Production", "https://user@example.com")]
-    [InlineData("Production", "https://*.example.com")]
-    [InlineData("Production", "")]
-    public void Invalid_server_configuration_fails_closed(string environment, string origin)
-    {
-        Assert.Throws<InvalidOperationException>(() => new ServiceCollection()
-            .AddRoadGuardServerDeployment(Config(true, origin), environment));
-    }
-
     [Fact]
     public void Production_registers_dependency_health_check_without_duplicate_upload_worker()
     {
@@ -47,7 +32,6 @@ public sealed class ServerDeploymentTests
     [InlineData("Sandbox:Enabled", "true")]
     [InlineData("Anh02:MockEnabled", "true")]
     [InlineData("Handoff:Enabled", "true")]
-    [InlineData("ServerDeployment:KeyPath", "relative-keys")]
     public void Unsafe_composition_is_rejected(string key, string value)
     {
         var config = Config(true);

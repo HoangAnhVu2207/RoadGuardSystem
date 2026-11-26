@@ -9,11 +9,13 @@ using RoadGuardSystem.BusinessObjects.Reports;
 using RoadGuardSystem.BusinessObjects.PersistenceFacts.Cases;
 using RoadGuardSystem.Repositories.Cases;
 using RoadGuardSystem.Repositories.Models.Huy01;
+using RoadGuardSystem.Repositories.Integration;
 
 namespace RoadGuardSystem.Repositories.Implementations.Cases;
 
-public sealed class CaseWorkflowRepository(RoadGuardDbContext db) : ICaseWorkflowRepository
+public sealed class CaseWorkflowRepository(RoadGuardDbContext db, IAnhHuyFactsRepository? sourceFacts = null) : ICaseWorkflowRepository
 {
+    private readonly RoutingCaseReadProjection routing = new(db, sourceFacts ?? new AnhHuyFactsRepository(db));
     public async Task GuardAsync(Guid actor, UserRoleCode role, IReadOnlyCollection<Guid> caseIds, Guid? requestedProject,
         Func<Guid, CancellationToken, Task<bool>> projectAccess, CancellationToken ct)
     {
@@ -45,7 +47,7 @@ public sealed class CaseWorkflowRepository(RoadGuardDbContext db) : ICaseWorkflo
     }
 
     public Task<InternalCaseFact> ReadAsync(Guid actor, UserRoleCode role, Guid caseId, Func<Guid, CancellationToken, Task<bool>> projectAccess, CancellationToken ct)
-        => InReadAsync(async () => { await GuardAsync(actor, role, [caseId], null, projectAccess, ct); return Project(await LoadAsync(caseId, ct)); }, ct);
+        => InReadAsync(async () => { await GuardAsync(actor, role, [caseId], null, projectAccess, ct); return await ProjectAsync(await LoadAsync(caseId, ct), role, ct); }, ct);
 
     public async Task GuardCommandAsync(Guid actor, UserRoleCode role, CaseCommand command,
         Func<Guid, CancellationToken, Task<bool>> projectAccess, CancellationToken ct)
@@ -78,7 +80,7 @@ public sealed class CaseWorkflowRepository(RoadGuardDbContext db) : ICaseWorkflo
             var rows = await query.AsNoTracking().OrderByDescending(c => c.CreatedAt).ThenByDescending(c => c.Id)
                 .Select(c => new { c.Id, c.CreatedAt }).Take(pageSize + 1).ToArrayAsync(ct);
             var items = new List<InternalCaseFact>();
-            foreach (var row in rows.Take(pageSize)) items.Add(Project(await LoadAsync(row.Id, ct)));
+            foreach (var row in rows.Take(pageSize)) items.Add(await ProjectAsync(await LoadAsync(row.Id, ct), role, ct));
             var last = rows.Take(pageSize).LastOrDefault();
             return new CasePageFact(items, rows.Length > pageSize && last is not null ? Convert.ToBase64String(JsonSerializer.SerializeToUtf8Bytes(new PageCursor(actor, project, status, last.CreatedAt, last.Id))) : null);
         }, ct);
@@ -113,11 +115,17 @@ public sealed class CaseWorkflowRepository(RoadGuardDbContext db) : ICaseWorkflo
                     }
                     if (geometryCheck is not null)
                     {
-                        await LockAsync("SELECT CAST(COUNT(*) AS int) AS [Value] FROM [RoadSectionVersions] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={0}", command.RouteVersionId!.Value, ct);
-                        await LockAsync("SELECT CAST(COUNT(*) AS int) AS [Value] FROM [RoadSegmentSets] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={0}", command.SegmentSetId!.Value, ct);
+                        if (command.RouteVersionId is not null)
+                        {
+                            await LockAsync("SELECT CAST(COUNT(*) AS int) AS [Value] FROM [RoadSectionVersions] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={0}", command.RouteVersionId.Value, ct);
+                            await LockAsync("SELECT CAST(COUNT(*) AS int) AS [Value] FROM [RoadSegmentSets] WITH (UPDLOCK,HOLDLOCK) WHERE [Id]={0}", command.SegmentSetId!.Value, ct);
+                        }
                         await geometryCheck(ct);
-                        db.Entry(incident).Property<Guid?>("GeometryRouteVersionId").CurrentValue = command.RouteVersionId;
-                        db.Entry(incident).Property<Guid?>("GeometrySegmentSetId").CurrentValue = command.SegmentSetId;
+                        if (command.RouteVersionId is not null)
+                        {
+                            db.Entry(incident).Property<Guid?>("GeometryRouteVersionId").CurrentValue = command.RouteVersionId;
+                            db.Entry(incident).Property<Guid?>("GeometrySegmentSetId").CurrentValue = command.SegmentSetId;
+                        }
                     }
                     break;
                 case "link":
@@ -218,7 +226,7 @@ public sealed class CaseWorkflowRepository(RoadGuardDbContext db) : ICaseWorkflo
         db.AuditLogs.Add(AuditLog.Create(Guid.NewGuid(), actor, now, "case_" + command.Action, "IncidentCase", incident.Id, null,
             JsonSerializer.Serialize(new { caseId = incident.Id, resultCaseId = resultCase.Id }), command.Reason, "huy01.case", correlation, ["caseId", "resultCaseId"]));
         await db.SaveChangesAsync(ct);
-        return new(Project(resultCase), publication is null ? null : new(publication.Id, incident.Id, "PUBLISHED", Version(incident)));
+        return new(await ProjectAsync(resultCase, role, ct), publication is null ? null : new(publication.Id, incident.Id, "PUBLISHED", Version(incident)));
     }
 
     private async Task<IncidentCase> LoadAsync(Guid id, CancellationToken ct)
@@ -289,6 +297,12 @@ public sealed class CaseWorkflowRepository(RoadGuardDbContext db) : ICaseWorkflo
         return new(incident.Id, incident.ProjectId, WireStatus(incident.Status), Version(incident), incident.ActiveReportIds,
             incident.Conclusions.SelectMany(c => c.DefectIds).Distinct().ToArray(), WireMethod(incident.VerificationMethod), "UNKNOWN",
             conclusion is null ? null : new(conclusion.Id, WireOutcome(conclusion.Outcome), conclusion.Reason, conclusion.ConcludedAt, conclusion.DefectIds, conclusion.EvidenceIds), incident.CreatedAt);
+    }
+    private async Task<InternalCaseFact> ProjectAsync(IncidentCase incident, UserRoleCode role, CancellationToken token)
+    {
+        var result = Project(incident);
+        var state = await routing.ReadAsync(incident.Id, token);
+        return result with { RoutingDisposition = role == UserRoleCode.Supervisor ? state.Disposition : null, RoutingSource = state.Source };
     }
     public static string WireStatus(IncidentCaseStatus status) => status == IncidentCaseStatus.AwaitingEvidence ? "AWAITING_EVIDENCE" : status.ToString().ToUpperInvariant();
     public static string? WireMethod(CaseVerificationMethod? method) => method == CaseVerificationMethod.ExistingEvidence ? "EXISTING_EVIDENCE" : method?.ToString().ToUpperInvariant();

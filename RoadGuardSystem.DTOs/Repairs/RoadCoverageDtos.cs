@@ -13,3 +13,5 @@ public sealed record RoadCoverageInputDto(Guid ScopeObligationId, string Expecte
         SourceKind, SourceId, SourceVersion, ApplicableFromUtc, ApplicableToUtc, Provenance, Reason, SupersedesId);
 }
 public sealed record RoadCoverageServiceResult(int Status, string? Code = null, RoadCoverageReadFact? Value = null);
+public sealed record HandoverDocumentsServiceResult(int Status, string? Code = null,
+    RoadGuardSystem.BusinessObjects.Projects.HandoverDocumentsReadFact? Value = null);

@@ -1,11 +1,12 @@
 using Microsoft.EntityFrameworkCore;
+using RoadGuardSystem.IntegrationTests.Infrastructure;
 using RoadGuardSystem.Repositories;
 using RoadGuardSystem.Repositories.Seeding.Sandbox;
 using Xunit;
 
 namespace RoadGuardSystem.IntegrationTests.Seeding;
 
-public sealed class SandboxSyntheticSeedTests
+public sealed class SandboxSyntheticSeedTests : IClassFixture<SqlServerTestFixture.OwnedContainerLifetime>
 {
     [Fact]
     public async Task CanonicalBootstrapIsAcceptedWithoutChangingRolesOrConcurrencyStamps()
@@ -86,7 +87,8 @@ public sealed class SandboxSyntheticSeedTests
             await using var db = SandboxSeedTestSupport.CreateSafeContext(fixture);
             await SandboxSeedGuard.ValidateTargetAsync(db, target);
             var schema = await SandboxSeedGuard.ReadSchemaAsync(db);
-            Assert.Equal(201, schema.Tables.Length);
+            Assert.Equal(203, schema.Tables.Length);
+            Assert.Contains("dbo.CaseRoutingEvents", schema.Tables);
             // Each execution owns its output; CI must not depend on a developer's historical handoff directory.
             var evidence = Path.Combine(Path.GetTempPath(), "RoadGuardSystem-test-evidence", Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(evidence);

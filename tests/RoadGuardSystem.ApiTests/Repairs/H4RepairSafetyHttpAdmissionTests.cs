@@ -88,8 +88,9 @@ public sealed class H4RepairSafetyHttpAdmissionTests(AuthenticationSqlServerFixt
         using var wrongProject = await client.GetAsync(route.Replace(source.Project.ToString(), Guid.NewGuid().ToString(), StringComparison.Ordinal));
         Assert.Equal(HttpStatusCode.Forbidden, wrongProject.StatusCode);
         await Login(source.Pm);
-        using var wrongRole = await client.GetAsync(route);
-        Assert.Equal(HttpStatusCode.Forbidden, wrongRole.StatusCode);
+        using var pmRead = await client.GetAsync(route);
+        Assert.Equal(HttpStatusCode.OK, pmRead.StatusCode);
+        Assert.Empty((await pmRead.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("measureIds").EnumerateArray());
     }
 
     private static string Path(string action)

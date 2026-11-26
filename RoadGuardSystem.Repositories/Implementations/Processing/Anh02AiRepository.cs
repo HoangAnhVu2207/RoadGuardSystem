@@ -263,7 +263,10 @@ public sealed class Anh02AiRepository(RoadGuardDbContext db, IdempotencyOperatio
         if (changed != 1) throw new InvalidOperationException("ANH-02 analysis attempt cannot be closed.");
     }
 
-    public async Task<AiCandidateReadFacts?> ReadCandidateAsync(Guid projectId, Guid detectionId, CancellationToken ct)
+    public Task<AiCandidateReadFacts?> ReadCandidateAsync(Guid projectId, Guid detectionId, CancellationToken ct)
+        => ReadCandidateCoreAsync(db, projectId, detectionId, ct);
+
+    internal static async Task<AiCandidateReadFacts?> ReadCandidateCoreAsync(RoadGuardDbContext db, Guid projectId, Guid detectionId, CancellationToken ct)
     {
         var row = await (from proof in db.Set<AiDetectionProvenance>().AsNoTracking()
                          join run in db.Set<AiMockRun>().AsNoTracking() on proof.RunId equals run.Id

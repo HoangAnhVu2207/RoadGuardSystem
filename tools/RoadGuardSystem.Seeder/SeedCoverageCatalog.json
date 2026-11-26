@@ -2103,7 +2103,7 @@
     "DependencyOrder": 122,
     "Prerequisites": [
       "dbo.Defects",
-      "dbo.Cases",
+      "dbo.IncidentCases",
       "dbo.CaseConclusions"
     ],
     "Producer": "PublicPublicationRepository.CreateAsync/WithdrawAsync through approved PM C1 commands",
@@ -3767,6 +3767,42 @@
       "RoadGuardSystem.Repositories/Implementations/Messaging/H6NotificationDispatchRepository.Calendar.cs",
       "RoadGuardSystem.Repositories/Implementations/Messaging/H6ProtectedNotificationRepository.Operations.cs",
       "RoadGuardSystem.Repositories/Implementations/Messaging/H6WeeklyReviewSourceAdapter.cs"
+    ]
+  },
+  {
+    "Table": "dbo.ReportMatchingLocations",
+    "Group": "reporter-matching",
+    "DependencyOrder": 90,
+    "Prerequisites": [
+      "dbo.Reports",
+      "dbo.Cases",
+      "dbo.Projects",
+      "dbo.Users",
+      "dbo.RoadSectionVersions",
+      "dbo.RoadSegmentSets"
+    ],
+    "Producer": "ReportMatchingLocationService.ConfirmAsync",
+    "EmptyReason": "Development Seeder does not invent a PM-confirmed location/segment for a Report. Explicit source selection, versioned geometry and reason are required.",
+    "Scenario": "PM explicitly confirms matching evidence/segments after triage through the authenticated command. No implicit GPS selection or production provenance assertion.",
+    "Source": [
+      "RoadGuardSystem.Services/Implementations/Defects/ReportMatchingLocationService.cs"
+    ]
+  },
+  {
+    "Table": "dbo.CaseRoutingEvents",
+    "Group": "cases",
+    "DependencyOrder": 70,
+    "Prerequisites": [
+      "dbo.IncidentCases",
+      "dbo.Reports",
+      "dbo.Users"
+    ],
+    "Producer": "RoutingMapService.DecideAsync; CaseWorkflowService.CommandAsync triage",
+    "EmptyReason": "Development Seeder does not make Supervisor intake attestations or reconsider live Cases. New routing history is created only by an authorized routing decision or a triage that supersedes one.",
+    "Scenario": "Use an isolated unassigned Case and the routing-decisions HTTP workflow; preserve original Report evidence and source provenance. No synthetic outside-scope decision is seeded.",
+    "Source": [
+      "RoadGuardSystem.Repositories/Implementations/Cases/RoutingMapRepository.Decisions.cs",
+      "RoadGuardSystem.Services/Implementations/Cases/RoutingMapService.cs"
     ]
   }
 ]

@@ -105,8 +105,25 @@ public sealed class AnhHuyProducerService(IAnhHuyFactsRepository facts, IGeometr
             geometry = context.Facts!.Version,
             evidence = files.Select(f => new { f.Reference.EvidenceId, f.Reference.FileId, f.Reference.FileVersion, f.ChecksumSha256 })
         }))).ToLowerInvariant();
+        // Preserve existing version tokens for reports with no confirmation.
+        // Each explicit append adds its immutable identity to the source version.
+        if (source.MatchingLocation is { } confirmation)
+            version = Convert.ToHexString(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(
+                $"{version}:{confirmation.Id:D}"))).ToLowerInvariant();
         if (expectedSourceVersion is not null && expectedSourceVersion != version) return Fail<ResolvedCandidateSourceFacts>(AnhHuyProducerStatus.StaleSource);
         var domain = CandidateSourceFacts.Create(CandidateSourceIdentity.Create(kind, sourceId, version), projectId, context.Facts!.Version, source.Disposition);
-        return new(AnhHuyProducerStatus.Ready, new(domain, source.CaseId, files.Select(f => f.Reference.EvidenceId).ToArray(), files.ToArray(), context.Facts));
+        var confirmed = source.MatchingLocation;
+        var currentLocation = confirmed is not null && confirmed.CaseId == source.CaseId && confirmed.ProjectId == projectId &&
+            confirmed.ReportVersion == source.ReportVersion && confirmed.CaseVersion == source.CaseVersion &&
+            confirmed.RouteVersionId == source.RouteVersionId && confirmed.SegmentSetId == source.SegmentSetId &&
+            confirmed.GeometryVersion == context.Facts.Version;
+        var matching = currentLocation ? new ReportMatchingLocationFacts(confirmed!.Id,
+            JsonSerializer.Deserialize<Guid[]>(confirmed.SegmentIdsJson)!, confirmed.EvidenceId,
+            confirmed.Latitude, confirmed.Longitude, confirmed.AccuracyMeters) : null;
+        var locationStatus = confirmed is not null && !currentLocation ? "MATCHING_LOCATION_STALE" : matching?.Latitude is not null
+            ? "GPS_CONFIRMED" : matching is not null ? "SCOPE_CONFIRMED" : source.Evidence.Any(e => e.Latitude is not null)
+                ? "GPS_UNCONFIRMED" : "GPS_MISSING";
+        return new(AnhHuyProducerStatus.Ready, new(domain, source.CaseId, files.Select(f => f.Reference.EvidenceId).ToArray(), files.ToArray(), context.Facts,
+            matching, locationStatus));
     }
 }

@@ -234,7 +234,10 @@ public sealed class H4SafetyRuntimeSqlTests(IdentitySqlServerFixture sql) : ICla
         var discovered = await safety.ListCrewAsync(source.Crew, UserRoleCode.RepairCrew, source.Project, source.Package, source.Item, default);
         Assert.Equal(200, discovered.Status);
         Assert.Equal(measure.Id, Assert.Single(discovered.MeasureIds!));
-        Assert.Equal(403, (await safety.ListCrewAsync(source.Pm, UserRoleCode.ProjectManager, source.Project, source.Package, source.Item, default)).Status);
+        var pmDiscovery = await safety.ListCrewAsync(source.Pm, UserRoleCode.ProjectManager, source.Project, source.Package, source.Item, default);
+        Assert.Equal(200, pmDiscovery.Status);
+        Assert.Equal(measure.Id, Assert.Single(pmDiscovery.MeasureIds!));
+        Assert.Equal(404, (await safety.ListCrewAsync(source.Pm, UserRoleCode.ProjectManager, source.Project, Guid.NewGuid(), source.Item, default)).Status);
         var read = await safety.ReadAsync(source.Crew, UserRoleCode.RepairCrew, source.Project, source.Package, source.Item, measure.Id, default);
         var eligible = Assert.Single(read.EvidenceLinks!);
         Assert.Equal(link.Id, eligible.EvidenceLinkId);

@@ -136,13 +136,26 @@ jobs:
           path: ~/.nuget/packages
           key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'global.json') }}
           restore-keys: nuget-${{ runner.os }}-
+      - name: Cache API test build
+        id: api-build-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            tests/RoadGuardSystem.ApiTests/bin
+            tests/RoadGuardSystem.ApiTests/obj
+          key: dotnet-api-test-${{ runner.os }}-${{ github.sha }}
       - name: Prepare API test assembly and SQL image
         shell: bash
         run: |
           docker pull "$SQL_IMAGE" &
           sql_pull=$!
-          dotnet restore tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj
-          dotnet build tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj --no-restore --no-incremental
+          if [[ "${{ steps.api-build-cache.outputs.cache-hit }}" != 'true' ]]; then
+            dotnet restore tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj
+            dotnet build tests/RoadGuardSystem.ApiTests/RoadGuardSystem.ApiTests.csproj --no-restore --no-incremental
+          else
+            test -f tests/RoadGuardSystem.ApiTests/bin/Debug/net8.0/RoadGuardSystem.ApiTests.dll
+            test -f tests/RoadGuardSystem.ApiTests/obj/project.assets.json
+          fi
           wait "$sql_pull"
       - if: matrix.minio
         uses: ./.github/actions/pinned-minio
@@ -197,6 +210,14 @@ jobs:
           path: ~/.nuget/packages
           key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'global.json') }}
           restore-keys: nuget-${{ runner.os }}-
+      - name: Cache integration test build
+        id: integration-build-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            tests/RoadGuardSystem.IntegrationTests/bin
+            tests/RoadGuardSystem.IntegrationTests/obj
+          key: dotnet-sql-test-${{ runner.os }}-${{ github.sha }}
       - name: Generate ephemeral SQL credential
         shell: pwsh
         run: |
@@ -230,8 +251,13 @@ jobs:
             "$SQL_IMAGE" &
           sql_start=$!
           build_status=0
-          (dotnet restore tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj &&
-            dotnet build tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj --no-restore --no-incremental) || build_status=$?
+          if [[ "${{ steps.integration-build-cache.outputs.cache-hit }}" != 'true' ]]; then
+            (dotnet restore tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj &&
+              dotnet build tests/RoadGuardSystem.IntegrationTests/RoadGuardSystem.IntegrationTests.csproj --no-restore --no-incremental) || build_status=$?
+          else
+            test -f tests/RoadGuardSystem.IntegrationTests/bin/Debug/net8.0/RoadGuardSystem.IntegrationTests.dll || build_status=1
+            test -f tests/RoadGuardSystem.IntegrationTests/obj/project.assets.json || build_status=1
+          fi
           wait "$sql_start"
           exit "$build_status"
       - if: matrix.lane <= 3 || matrix.lane == 7

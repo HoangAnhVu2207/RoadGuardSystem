@@ -46,7 +46,7 @@ public sealed class SandboxSyntheticSeeder
                 if (existing is not null && existing.BundleId == expected.BundleId && existing.CredentialDigest != expected.CredentialDigest) throw new InvalidOperationException("CredentialMismatch");
                 if (existing != expected) throw new InvalidOperationException("VersionMismatch");
                 await tx.CommitAsync(ct);
-                return new SandboxSeedOutcome(false, catalog.Version, credentials.BundleId, 11, 2);
+                return new SandboxSeedOutcome(false, catalog.Version, credentials.BundleId, catalog.Actors.Length, 2);
             }
             await LockAndAssertPristineAsync(db, schema, ct);
             await InsertCoreAsync(db, catalog, credentials, ct);
@@ -55,7 +55,7 @@ public sealed class SandboxSyntheticSeeder
             await SandboxSeedGuard.ValidateTargetAsync(db, target, ct);
             if ((await SandboxSeedGuard.ReadSchemaAsync(db, ct)).Signature != schema.Signature) throw new InvalidOperationException("SchemaMismatch");
             await tx.CommitAsync(ct);
-            return new SandboxSeedOutcome(true, catalog.Version, credentials.BundleId, 11, 2);
+            return new SandboxSeedOutcome(true, catalog.Version, credentials.BundleId, catalog.Actors.Length, 2);
         });
     }
 
@@ -111,8 +111,14 @@ public sealed class SandboxSyntheticSeeder
             db.Users.Add(user);
         }
         foreach (var key in new[] { "A", "B" })
-            db.Projects.Add(Project.Create(key == "A" ? SandboxFixtureIds.ProjectA : SandboxFixtureIds.ProjectB, "SBX-" + key, "Synthetic Project " + key,
-                "Synthetic sandbox; not operational evidence", null, null, null, now));
+        {
+            var real = catalog.Version == "real-ai-demo-v1";
+            var name = real ? key == "A" ? "Duong Kenh Dong" : "Duong so 2" : "Synthetic Project " + key;
+            var code = real ? key == "A" ? "DKD" : "DS2" : "SBX-" + key;
+            var description = real ? "Real AI FE handoff demo project" : "Synthetic sandbox; not operational evidence";
+            db.Projects.Add(Project.Create(key == "A" ? SandboxFixtureIds.ProjectA : SandboxFixtureIds.ProjectB, code, name,
+                description, null, null, null, now));
+        }
         foreach (var actor in catalog.Actors.Where(a => a.Project is not null))
         {
             var id = Guid.Parse(actor.Id.ToString().Replace("a001", "b001", StringComparison.Ordinal));

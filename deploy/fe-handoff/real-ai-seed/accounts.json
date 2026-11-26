@@ -1,0 +1,19 @@
+{
+  "Version": "real-ai-demo-v1",
+  "Actors": [
+    {"Id":"72f84201-a001-4000-8000-000000000101","Key":"supervisor-a","Email":"supervisor-a@roadguard.local","Role":1,"Project":null,"Suspended":false,"Ended":false},
+    {"Id":"72f84201-a001-4000-8000-000000000102","Key":"supervisor-b","Email":"supervisor-b@roadguard.local","Role":1,"Project":null,"Suspended":false,"Ended":false},
+    {"Id":"72f84201-a001-4000-8000-000000000103","Key":"pm-kenh-dong","Email":"pm-kenh-dong@roadguard.local","Role":2,"Project":"A","Suspended":false,"Ended":false},
+    {"Id":"72f84201-a001-4000-8000-000000000104","Key":"pm-duong-so-2","Email":"pm-duong-so-2@roadguard.local","Role":2,"Project":"B","Suspended":false,"Ended":false},
+    {"Id":"72f84201-a001-4000-8000-000000000105","Key":"operator-kenh-dong","Email":"operator-kenh-dong@roadguard.local","Role":3,"Project":"A","Suspended":false,"Ended":false},
+    {"Id":"72f84201-a001-4000-8000-000000000106","Key":"operator-duong-so-2","Email":"operator-duong-so-2@roadguard.local","Role":3,"Project":"B","Suspended":false,"Ended":false},
+    {"Id":"72f84201-a001-4000-8000-000000000107","Key":"crew-kenh-dong-1","Email":"crew-kenh-dong-1@roadguard.local","Role":4,"Project":"A","Suspended":false,"Ended":false},
+    {"Id":"72f84201-a001-4000-8000-000000000108","Key":"crew-kenh-dong-2","Email":"crew-kenh-dong-2@roadguard.local","Role":4,"Project":"A","Suspended":false,"Ended":false},
+    {"Id":"72f84201-a001-4000-8000-000000000109","Key":"crew-duong-so-2-1","Email":"crew-duong-so-2-1@roadguard.local","Role":4,"Project":"B","Suspended":false,"Ended":false},
+    {"Id":"72f84201-a001-4000-8000-000000000110","Key":"crew-duong-so-2-2","Email":"crew-duong-so-2-2@roadguard.local","Role":4,"Project":"B","Suspended":false,"Ended":false},
+    {"Id":"72f84201-a001-4000-8000-000000000111","Key":"reporter-kenh-dong-1","Email":"reporter-kenh-dong-1@roadguard.local","Role":5,"Project":"A","Suspended":false,"Ended":false},
+    {"Id":"72f84201-a001-4000-8000-000000000112","Key":"reporter-kenh-dong-2","Email":"reporter-kenh-dong-2@roadguard.local","Role":5,"Project":"A","Suspended":false,"Ended":false},
+    {"Id":"72f84201-a001-4000-8000-000000000113","Key":"reporter-duong-so-2-1","Email":"reporter-duong-so-2-1@roadguard.local","Role":5,"Project":"B","Suspended":false,"Ended":false},
+    {"Id":"72f84201-a001-4000-8000-000000000114","Key":"reporter-duong-so-2-2","Email":"reporter-duong-so-2-2@roadguard.local","Role":5,"Project":"B","Suspended":false,"Ended":false}
+  ]
+}

@@ -1,5 +1,7 @@
 # Synthetic actor accounts
 
+For the two-road FT95 Docker stack, use the fourteen accounts generated in the local work directory. See [Real AI handoff](REAL-AI-FE-HANDOFF.md).
+
 CURRENT_VERIFIED Task33 source candidate; independent review NOT_PERFORMED. No FULL_CONTRACT promotion.
 
 Passwords are random per deployment and persist only in the private state volume. Read locally with `docker compose exec -T api cat /handoff/demo-accounts.json`; never paste this output into logs, Git, tickets or KnowledgeSpace.

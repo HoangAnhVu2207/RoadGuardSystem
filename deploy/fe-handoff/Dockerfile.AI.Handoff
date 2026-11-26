@@ -1,0 +1,28 @@
+# Local FE handoff image. It contains the pinned CPU FT95 checkpoint so the
+# stack can be moved as one Docker package without a host model bind mount.
+FROM python:3.14.6-slim-bookworm@sha256:ff83a535339812dd72e69c93b3c48ddf7c85a324d6330af5797c82a255dbeef4
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg libgl1 libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+COPY deploy/server/requirements-ai.lock /app/requirements-ai.lock
+RUN pip install --no-cache-dir --only-binary=:all: --no-deps \
+      --index-url https://download.pytorch.org/whl/cpu torch==2.13.0+cpu torchvision==0.28.0+cpu \
+    && pip install --no-cache-dir --only-binary=:all: --no-deps -r requirements-ai.lock \
+    && pip check \
+    && python -c "import torch; assert torch.version.cuda is None"
+RUN groupadd --gid 10001 worker && useradd --uid 10001 --gid worker --no-create-home worker
+COPY --chown=10001:10001 AI/roadguard-ai-engine/src /app/src
+COPY --chown=10001:10001 AI/roadguard-ai-engine/weights/trained/RoadGuard_YOLO11_UAVPDD2023_FT95_v1.pt /models/ft95.pt
+RUN echo 'bc14e1f0378310640d0e04583982ebb377475211d6d42837f2db494e32ed95a0  /models/ft95.pt' | sha256sum -c -
+COPY deploy/server/ai-healthcheck.py /app/ai-healthcheck.py
+RUN mkdir -p /worker /tmp/ultralytics /tmp/matplotlib && chown -R 10001:10001 /worker /tmp/ultralytics /tmp/matplotlib /models
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 \
+    YOLO_CONFIG_DIR=/tmp/ultralytics YOLO_OFFLINE=true YOLO_AUTOINSTALL=false \
+    MPLCONFIGDIR=/tmp/matplotlib OMP_NUM_THREADS=2 MKL_NUM_THREADS=2 \
+    ROADGUARD_WORKER_DATA_ROOT=/worker ROADGUARD_WORKER_TOKEN_FILE=/run/secrets/ai-token \
+    ROADGUARD_WORKER_CHECKPOINT=/models/ft95.pt \
+    ROADGUARD_WORKER_FFMPEG=/usr/bin/ffmpeg ROADGUARD_WORKER_FFPROBE=/usr/bin/ffprobe
+USER 10001:10001
+HEALTHCHECK --interval=15s --timeout=5s --start-period=120s --retries=8 \
+    CMD ["python", "/app/ai-healthcheck.py"]
+CMD ["python", "-m", "uvicorn", "src.api.be_worker_runtime:create_app_from_env", "--factory", "--host", "0.0.0.0", "--port", "8999", "--workers", "1", "--no-access-log"]

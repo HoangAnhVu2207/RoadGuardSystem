@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Data.SqlClient;
+using RoadGuardSystem.BusinessObjects.Catalogs;
 using Microsoft.EntityFrameworkCore;
 using RoadGuardSystem.Repositories;
 using RoadGuardSystem.Repositories.Seeding.Sandbox;
@@ -18,6 +19,16 @@ public static class HandoffBootstrap
             RoadGuardSystem.aBusinessObjects.Commons.AIModelVersionStatus.Released,
             DateTimeOffset.Parse("2026-01-01T00:00:00Z", System.Globalization.CultureInfo.InvariantCulture),
             Guid.Parse("72f84201-a001-4000-8000-000000000001"));
+
+    // Local handoff registry entry for the pinned FT95 checkpoint bundled in the AI image.
+    public static RoadGuardSystem.BusinessObjects.Processing.AIModelVersion CreateRealModel()
+        => RoadGuardSystem.BusinessObjects.Processing.AIModelVersion.Create(
+            Guid.Parse("72f84201-d033-4000-8000-000000000002"), "RoadGuard_YOLO11_UAVPDD2023_FT95",
+            "ft95-cpu-v1", "file:///models/ft95.pt",
+            """{"checkpointSha256":"bc14e1f0378310640d0e04583982ebb377475211d6d42837f2db494e32ed95a0"}""", null,
+            RoadGuardSystem.aBusinessObjects.Commons.AIModelVersionStatus.Released,
+            DateTimeOffset.Parse("2026-11-26T00:00:00Z", System.Globalization.CultureInfo.InvariantCulture),
+            Guid.Parse("72f84201-a001-4000-8000-000000000101"));
 
     public static string[] ResolveOrigins(string? configured, string[] persisted)
         => ValidateOrigins(configured is null ? persisted : configured.Split(','));
@@ -127,13 +138,18 @@ public static class HandoffBootstrap
         var target = new SandboxSeedTarget("Session", database, server, Guid.ParseExact(owner, "N"), identity.Groups[1].Value);
         await SandboxSeedGuard.ValidateTargetAsync(db, target);
         await db.Database.MigrateAsync();
-        var catalog = SandboxSeedCatalog.Load("/catalog");
+        var realHandoff = config["Handoff:AccountCatalog"] == "real-accounts.json";
+        var catalog = SandboxSeedCatalog.Load("/catalog", realHandoff);
         using var credentials = JsonDocument.Parse(await File.ReadAllTextAsync("/handoff/seed-credentials.json"));
         var passwords = credentials.RootElement.GetProperty("Passwords").EnumerateArray()
             .ToDictionary(x => x.GetProperty("ActorId").GetGuid(), x => x.GetProperty("Password").GetString()!);
         await SandboxSyntheticSeeder.InitializeAsync(db, target, catalog,
             new SandboxCredentialInput(credentials.RootElement.GetProperty("BundleId").GetGuid(), catalog.Version, passwords));
-        if (config.GetValue("Anh02:MockEnabled", false))
+        var mockEnabled = config.GetValue("Anh02:MockEnabled", false);
+        var realEnabled = config.GetValue("AiRealWorker:Enabled", false);
+        if (realEnabled != realHandoff || (realEnabled && mockEnabled))
+            throw new InvalidOperationException("Handoff registry mode and account catalog must match.");
+        if (mockEnabled || realEnabled)
         {
             // The session bootstrap lock and mandatory target ownership check above still apply.
             // Never rewrite registry data or silently adopt a colliding identifier.
@@ -141,14 +157,23 @@ public static class HandoffBootstrap
             {
                 db.ChangeTracker.Clear();
                 await using var transaction = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
-                var fixture = CreateDemoModel();
+                var fixture = realEnabled ? CreateRealModel() : CreateDemoModel();
                 var existing = await db.AIModelVersions.AsNoTracking().SingleOrDefaultAsync(x => x.Id == fixture.Id);
                 if (existing is not null && (existing.ModelName != fixture.ModelName || existing.VersionLabel != fixture.VersionLabel ||
-                    existing.ArtifactUri != fixture.ArtifactUri || existing.Status != fixture.Status))
+                    existing.ArtifactUri != fixture.ArtifactUri || existing.Status != fixture.Status || existing.Metrics != fixture.Metrics))
                     throw new InvalidOperationException("Synthetic model fixture conflict; no automatic overwrite.");
                 if (existing is null) db.AIModelVersions.Add(fixture);
-                await db.Database.ExecuteSqlRawAsync("IF NOT EXISTS(SELECT 1 FROM DefectTypes WITH (UPDLOCK,HOLDLOCK) WHERE Code='CRACK') INSERT INTO DefectTypes(Code,Name,IsActive) VALUES ('CRACK','Crack',1)");
-                await db.Database.ExecuteSqlRawAsync("IF NOT EXISTS(SELECT 1 FROM DefectTypes WITH (UPDLOCK,HOLDLOCK) WHERE Code='POTHOLE') INSERT INTO DefectTypes(Code,Name,IsActive) VALUES ('POTHOLE','Synthetic pothole',1)");
+                Dictionary<string, string> types = realEnabled
+                    ? new() { ["ALLIGATOR_CRACK"] = "Alligator crack", ["LONGITUDINAL_CRACK"] = "Longitudinal crack",
+                        ["OBLIQUE_CRACK"] = "Oblique crack", ["POTHOLE"] = "Pothole", ["REPAIR_PATCH"] = "Repair patch",
+                        ["TRANSVERSE_CRACK"] = "Transverse crack" }
+                    : new() { ["CRACK"] = "Crack", ["POTHOLE"] = "Pothole" };
+                foreach (var (code, name) in types)
+                {
+                    var type = await db.DefectTypes.FindAsync(code);
+                    if (type is null) db.DefectTypes.Add(DefectType.Create(code, name));
+                    else if (!type.IsActive) throw new InvalidOperationException("Handoff class is inactive.");
+                }
                 await db.SaveChangesAsync();
                 await transaction.CommitAsync();
             });

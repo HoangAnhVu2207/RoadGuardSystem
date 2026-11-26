@@ -1,0 +1,126 @@
+{
+  "schemaVersion": 1,
+  "profile": "real-ai-demo-v1",
+  "modelSha256": "bc14e1f0378310640d0e04583982ebb377475211d6d42837f2db494e32ed95a0",
+  "projects": [
+    {
+      "key": "RG-DEMO-KENH-DONG",
+      "name": "Duong Kenh Dong",
+      "provenance": "OWNER_APPROVED_DRONE_REFERENCE",
+      "routeFile": "routes/1123.centerline-smoothed.geojson",
+      "ownerApprovalDate": "2026-11-23",
+      "actors": {
+        "pm": "pm-kenh-dong",
+        "operator": "operator-kenh-dong",
+        "crew": "crew-kenh-dong-1"
+      },
+      "warranty": {
+        "startsOn": "2026-11-23",
+        "anniversary": "2027-11-23"
+      },
+      "physical": {
+        "roadWidthMeters": 3,
+        "slabLengthMeters": 3,
+        "expansionJointSpacingMeters": 12,
+        "interSlabGapMillimeters": 3
+      }
+    },
+    {
+      "key": "RG-DEMO-DUONG-SO-2",
+      "name": "Duong so 2",
+      "provenance": "OWNER_APPROVED_DRONE_REFERENCE",
+      "routeFile": "routes/11234.centerline-smoothed.geojson",
+      "ownerApprovalDate": "2026-11-23",
+      "actors": {
+        "pm": "pm-duong-so-2",
+        "operator": "operator-duong-so-2",
+        "crew": "crew-duong-so-2-1"
+      },
+      "warranty": {
+        "startsOn": "2026-11-23",
+        "anniversary": "2027-11-23"
+      },
+      "physical": {
+        "roadWidthMeters": 3,
+        "slabLengthMeters": 3,
+        "expansionJointSpacingMeters": 12,
+        "interSlabGapMillimeters": 3
+      }
+    }
+  ],
+  "inputs": [
+    {
+      "key": "RG-DEMO-KENH-DONG:1123-part-00",
+      "projectKey": "RG-DEMO-KENH-DONG",
+      "videoFile": "media/1123-part-00.mp4",
+      "telemetryFile": "telemetry/1123-part-00.gps-synced.srt",
+      "editedClipStartSeconds": 0.0,
+      "editedClipEndSeconds": 120.033333,
+      "originalTelemetrySource": "DJI_0155.MP4",
+      "alignmentSourceOffsetMs": 0,
+      "originalTimeMapping": "VISUALLY_ALIGNED_APPROXIMATE",
+      "originalContainerCreationTimeUtc": "2026-11-11T04:30:50+00:00",
+      "approximateRecordedAtUtc": "2026-11-11T04:30:50+00:00",
+      "recordedAtEvidence": "ORIGINAL_CONTAINER_TAG_AND_APPROXIMATE_ALIGNMENT_REQUIRES_CONFIRMATION"
+    },
+    {
+      "key": "RG-DEMO-DUONG-SO-2:11234",
+      "projectKey": "RG-DEMO-DUONG-SO-2",
+      "videoFile": "media/11234.mp4",
+      "telemetryFile": "telemetry/11234.gps-synced.srt",
+      "editedClipStartSeconds": 0,
+      "editedClipEndSeconds": 147.98,
+      "originalTelemetrySource": "DJI_0151.MP4",
+      "alignmentSourceOffsetMs": 95760,
+      "originalTimeMapping": "VISUALLY_ALIGNED_APPROXIMATE",
+      "originalContainerCreationTimeUtc": "2026-11-09T09:03:33+00:00",
+      "approximateRecordedAtUtc": "2026-11-09T09:05:08.760000+00:00",
+      "recordedAtEvidence": "ORIGINAL_CONTAINER_TAG_AND_APPROXIMATE_ALIGNMENT_REQUIRES_CONFIRMATION"
+    }
+  ],
+  "files": {
+    "routes/1123.centerline-smoothed.geojson": {
+      "bytes": 23684,
+      "sha256": "e7cc4f8cc34bed45680c083043b511f60500e59e996bfda3d25ca0ca73eff788"
+    },
+    "routes/11234.centerline-smoothed.geojson": {
+      "bytes": 13498,
+      "sha256": "8b0136bf87c0442bac2131a74df0988dfc82913f21ca2d99664b3892d9ea8ea9"
+    },
+    "media/1123-part-00.mp4": {
+      "bytes": 146443102,
+      "sha256": "5e19f8de4ac69e48471280d95e7bdef0995b7f44c5bebb877c6a12625c7094ab"
+    },
+    "telemetry/1123-part-00.gps-synced.srt": {
+      "bytes": 19578,
+      "sha256": "da6038b150640f7add0f25e9351723dcb010b3c7135ba63f92f940bdbf81a910"
+    },
+    "media/11234.mp4": {
+      "bytes": 175679030,
+      "sha256": "49e59dbd2d895aea78f903acc3044b84a058275c9af3ded3e4a46ad3f876c5b7"
+    },
+    "telemetry/11234.gps-synced.srt": {
+      "bytes": 24300,
+      "sha256": "51ea1a6819a557a7632c735bb15dc4e0ac40caa0f860c239f61d11789ca9707e"
+    },
+    "handover-demo/RG-DEMO-KENH-DONG-handover-DEMO.pdf": {
+      "bytes": 46826,
+      "sha256": "20e169b3affc1937da532a92f6eb6e3a2ce14329be1990121abea32aef3d838a"
+    },
+    "handover-demo/RG-DEMO-DUONG-SO-2-handover-DEMO.pdf": {
+      "bytes": 46798,
+      "sha256": "9674da8b45f2d839451e38b383b4fb49ad57d78ce6718f704362f77b3930e4c3"
+    }
+  },
+  "targetsPerProject": {
+    "reportsAwaitingTriage": 10,
+    "approvedDefectLineages": 10,
+    "completedMeasurements": 10,
+    "completedRepairs": 10,
+    "normalRepairs": 5,
+    "fastTrackRepairs": 5,
+    "repairsAwaitingSupervisor": 5,
+    "repairsApprovedBySupervisor": 5,
+    "operatorTasks": 10
+  }
+}

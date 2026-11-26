@@ -12,6 +12,7 @@ services:
       RG_FE_ORIGINS: ${RG_FE_ORIGINS:-http://localhost:5173,http://localhost:8081,http://127.0.0.1:5173,http://127.0.0.1:8081}
     volumes:
       - state:/state
+      - ai-token:/ai-token
     network_mode: none
   sql:
     mem_limit: 2304m
@@ -68,21 +69,57 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ROADGUARD_HANDOFF: '1'
+      AiRealWorker__Enabled: 'true'
+      AiRealWorker__WorkerEndpoint: http://ai:8999/
+      AiRealWorker__ServiceTokenFile: /run/secrets/ai-token
+      AiRealWorker__TempRoot: /ai-be-spool
+      AiRealWorker__FfprobePath: /usr/bin/ffprobe
     volumes:
       - state:/handoff:ro
       - keys:/keys
+      - ai-token:/run/secrets:ro
+      - ai-spool:/ai-be-spool
     ports: ['127.0.0.1:${RG_FE_API_PORT:-18081}:8080']
     depends_on:
       sql: {condition: service_healthy}
       minio: {condition: service_started}
       mailpit: {condition: service_started}
+      ai: {condition: service_healthy}
     healthcheck:
       test: [CMD-SHELL, 'bash -c ''exec 3<>/dev/tcp/127.0.0.1/8080; printf "GET /ready HTTP/1.0\r\nHost: localhost\r\n\r\n" >&3; head -1 <&3 | grep -q "200"''']
       interval: 5s
       timeout: 5s
       retries: 60
     networks: [internal, edge]
+  ai:
+    mem_limit: 2304m
+    cpus: 2.0
+    build:
+      context: ../..
+      dockerfile: deploy/fe-handoff/Dockerfile.AI.Handoff
+    platform: linux/amd64
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs: ['/tmp:rw,noexec,nosuid,size=256m,uid=10001,gid=10001']
+    stop_grace_period: 120s
+    environment:
+      OMP_NUM_THREADS: '2'
+      MKL_NUM_THREADS: '2'
+    volumes:
+      - ai-work:/worker
+      - ai-token:/run/secrets:ro
+    depends_on:
+      init: {condition: service_completed_successfully}
+    healthcheck:
+      test: [CMD, python, /app/ai-healthcheck.py]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 120s
+    networks: [internal]
   scenarios:
+    profiles: [scenarios]
     mem_limit: 256m
     cpus: 0.5
     build:
@@ -103,3 +140,6 @@ volumes:
   objects: {}
   mail: {}
   keys: {}
+  ai-token: {}
+  ai-work: {}
+  ai-spool: {}

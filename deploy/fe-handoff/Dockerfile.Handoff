@@ -1,6 +1,7 @@
 FROM python:3.12-alpine AS init
 COPY deploy/fe-handoff/init.py /init.py
 COPY sandbox/seeds/v1 /catalog
+COPY deploy/fe-handoff/real-ai-seed/accounts.json /catalog/accounts.json
 ENTRYPOINT ["python", "/init.py"]
 
 FROM mcr.microsoft.com/mssql/server:2019-CU18-ubuntu-20.04 AS sql
@@ -13,11 +14,12 @@ COPY . .
 RUN dotnet publish RoadGuardSystem.API/RoadGuardSystem.eAPI.csproj -c Release -o /out --nologo
 
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS api
-RUN apt-get update && apt-get install -y --no-install-recommends fonts-dejavu-core && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl util-linux fonts-dejavu-core ffmpeg && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=build /out .
 COPY sandbox/seeds/v1 /catalog
-RUN mkdir /keys && chown $APP_UID:$APP_UID /keys
+COPY deploy/fe-handoff/real-ai-seed/accounts.json /catalog/real-accounts.json
+RUN mkdir /keys /ai-be-spool && chown $APP_UID:$APP_UID /keys /ai-be-spool
 USER $APP_UID
 ENV ASPNETCORE_HTTP_PORTS=8080
 ENTRYPOINT ["dotnet", "RoadGuardSystem.eAPI.dll"]

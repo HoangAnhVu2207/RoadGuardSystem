@@ -1,0 +1,16 @@
+**
+!AI/
+!AI/roadguard-ai-engine/
+!AI/roadguard-ai-engine/src/
+!AI/roadguard-ai-engine/src/**
+!AI/roadguard-ai-engine/weights/
+!AI/roadguard-ai-engine/weights/trained/
+!AI/roadguard-ai-engine/weights/trained/RoadGuard_YOLO11_UAVPDD2023_FT95_v1.pt
+!deploy/
+!deploy/server/
+!deploy/server/requirements-ai.lock
+!deploy/server/ai-healthcheck.py
+**/__pycache__/**
+**/*.pyc
+**/*.env
+**/secrets/**

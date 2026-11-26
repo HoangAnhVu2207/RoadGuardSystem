@@ -1,3 +1,5 @@
+For the two-road FT95 Docker stack, use the [real AI handoff](REAL-AI-FE-HANDOFF.md).
+
 > Current closeout integration: [FE-CLOSEOUT-POLICY-CONTRACT.md](FE-CLOSEOUT-POLICY-CONTRACT.md). Earlier A1/B2/C1 pending-policy language below is HISTORICAL. Release remains preview pending full journey/contract acceptance and independent review.
 
 > Task33 CURRENT UPDATE (supersedes conflicting historical Task30–32 statements below): G01 SegmentSet collection approved by owner and implemented with existing detail authority, status filter and keyset pagination. New isolated deployments enable internal Development Mock AI and create A/B geometry/survey/dataset plus road/empty fixture results. External AI callback/issuer remains blocked. See FE-DISCOVERY-WORKFLOWS.md, FE-MOCK-AI-GUIDE.md, FE-241-API-COVERAGE-MATRIX.md and FE-FEATURE-AVAILABILITY.md. Historical counts below are not fresh Task33 evidence. Rendered243 = canonical241 + G01 + operational /ready.

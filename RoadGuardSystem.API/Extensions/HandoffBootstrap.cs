@@ -164,9 +164,15 @@ public static class HandoffBootstrap
                     throw new InvalidOperationException("Synthetic model fixture conflict; no automatic overwrite.");
                 if (existing is null) db.AIModelVersions.Add(fixture);
                 Dictionary<string, string> types = realEnabled
-                    ? new() { ["ALLIGATOR_CRACK"] = "Alligator crack", ["LONGITUDINAL_CRACK"] = "Longitudinal crack",
-                        ["OBLIQUE_CRACK"] = "Oblique crack", ["POTHOLE"] = "Pothole", ["REPAIR_PATCH"] = "Repair patch",
-                        ["TRANSVERSE_CRACK"] = "Transverse crack" }
+                    ? new()
+                    {
+                        ["ALLIGATOR_CRACK"] = "Alligator crack",
+                        ["LONGITUDINAL_CRACK"] = "Longitudinal crack",
+                        ["OBLIQUE_CRACK"] = "Oblique crack",
+                        ["POTHOLE"] = "Pothole",
+                        ["REPAIR_PATCH"] = "Repair patch",
+                        ["TRANSVERSE_CRACK"] = "Transverse crack"
+                    }
                     : new() { ["CRACK"] = "Crack", ["POTHOLE"] = "Pothole" };
                 foreach (var (code, name) in types)
                 {

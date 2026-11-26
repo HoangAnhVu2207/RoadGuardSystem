@@ -10,7 +10,7 @@
     "review-evidence/milestone2-r1-closure/EXACT-OPERATION-ACCEPTANCE.json": "1bc48e4c66bd621a5c005d114dfdf4f0c339a9dbad3cd2012d7d4cd500bee56e",
     "review-evidence/milestone2-r1-closure/EXACT-DIMENSION-ACCEPTANCE.json": "2dd5545b0ddecfb6075e1a228dde8a1b2587876dc78c41f082eceddfa6f86afd"
   },
-  "operationCount": 260,
+  "operationCount": 264,
   "metadataAcceptance": "NOT_VERIFIED",
   "schemas": {
     "AcceptInvitationRequestDto": {
@@ -137495,6 +137495,62 @@
         "screenRequired": false,
         "authority": "deploy/fe-handoff/FE-INTEGRATION-QUICKSTART.md",
         "guide": "FE-API-FUNCTIONAL-GUIDE.md#add-19"
+      }
+    },
+    {
+      "operationId": "ROUTING-01",
+      "method": "GET",
+      "path": "/api/v1/company/road-map",
+      "status": "SOURCE_IMPLEMENTED_HTTP_VERIFICATION_PENDING",
+      "references": {
+        "contract": "REPORTER-ROUTING-MAP.md",
+        "openapi": "openapi.json#/paths/~1api~1v1~1company~1road-map/get"
+      },
+      "authorization": {
+        "status": "SOURCE_VERIFIED",
+        "observedRoleScope": "Supervisor; routing-candidates also current-project PM. Current Case/evidence links and file versions are rechecked."
+      }
+    },
+    {
+      "operationId": "ROUTING-02",
+      "method": "GET",
+      "path": "/api/v1/cases/{caseId}/routing-candidates",
+      "status": "SOURCE_IMPLEMENTED_HTTP_VERIFICATION_PENDING",
+      "references": {
+        "contract": "REPORTER-ROUTING-MAP.md",
+        "openapi": "openapi.json#/paths/~1api~1v1~1cases~1{caseId}~1routing-candidates/get"
+      },
+      "authorization": {
+        "status": "SOURCE_VERIFIED",
+        "observedRoleScope": "Supervisor; routing-candidates also current-project PM. Current Case/evidence links and file versions are rechecked."
+      }
+    },
+    {
+      "operationId": "ROUTING-03",
+      "method": "GET",
+      "path": "/api/v1/cases/{caseId}/routing-decisions",
+      "status": "SOURCE_IMPLEMENTED_HTTP_VERIFICATION_PENDING",
+      "references": {
+        "contract": "REPORTER-ROUTING-MAP.md",
+        "openapi": "openapi.json#/paths/~1api~1v1~1cases~1{caseId}~1routing-decisions/get"
+      },
+      "authorization": {
+        "status": "SOURCE_VERIFIED",
+        "observedRoleScope": "Supervisor; routing-candidates also current-project PM. Current Case/evidence links and file versions are rechecked."
+      }
+    },
+    {
+      "operationId": "ROUTING-04",
+      "method": "POST",
+      "path": "/api/v1/cases/{caseId}/routing-decisions",
+      "status": "SOURCE_IMPLEMENTED_HTTP_VERIFICATION_PENDING",
+      "references": {
+        "contract": "REPORTER-ROUTING-MAP.md",
+        "openapi": "openapi.json#/paths/~1api~1v1~1cases~1{caseId}~1routing-decisions/post"
+      },
+      "authorization": {
+        "status": "SOURCE_VERIFIED",
+        "observedRoleScope": "Supervisor; routing-candidates also current-project PM. Current Case/evidence links and file versions are rechecked."
       }
     }
   ],

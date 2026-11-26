@@ -519,6 +519,13 @@ public static class DevelopmentScenarios
         return session.FileId;
     }
 
+    private sealed class SeederRoutingCursorCodec : RoadGuardSystem.Repositories.Cases.IRoutingCursorCodec
+    {
+        // The seed composes Case commands only. It must never issue an HTTP pagination capability.
+        public string Protect(string value) => throw new NotSupportedException("Routing cursors are issued only by the authenticated HTTP composition.");
+        public string Unprotect(string value) => throw new NotSupportedException("The Seeder does not consume routing cursors.");
+    }
+
     private static async Task SeedCaseAsync(RoadGuardDbContext db, Guid project, int graph,
         ReporterReportResponseDto report, AnhHuyProducerService producer, IProjectScopeGuard guard,
         IdempotencyOperationService receipts, TimeProvider clock, List<string> gaps, CancellationToken ct)
@@ -526,9 +533,16 @@ public static class DevelopmentScenarios
         var pm = PostmanUserSeedStep.ProjectManagerUserId;
         var supervisor = PostmanUserSeedStep.SupervisorUserId;
         var repository = new RoadGuardSystem.Repositories.Implementations.Cases.CaseWorkflowRepository(db);
-        var cases = new RoadGuardSystem.Services.Implementations.Cases.CaseWorkflowService(repository, guard, producer, receipts);
+        var routing = new RoadGuardSystem.Repositories.Implementations.Cases.RoutingMapRepository(db, repository,
+            new RoadGuardSystem.Repositories.Integration.AnhHuyFactsRepository(db), new SeederRoutingCursorCodec());
+        var cases = new RoadGuardSystem.Services.Implementations.Cases.CaseWorkflowService(repository, guard, producer, receipts, routing);
         var caseId = await db.Set<RoadGuardSystem.Repositories.Models.Huy01.HuyCaseReportLink>()
             .Where(x => x.ReportId == report.Id && x.EndedAt == null).Select(x => x.CaseId).SingleAsync(ct);
+        if (await db.Set<RoadGuardSystem.BusinessObjects.Cases.CaseRoutingEvent>().AnyAsync(row => row.CaseId == caseId, ct))
+        {
+            gaps.Add($"Case graph {graph}: preserved explicit Supervisor routing history; no seed triage or reconsideration.");
+            return;
+        }
         var incident = await db.IncidentCases.SingleAsync(x => x.Id == caseId, ct);
         var road = await db.RoadSections.SingleOrDefaultAsync(x => x.ProjectId == project && x.Code == RoadCode, ct);
         var route = road is null ? null : await db.RoadSectionVersions.SingleOrDefaultAsync(x => x.RoadSectionId == road.Id && x.IsCurrent, ct);

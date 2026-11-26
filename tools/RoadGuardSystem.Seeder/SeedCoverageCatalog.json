@@ -3787,5 +3787,22 @@
     "Source": [
       "RoadGuardSystem.Services/Implementations/Defects/ReportMatchingLocationService.cs"
     ]
+  },
+  {
+    "Table": "dbo.CaseRoutingEvents",
+    "Group": "cases",
+    "DependencyOrder": 70,
+    "Prerequisites": [
+      "dbo.IncidentCases",
+      "dbo.Reports",
+      "dbo.Users"
+    ],
+    "Producer": "RoutingMapService.DecideAsync; CaseWorkflowService.CommandAsync triage",
+    "EmptyReason": "Development Seeder does not make Supervisor intake attestations or reconsider live Cases. New routing history is created only by an authorized routing decision or a triage that supersedes one.",
+    "Scenario": "Use an isolated unassigned Case and the routing-decisions HTTP workflow; preserve original Report evidence and source provenance. No synthetic outside-scope decision is seeded.",
+    "Source": [
+      "RoadGuardSystem.Repositories/Implementations/Cases/RoutingMapRepository.Decisions.cs",
+      "RoadGuardSystem.Services/Implementations/Cases/RoutingMapService.cs"
+    ]
   }
 ]

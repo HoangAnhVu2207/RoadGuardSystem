@@ -83,7 +83,7 @@ public sealed class Huy01CaseSqlTests(AuthenticationSqlServerFixture sql) : ICla
             }
         }
         var repository = new MutatingReadRepository(new CaseWorkflowRepository(replayDb), Mutate);
-        var service = new CaseWorkflowService(repository, new ProjectScopeGuard(new ProjectMembershipReadModel(replayDb), TimeProvider.System), Producer(replayDb), new IdempotencyOperationService(replayDb));
+        var service = new CaseWorkflowService(repository, new ProjectScopeGuard(new ProjectMembershipReadModel(replayDb), TimeProvider.System), Producer(replayDb), new IdempotencyOperationService(replayDb), CaseRoutingTestDependencies.Create(replayDb));
         var denied = await service.CommandAsync(setup.Pm, UserRoleCode.ProjectManager, command, key, null, default);
         Assert.Equal(expectedStatus, denied.Status); Assert.Null(denied.Write); Assert.Equal(0, repository.ApplyCalls);
         Assert.Equal(1, repository.GuardCalls);
@@ -144,7 +144,7 @@ public sealed class Huy01CaseSqlTests(AuthenticationSqlServerFixture sql) : ICla
         var key = Guid.NewGuid().ToString(); var barrier = new ReadBarrier();
         await using var leftDb = sql.CreateDbContext(); await using var rightDb = sql.CreateDbContext();
         CaseWorkflowService Wrapped(RoadGuardDbContext db) => new(new ReadBarrierRepository(new CaseWorkflowRepository(db), barrier),
-            new ProjectScopeGuard(new ProjectMembershipReadModel(db), TimeProvider.System), Producer(db), new IdempotencyOperationService(db));
+            new ProjectScopeGuard(new ProjectMembershipReadModel(db), TimeProvider.System), Producer(db), new IdempotencyOperationService(db), CaseRoutingTestDependencies.Create(db));
         var results = await Task.WhenAll(Wrapped(leftDb).CommandAsync(setup.Pm, UserRoleCode.ProjectManager, command, key, null, default),
             Wrapped(rightDb).CommandAsync(setup.Pm, UserRoleCode.ProjectManager, command, sameKey ? key : Guid.NewGuid().ToString(), null, default));
         var success = action is "split" or "publish" ? 201 : 200;
@@ -381,7 +381,7 @@ public sealed class Huy01CaseSqlTests(AuthenticationSqlServerFixture sql) : ICla
     }
 
     private CaseWorkflowService Service(RoadGuardDbContext db) => new(new CaseWorkflowRepository(db),
-        new ProjectScopeGuard(new ProjectMembershipReadModel(db), TimeProvider.System), Producer(db), new IdempotencyOperationService(db));
+        new ProjectScopeGuard(new ProjectMembershipReadModel(db), TimeProvider.System), Producer(db), new IdempotencyOperationService(db), CaseRoutingTestDependencies.Create(db));
     private static AnhHuyProducerService Producer(RoadGuardDbContext db) => new(new AnhHuyFactsRepository(db), null!, null!);
 
     private async Task<Setup> SetupAsync()

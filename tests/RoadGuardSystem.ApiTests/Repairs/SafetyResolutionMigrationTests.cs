@@ -29,8 +29,9 @@ public sealed class SafetyResolutionMigrationTests
         Assert.Equal(RepairObligationKind.TemporarySafety, row.Kind); Assert.True(row.Mandatory);
         Assert.Empty(await db.Database.GetPendingMigrationsAsync()); Assert.False(db.Database.HasPendingModelChanges());
         var schema = await SandboxSeedGuard.ReadSchemaAsync(db);
-        Assert.Equal("20261125072411_TemporarySafetyResolution", schema.Migrations[^1]);
-        Assert.Equal(202, schema.Tables.Length);
+        Assert.Equal("20261126090000_ReporterRoutingMap", schema.Migrations[^1]);
+        Assert.Equal(203, schema.Tables.Length);
+        Assert.Contains("dbo.CaseRoutingEvents", schema.Tables);
         await migrator.MigrateAsync("20261125053521_ReportMatchingLocationConfirmation"); await migrator.MigrateAsync();
         Assert.Null(await db.RepairObligations.Where(o => o.Id == obligation).Select(o => o.SafetyResolutionId).SingleAsync());
     }

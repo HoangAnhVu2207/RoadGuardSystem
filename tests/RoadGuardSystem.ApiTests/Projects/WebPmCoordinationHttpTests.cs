@@ -275,7 +275,7 @@ public sealed partial class WebPmCoordinationHttpTests(AuthenticationSqlServerFi
         if (output is not null) await File.WriteAllTextAsync(output, JsonSerializer.Serialize(schema));
         Assert.Contains("20261117183505_WebPmCoordinationMetadata", schema.Migrations);
         Assert.Contains("20261123093000_FieldTaskMeasurementDimensions", schema.Migrations);
-        Assert.Equal("20261125072411_TemporarySafetyResolution", schema.Migrations[^1]);
+        Assert.Equal("20261126090000_ReporterRoutingMap", schema.Migrations[^1]);
         Assert.Equal(db.Database.GetMigrations(), schema.Migrations);
         Assert.False(db.Database.HasPendingModelChanges());
     }

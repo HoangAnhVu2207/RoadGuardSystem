@@ -15,7 +15,9 @@ public sealed record CaseCommand(Guid CaseId, string ExpectedVersion, string Act
     IReadOnlyList<Guid>? DefectIds = null, IReadOnlyList<Guid>? EvidenceIds = null,
     Guid? RouteVersionId = null, Guid? SegmentSetId = null, string? GeometryVersion = null,
     [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-    string? RepairProgressStatus = null);
+    string? RepairProgressStatus = null,
+    [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Routing.RoutingTriagePin? RoutingSource = null);
 public sealed record CaseWriteResult(InternalCaseFact Case, CasePublicationResponseFact? Publication = null);
 public interface ICaseWorkflowRepository
 {

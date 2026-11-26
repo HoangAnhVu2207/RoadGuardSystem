@@ -4,7 +4,8 @@ namespace RoadGuardSystem.DTOs.Cases;
 
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record CaseTriageDto(Guid ProjectId, string? VerificationMethod, string? Reason,
-    Guid? RouteVersionId = null, Guid? SegmentSetId = null, string? GeometryVersion = null);
+    Guid? RouteVersionId = null, Guid? SegmentSetId = null, string? GeometryVersion = null,
+    Guid? ReportId = null, Guid? EvidenceId = null, Guid? RoadSectionId = null, string? RoutingEvaluationVersion = null);
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record CaseLinkDto(IReadOnlyList<Guid>? ReportIds, IReadOnlyDictionary<Guid, string>? SourceCaseVersions, string? Reason);
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
@@ -18,12 +19,16 @@ public sealed record InternalCaseDto(Guid Id, Guid? ProjectId, string Status, st
     IReadOnlyList<Guid> ReportIds, IReadOnlyList<Guid> DefectIds, string? VerificationMethod, string WarrantyRouting,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] CaseConclusionViewDto? Conclusion, DateTimeOffset CreatedAt)
 {
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Routing.RoutingDispositionView? RoutingDisposition { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Routing.RoutingTriageSourceView? RoutingSource { get; init; }
     [return: System.Diagnostics.CodeAnalysis.NotNullIfNotNull(nameof(value))]
     public static implicit operator global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Cases.InternalCaseFact?(InternalCaseDto? value)
-        => value is null ? null! : new(value.Id, value.ProjectId, value.Status, value.Version, value.ReportIds, value.DefectIds, value.VerificationMethod, value.WarrantyRouting, (global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Cases.CaseConclusionViewFact?)value.Conclusion, value.CreatedAt);
+        => value is null ? null! : new(value.Id, value.ProjectId, value.Status, value.Version, value.ReportIds, value.DefectIds, value.VerificationMethod, value.WarrantyRouting, (global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Cases.CaseConclusionViewFact?)value.Conclusion, value.CreatedAt) { RoutingDisposition = value.RoutingDisposition, RoutingSource = value.RoutingSource };
     [return: System.Diagnostics.CodeAnalysis.NotNullIfNotNull(nameof(value))]
     public static implicit operator InternalCaseDto?(global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Cases.InternalCaseFact? value)
-        => value is null ? null! : new(value.Id, value.ProjectId, value.Status, value.Version, value.ReportIds, value.DefectIds, value.VerificationMethod, value.WarrantyRouting, (global::RoadGuardSystem.DTOs.Cases.CaseConclusionViewDto?)value.Conclusion, value.CreatedAt);
+        => value is null ? null! : new(value.Id, value.ProjectId, value.Status, value.Version, value.ReportIds, value.DefectIds, value.VerificationMethod, value.WarrantyRouting, (global::RoadGuardSystem.DTOs.Cases.CaseConclusionViewDto?)value.Conclusion, value.CreatedAt) { RoutingDisposition = value.RoutingDisposition, RoutingSource = value.RoutingSource };
 }
 public sealed record CaseConclusionViewDto(Guid Id, string Outcome, string Reason, DateTimeOffset ConcludedAt,
     IReadOnlyList<Guid> DefectIds, IReadOnlyList<Guid> EvidenceIds)

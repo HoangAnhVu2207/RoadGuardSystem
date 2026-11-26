@@ -9,5 +9,9 @@ public enum UploadPersistenceStatus
     ConcurrencyConflict = 5,
     InvalidInput = 6,
     StorageUnavailable = 7,
-    Forbidden = 8
+    Forbidden = 8,
+    PartUrlsExpired = 9,
+    PartUrlsIdempotencyConflict = 10,
+    PartUrlsSessionUnavailable = 11,
+    PartUrlsMultipartConflict = 12
 }

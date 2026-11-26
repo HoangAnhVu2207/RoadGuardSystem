@@ -182,6 +182,7 @@ public sealed class UploadService : IUploadService
 
         var result = await _repository.GetPartUrlsAsync(
             actorUserId,
+            role,
             session.ProjectId,
             uploadId,
             request.PartNumbers,
@@ -195,6 +196,16 @@ public sealed class UploadService : IUploadService
             UploadPersistenceStatus.Success or UploadPersistenceStatus.Replayed => new(
                 result.Status == UploadPersistenceStatus.Replayed ? UploadServiceStatus.Replayed : UploadServiceStatus.Success,
                 PartUrls: new(result.Parts.Select(part => new UploadPartUrlResponseDto(part.PartNumber, part.Url, part.ExpiresAt)).ToArray())),
+            UploadPersistenceStatus.PartUrlsExpired or UploadPersistenceStatus.PartUrlsIdempotencyConflict or
+                UploadPersistenceStatus.PartUrlsSessionUnavailable or UploadPersistenceStatus.PartUrlsMultipartConflict => new(
+                    result.Status switch
+                    {
+                        UploadPersistenceStatus.PartUrlsExpired => UploadServiceStatus.PartUrlsExpired,
+                        UploadPersistenceStatus.PartUrlsIdempotencyConflict => UploadServiceStatus.PartUrlsIdempotencyConflict,
+                        UploadPersistenceStatus.PartUrlsSessionUnavailable => UploadServiceStatus.PartUrlsSessionUnavailable,
+                        _ => UploadServiceStatus.PartUrlsMultipartConflict
+                    }, PartUrlsFailure: result.Failure is { } failure ? new(failure.UploadId, failure.PartNumbers,
+                        failure.ExpiresAt, failure.ServerTime, failure.RenewalAllowed, failure.SessionStatus, failure.Reason) : null),
             UploadPersistenceStatus.NotFound => new(UploadServiceStatus.NotFound),
             UploadPersistenceStatus.Conflict => new(UploadServiceStatus.Conflict),
             UploadPersistenceStatus.StorageUnavailable => new(UploadServiceStatus.StorageUnavailable),

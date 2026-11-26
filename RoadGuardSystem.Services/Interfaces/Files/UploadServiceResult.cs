@@ -9,4 +9,5 @@ public sealed record UploadServiceResult(
     FileMetadataResponseDto? File = null,
     Stream? Content = null,
     long? MaxBytes = null,
-    long? ActualBytes = null);
+    long? ActualBytes = null,
+    UploadPartUrlsFailureDto? PartUrlsFailure = null);

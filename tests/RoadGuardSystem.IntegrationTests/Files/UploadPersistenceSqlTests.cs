@@ -262,7 +262,7 @@ public sealed class UploadPersistenceSqlTests : IClassFixture<IdentitySqlServerF
         replay.Status.Should().Be(UploadPersistenceStatus.Replayed);
         replay.Parts.Should().BeEquivalentTo(first.Parts);
         var expired = await resumedRepository.GetPartUrlsAsync(user.Id, project.Id, created.Session.Id, [1, 1024], key, new string('c', 64), now.AddMinutes(16), now.AddMinutes(31));
-        expired.Status.Should().Be(UploadPersistenceStatus.Conflict);
+        expired.Status.Should().Be(UploadPersistenceStatus.PartUrlsExpired);
         var fresh = await resumedRepository.GetPartUrlsAsync(user.Id, project.Id, created.Session.Id, [1, 1024], Guid.NewGuid().ToString(), new string('c', 64), now.AddMinutes(16), now.AddMinutes(31));
         fresh.Status.Should().Be(UploadPersistenceStatus.Success);
         storage.InitiateCalls.Should().Be(1);

@@ -62,7 +62,7 @@ public sealed class MultipartRecoveryStateSqlTests(IdentitySqlServerFixture fixt
         if (scenario == "expired")
             await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE UploadSessions SET ExpiresAt={DateTimeOffset.UtcNow.AddMinutes(-1)} WHERE Id={upload}");
         await Repo(db, storage).RecoverMultipartsAsync();
-        (await IssueAsync(db, storage, actor, upload, Guid.NewGuid().ToString())).Status.Should().Be(UploadPersistenceStatus.Conflict);
+        (await IssueAsync(db, storage, actor, upload, Guid.NewGuid().ToString())).Status.Should().Be(UploadPersistenceStatus.PartUrlsSessionUnavailable);
         var row = await db.UploadSessions.AsNoTracking().SingleAsync(s => s.Id == upload);
         row.Status.Should().Be(UploadSessionStatus.Failed); row.FailureCode.Should().Be("multipart_restart_required"); row.StorageUploadId.Should().BeNull();
         (await db.IdempotencyRecords.CountAsync(r => r.ActorUserId == actor && r.Operation == "UploadPartUrlsIssued")).Should().Be(0);
@@ -203,7 +203,7 @@ public sealed class MultipartRecoveryStateSqlTests(IdentitySqlServerFixture fixt
         var row = await db.UploadSessions.AsNoTracking().SingleAsync(s => s.Id == upload);
         row.Status.Should().Be(UploadSessionStatus.Failed); row.MultipartPhase.Should().Be("TERMINAL");
         storage.Uploads[key].Should().BeEmpty();
-        (await IssueAsync(db, storage, actor, upload, receiptKey)).Status.Should().Be(UploadPersistenceStatus.Conflict);
+        (await IssueAsync(db, storage, actor, upload, receiptKey)).Status.Should().Be(UploadPersistenceStatus.PartUrlsSessionUnavailable);
         (await db.IdempotencyRecords.CountAsync(r => r.ActorUserId == actor && r.Operation == "UploadPartUrlsIssued")).Should().Be(1);
     }
 
@@ -280,7 +280,7 @@ public sealed class MultipartRecoveryStateSqlTests(IdentitySqlServerFixture fixt
         before = (await Repo(db, storage).GetSessionAsync(upload))!;
         await Repo(db, storage).RecoverMultipartsAsync();
         (await Repo(db, storage).GetSessionAsync(upload))!.Version.Should().Be(before.Version);
-        (await IssueAsync(db, storage, actor, upload, Guid.NewGuid().ToString())).Status.Should().Be(UploadPersistenceStatus.Conflict);
+        (await IssueAsync(db, storage, actor, upload, Guid.NewGuid().ToString())).Status.Should().Be(UploadPersistenceStatus.PartUrlsSessionUnavailable);
         storage.Initiations.Should().Be(1);
     }
 

@@ -50052,7 +50052,7 @@
         "tags": [
           "ReporterEvidence"
         ],
-        "description": "Get part urls reporter evidence resources. Permissions: Reporter; own record / named publication recipient.",
+        "description": "Get part urls reporter evidence resources. Permissions: Reporter; own record / named publication recipient. Replay keeps receipt expiry. Renew with a new key only after upload_part_urls_expired and renewalAllowed=true; reconcile other conflicts.",
         "parameters": [
           {
             "name": "uploadId",
@@ -50156,7 +50156,7 @@
             }
           },
           "409": {
-            "description": "Error codes: duplicate_request.",
+            "description": "Error codes: upload_part_urls_expired, idempotency_key_reused, upload_session_not_uploadable, upload_part_urls_multipart_conflict.",
             "headers": {
               "X-Correlation-ID": {
                 "description": "Request correlation UUID, emitted by middleware on all responses.",
@@ -50169,7 +50169,7 @@
             "content": {
               "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
+                  "$ref": "#/components/schemas/UploadPartUrlsProblemResponseDto"
                 }
               }
             }
@@ -50310,7 +50310,7 @@
         },
         "security": [
           {
-            "Bearer": [ ]
+            "Bearer": []
           }
         ],
         "x-roadguard-api-id": "SWG-170",
@@ -63252,7 +63252,7 @@
         "tags": [
           "Uploads"
         ],
-        "description": "Get part urls uploads resources. Permissions: Scoped Supervisor / PM / Operator / Crew; survey upload requires assigned Operator.",
+        "description": "Get part urls uploads resources. Permissions: Scoped Supervisor / PM / Operator / Crew; survey upload requires assigned Operator. Replay keeps receipt expiry. Renew with a new key only after upload_part_urls_expired and renewalAllowed=true; reconcile other conflicts.",
         "parameters": [
           {
             "name": "uploadId",
@@ -63393,7 +63393,7 @@
             }
           },
           "409": {
-            "description": "Error codes: duplicate_request.",
+            "description": "Error codes: upload_part_urls_expired, idempotency_key_reused, upload_session_not_uploadable, upload_part_urls_multipart_conflict.",
             "headers": {
               "X-Correlation-ID": {
                 "description": "Request correlation UUID, emitted by middleware on all responses.",
@@ -63406,7 +63406,7 @@
             "content": {
               "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
+                  "$ref": "#/components/schemas/UploadPartUrlsProblemResponseDto"
                 }
               }
             }
@@ -63509,12 +63509,12 @@
         },
         "security": [
           {
-            "Bearer": [ ]
+            "Bearer": []
           },
           {
-            "WebSession": [ ],
-            "CsrfToken": [ ],
-            "AntiforgeryCookie": [ ]
+            "WebSession": [],
+            "CsrfToken": [],
+            "AntiforgeryCookie": []
           }
         ],
         "x-roadguard-api-id": "SWG-226",
@@ -86528,6 +86528,75 @@
             "type": "boolean"
           },
           "version": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "UploadPartUrlsProblemResponseDto": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "detail": {
+            "type": "string",
+            "nullable": true
+          },
+          "instance": {
+            "type": "string",
+            "nullable": true
+          },
+          "code": {
+            "type": "string",
+            "nullable": true
+          },
+          "correlationId": {
+            "type": "string",
+            "nullable": true
+          },
+          "uploadId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "partNumbers": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "nullable": true
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "serverTime": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "renewalAllowed": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "sessionStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "reason": {
             "type": "string",
             "nullable": true
           }

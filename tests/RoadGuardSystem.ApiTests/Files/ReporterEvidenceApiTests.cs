@@ -336,7 +336,7 @@ public sealed class ReporterEvidenceApiTests(AuthenticationSqlServerFixture sql)
         replay.PartUrls!.Parts.Single().ExpiresAt.Should().Be(issuedAt.AddSeconds(300));
         clock.Advance(TimeSpan.FromSeconds(180));
         var presigns = storage.Presigns;
-        (await service.GetPartUrlsAsync(owner.Id, UserRoleCode.Reporter, upload, new([1]), key)).Status.Should().Be(UploadServiceStatus.Conflict);
+        (await service.GetPartUrlsAsync(owner.Id, UserRoleCode.Reporter, upload, new([1]), key)).Status.Should().Be(UploadServiceStatus.PartUrlsExpired);
         storage.Presigns.Should().Be(presigns);
         await using (var db = sql.CreateDbContext())
         { var actor = await db.Users.SingleAsync(x => x.Id == owner.Id); actor.Status = UserStatus.Suspended; await db.SaveChangesAsync(); }

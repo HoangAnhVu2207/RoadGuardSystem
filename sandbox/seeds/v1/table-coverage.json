@@ -32,6 +32,7 @@
     "dbo.CaseReportLinkHistory",
     "dbo.CaseReportLinkHistoryReports",
     "dbo.CaseReportLinks",
+    "dbo.CaseRoutingEvents",
     "dbo.CauseCategories",
     "dbo.ConsumerEffectReceipts",
     "dbo.CrsProfileRevisions",
@@ -221,9 +222,10 @@
     "20261123093000_FieldTaskMeasurementDimensions",
     "20261123093100_InitialTemporarySafetyResponsibility",
     "20261125053521_ReportMatchingLocationConfirmation",
-    "20261125072411_TemporarySafetyResolution"
+    "20261125072411_TemporarySafetyResolution",
+    "20261126090000_ReporterRoutingMap"
   ],
-  "Signature": "42CC15550A536C013FC350741457D52A836F8CAD13C3C73968F92E755FD1EAA4",
+  "Signature": "F98464ECC69892658D8CDA054233A02A5E648B7C73A470C4464049AB78427DD2",
   "Classifications": [
     {
       "Table": "dbo.AIDetections",
@@ -1436,6 +1438,12 @@
       "Category": "NOT_COVERED",
       "Reason": "No automatic representative position or backfill. Requires an explicit authorized PM matching confirmation.",
       "Evidence": "ReportMatchingLocationService.ConfirmAsync; owner-web-b-decisions-20261125.md"
+    },
+    {
+      "Table": "dbo.CaseRoutingEvents",
+      "Category": "NOT_COVERED",
+      "Reason": "Supervisor intake routing decisions require explicit case evidence and source-backed attestation. The sandbox seed does not make or inherit those decisions.",
+      "Evidence": "planning/development/REPORTER-ROUTING-MAP.md; RoadGuardSystem.Repositories/Implementations/Cases/RoutingMapRepository.Decisions.cs"
     }
   ]
 }

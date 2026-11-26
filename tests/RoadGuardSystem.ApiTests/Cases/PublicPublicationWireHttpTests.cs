@@ -115,7 +115,7 @@ public sealed class PublicPublicationWireHttpTests(AuthenticationSqlServerFixtur
         db.DefectVerificationLogs.Add(defect.DecideFromExistingEvidence(DefectVerificationAction.Confirm, [evidence.Id], [evidence.Id], source.Pm, "Verified retained evidence"));
         await db.SaveChangesAsync();
         var cases = new CaseWorkflowService(new CaseWorkflowRepository(db), new ProjectScopeGuard(new ProjectMembershipReadModel(db), TimeProvider.System),
-            new AnhHuyProducerService(new AnhHuyFactsRepository(db), null!, null!), new IdempotencyOperationService(db));
+            new AnhHuyProducerService(new AnhHuyFactsRepository(db), null!, null!), new IdempotencyOperationService(db), CaseRoutingTestDependencies.Create(db));
         var current = await cases.ReadAsync(source.Pm, UserRoleCode.ProjectManager, incident.Id, default);
         var concluded = await cases.CommandAsync(source.Pm, UserRoleCode.ProjectManager,
             new(incident.Id, current.Case!.Version, "conclude", "Verified publication source", Outcome: CaseConclusionOutcome.Confirmed, DefectIds: [defect.Id], EvidenceIds: [evidence.Id]),

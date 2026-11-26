@@ -87,7 +87,8 @@ public sealed class SandboxSyntheticSeedTests : IClassFixture<SqlServerTestFixtu
             await using var db = SandboxSeedTestSupport.CreateSafeContext(fixture);
             await SandboxSeedGuard.ValidateTargetAsync(db, target);
             var schema = await SandboxSeedGuard.ReadSchemaAsync(db);
-            Assert.Equal(202, schema.Tables.Length);
+            Assert.Equal(203, schema.Tables.Length);
+            Assert.Contains("dbo.CaseRoutingEvents", schema.Tables);
             // Each execution owns its output; CI must not depend on a developer's historical handoff directory.
             var evidence = Path.Combine(Path.GetTempPath(), "RoadGuardSystem-test-evidence", Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(evidence);

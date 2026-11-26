@@ -20,6 +20,9 @@ public static class Huy01ReporterServiceExtensions
         services.TryAddScoped<IReporterLifecycleService, ReporterLifecycleService>();
         services.TryAddScoped<RoadGuardSystem.Services.Cases.ICaseWorkflowService, RoadGuardSystem.Services.Implementations.Cases.CaseWorkflowService>();
         services.TryAddScoped<RoadGuardSystem.Services.Cases.ICaseReportDetailsService, RoadGuardSystem.Services.Implementations.Cases.CaseReportDetailsService>();
+        services.TryAddScoped<RoadGuardSystem.Services.Cases.IRoutingMapService, RoadGuardSystem.Services.Implementations.Cases.RoutingMapService>();
+        services.TryAddSingleton<RoadGuardSystem.Repositories.Cases.IRoutingCursorCodec>(provider =>
+            new RoadGuardSystem.Services.Implementations.Cases.RoutingCursorCodec(provider.GetRequiredService<Microsoft.Extensions.Options.IOptions<RoadGuardSystem.Services.Options.JwtOptions>>().Value));
         return services;
     }
 

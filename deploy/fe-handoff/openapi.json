@@ -68107,6 +68107,751 @@
           }
         ]
       }
+    },
+    "/api/v1/company/road-map": {
+      "get": {
+        "tags": [
+          "CaseRouting"
+        ],
+        "description": "Active Supervisor organization map. WGS84 display geometry; bounded registry pages may be empty. Follow nextCursor with identical filters. Authorize before conditional GET. Unlocated routes have unknown bbox relation.",
+        "parameters": [
+          {
+            "name": "bbox",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "includeHistorical",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "If-None-Match",
+            "in": "header",
+            "description": "Quoted page snapshot ETag for the identical filters/cursor. Current authority is checked before 304.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "Quoted snapshotVersion for this page and filters.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutingMapView"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutingMapView"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutingMapView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency unavailable; never interpreted as an empty routing result."
+          },
+          "304": {
+            "description": "Authorized page snapshot is unchanged.",
+            "headers": {
+              "ETag": {
+                "description": "Quoted snapshotVersion for this page and filters.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          },
+          {
+            "WebSession": []
+          }
+        ]
+      }
+    },
+    "/api/v1/cases/{caseId}/routing-candidates": {
+      "get": {
+        "tags": [
+          "CaseRouting"
+        ],
+        "description": "Exact currently linked Report evidence. Sup reads organization candidates; PM is limited to the current Case project. Canonical UTM grid distance does not prove corridor inclusion or responsibility. No business radius or automatic routing.",
+        "parameters": [
+          {
+            "name": "caseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "reportId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "evidenceId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutingCandidatesView"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutingCandidatesView"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutingCandidatesView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Precondition Failed",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "auth_unauthorized: a current session is required."
+          },
+          "503": {
+            "description": "Dependency unavailable; never interpreted as an empty routing result."
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          },
+          {
+            "WebSession": []
+          }
+        ]
+      }
+    },
+    "/api/v1/cases/{caseId}/routing-decisions": {
+      "get": {
+        "tags": [
+          "CaseRouting"
+        ],
+        "description": "Supervisor-only append-only intake decisions, ordered by SQL identifier ascending. Follow the opaque cursor with the same Case and limit. Source changes require review; triage supersedes disposition without erasing history.",
+        "parameters": [
+          {
+            "name": "caseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutingDecisionPage"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutingDecisionPage"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutingDecisionPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "auth_unauthorized: a current session is required."
+          },
+          "503": {
+            "description": "Dependency unavailable; never interpreted as an empty routing result."
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          },
+          {
+            "WebSession": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "CaseRouting"
+        ],
+        "description": "Supervisor decides intake for an unassigned Case. Current evidence and authoritative sources are rechecked. Outside scope requires a complete source-backed whole-Case attestation. No technical conclusion, publication or automatic work is created.",
+        "parameters": [
+          {
+            "name": "caseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "Quoted Case ETag from GET Case. Stale version returns 412 concurrency_conflict.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Persist the exact key, body and If-Match before sending. Retry the unchanged request after timeout.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CaseRoutingDecisionDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CaseRoutingDecisionDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CaseRoutingDecisionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "Quoted Case version after this operation; GET Case to reconcile current state after replay.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutingWriteView"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutingWriteView"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutingWriteView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Precondition Failed",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Precondition Required",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "auth_unauthorized: a current session is required."
+          },
+          "503": {
+            "description": "Dependency unavailable; never interpreted as an empty routing result."
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          },
+          {
+            "WebSession": [],
+            "CsrfToken": [],
+            "AntiforgeryCookie": []
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -70042,6 +70787,25 @@
             "nullable": true
           },
           "geometryVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "reportId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "evidenceId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "roadSectionId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "routingEvaluationVersion": {
             "type": "string",
             "nullable": true
           }
@@ -75208,6 +75972,12 @@
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "routingDisposition": {
+            "$ref": "#/components/schemas/RoutingDispositionView"
+          },
+          "routingSource": {
+            "$ref": "#/components/schemas/RoutingTriageSourceView"
           }
         },
         "additionalProperties": false
@@ -84894,6 +85664,871 @@
           "sizeBytes": {
             "type": "integer",
             "format": "int64",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CaseRoutingDecisionDto": {
+        "type": "object",
+        "properties": {
+          "outcome": {
+            "enum": [
+              "NEEDS_LOCATION_EVIDENCE",
+              "OUTSIDE_COMPANY_SCOPE"
+            ],
+            "type": "string",
+            "nullable": true
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "reportId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "evidenceId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "routingEvaluationVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "attestation": {
+            "$ref": "#/components/schemas/RoutingWholeCaseAttestation"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RoutingCandidate": {
+        "type": "object",
+        "properties": {
+          "route": {
+            "$ref": "#/components/schemas/RoutingRouteProperties"
+          },
+          "distanceMeters": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "distanceMethod": {
+            "type": "string",
+            "nullable": true
+          },
+          "spatialRelation": {
+            "type": "string",
+            "nullable": true
+          },
+          "uncertaintyStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "responsibility": {
+            "type": "string",
+            "nullable": true
+          },
+          "temporalBasis": {
+            "type": "string",
+            "nullable": true
+          },
+          "responsibilityAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "missingReasons": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RoutingCandidatesView": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "$ref": "#/components/schemas/RoutingEvidencePin"
+          },
+          "evaluationVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "algorithmVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "evaluatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "candidates": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RoutingCandidate"
+            },
+            "nullable": true
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          },
+          "completeness": {
+            "type": "string",
+            "nullable": true
+          },
+          "missingReasons": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "searchScope": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RoutingCoveragePin": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "obligationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "locationVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "provenance": {
+            "type": "string",
+            "nullable": true
+          },
+          "sourceKind": {
+            "type": "string",
+            "nullable": true
+          },
+          "sourceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sourceVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "applicableFromUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "applicableToUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "version": {
+            "type": "string",
+            "nullable": true
+          },
+          "originProjectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "currentResponsibleProjectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "currentRepairItemId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RoutingDecisionPage": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RoutingDecisionView"
+            },
+            "nullable": true
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RoutingDecisionView": {
+        "type": "object",
+        "properties": {
+          "decisionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "outcome": {
+            "type": "string",
+            "nullable": true
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "actorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "decidedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reportId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "evidenceId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "caseSourceVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "routingEvaluationVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "temporalBasis": {
+            "type": "string",
+            "nullable": true
+          },
+          "supersedesDecisionId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "state": {
+            "enum": [
+              "EFFECTIVE",
+              "REVIEW_REQUIRED",
+              "SUPERSEDED"
+            ],
+            "type": "string",
+            "nullable": true
+          },
+          "attestation": {
+            "$ref": "#/components/schemas/RoutingWholeCaseAttestation"
+          },
+          "source": {
+            "$ref": "#/components/schemas/RoutingEvidencePin"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RoutingDispositionView": {
+        "type": "object",
+        "properties": {
+          "decisionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "outcome": {
+            "type": "string",
+            "nullable": true
+          },
+          "state": {
+            "enum": [
+              "EFFECTIVE",
+              "REVIEW_REQUIRED"
+            ],
+            "type": "string",
+            "nullable": true
+          },
+          "decidedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RoutingEvidencePin": {
+        "type": "object",
+        "properties": {
+          "caseId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "caseVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "reportId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reportVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "evidenceId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "supplementId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "fileId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "fileVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "caseSourceVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "latitude": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "longitude": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "accuracyMeters": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "locationSource": {
+            "type": "string",
+            "nullable": true
+          },
+          "capturedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "receivedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "captureTimeProvenance": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RoutingFeature": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "geometry": {
+            "$ref": "#/components/schemas/RoutingGeometry"
+          },
+          "properties": {
+            "$ref": "#/components/schemas/RoutingMapRouteProperties"
+          },
+          "type": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RoutingGeometry": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "coordinates": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "format": "double"
+              }
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RoutingHistoricalScopePin": {
+        "type": "object",
+        "properties": {
+          "obligationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "routeVersionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "locationVersion": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RoutingMapRouteProperties": {
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "projectName": {
+            "type": "string",
+            "nullable": true
+          },
+          "projectStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "roadSectionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "roadSectionCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "roadSectionName": {
+            "type": "string",
+            "nullable": true
+          },
+          "routeVersionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "versionNo": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isCurrent": {
+            "type": "boolean"
+          },
+          "effectiveFrom": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "geometryHash": {
+            "type": "string",
+            "nullable": true
+          },
+          "crsProfileRevisionId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "segmentSets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RoutingSegmentSetPin"
+            },
+            "nullable": true
+          },
+          "obligationGeometryPins": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RoutingHistoricalScopePin"
+            },
+            "nullable": true
+          },
+          "metadataTruncated": {
+            "type": "boolean"
+          },
+          "geometryUsage": {
+            "type": "string",
+            "nullable": true
+          },
+          "geometryStatus": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RoutingMapView": {
+        "type": "object",
+        "properties": {
+          "features": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RoutingFeature"
+            },
+            "nullable": true
+          },
+          "unavailableRoutes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RoutingUnavailableRoute"
+            },
+            "nullable": true
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          },
+          "snapshotVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "scannedRoutes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "scope": {
+            "type": "string",
+            "nullable": true
+          },
+          "type": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RoutingReportAttestation": {
+        "type": "object",
+        "properties": {
+          "reportId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "evidenceId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "locationReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "responsibilityReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "sourceReferences": {
+            "maxItems": 20,
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RoutingSourceReference"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RoutingRouteProperties": {
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "projectName": {
+            "type": "string",
+            "nullable": true
+          },
+          "projectStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "roadSectionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "roadSectionCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "roadSectionName": {
+            "type": "string",
+            "nullable": true
+          },
+          "routeVersionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "versionNo": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isCurrent": {
+            "type": "boolean"
+          },
+          "effectiveFrom": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "geometryHash": {
+            "type": "string",
+            "nullable": true
+          },
+          "crsProfileRevisionId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "segmentSets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RoutingSegmentSetPin"
+            },
+            "nullable": true
+          },
+          "coveragePins": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RoutingCoveragePin"
+            },
+            "nullable": true
+          },
+          "policyPins": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RoutingPolicyPin"
+            },
+            "nullable": true
+          },
+          "geometryUsage": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RoutingSegmentSetPin": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "version": {
+            "type": "string",
+            "nullable": true
+          },
+          "geometryHash": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RoutingSourceReference": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "enum": [
+              "ROUTE_VERSION",
+              "COVERAGE_MAPPING"
+            ],
+            "type": "string",
+            "nullable": true
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RoutingTriagePin": {
+        "type": "object",
+        "properties": {
+          "reportId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "evidenceId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "roadSectionId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "routingEvaluationVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "routeVersionId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "segmentSetId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "geometryVersion": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RoutingTriageSourceView": {
+        "type": "object",
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "source": {
+            "$ref": "#/components/schemas/RoutingTriagePin"
+          },
+          "caseSourceVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "recordedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RoutingUnavailableRoute": {
+        "type": "object",
+        "properties": {
+          "routeVersionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "projectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "roadSectionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "missingReasons": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "bboxRelation": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RoutingWholeCaseAttestation": {
+        "type": "object",
+        "properties": {
+          "scopeReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "conflictResolution": {
+            "type": "string",
+            "nullable": true
+          },
+          "temporalBasis": {
+            "enum": [
+              "SERVER_RECEIVED_AT"
+            ],
+            "type": "string",
+            "nullable": true
+          },
+          "reports": {
+            "maxItems": 100,
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RoutingReportAttestation"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RoutingWriteView": {
+        "type": "object",
+        "properties": {
+          "decision": {
+            "$ref": "#/components/schemas/RoutingDecisionView"
+          },
+          "caseVersion": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RoutingPolicyPin": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "revision": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "defectTypeCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "publishedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "revoked": {
+            "type": "boolean"
+          },
+          "version": {
+            "type": "string",
             "nullable": true
           }
         },

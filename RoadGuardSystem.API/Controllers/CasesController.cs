@@ -58,7 +58,9 @@ public sealed class CasesController : ControllerBase
                 "EXISTING_EVIDENCE" => CaseVerificationMethod.ExistingEvidence,
                 _ => CaseVerificationMethod.Unknown
             },
-            RouteVersionId: request.RouteVersionId, SegmentSetId: request.SegmentSetId, GeometryVersion: request.GeometryVersion), cancellationToken);
+            RouteVersionId: request.RouteVersionId, SegmentSetId: request.SegmentSetId, GeometryVersion: request.GeometryVersion,
+            RoutingSource: request.ReportId is null && request.EvidenceId is null && request.RoadSectionId is null && request.RoutingEvaluationVersion is null
+                ? null : new(request.ReportId ?? Guid.Empty, request.EvidenceId, request.RoadSectionId, request.RoutingEvaluationVersion)), cancellationToken);
 
     [HttpPost("{caseId:guid}/report-links")]
     public Task<IActionResult> Link(Guid caseId, CaseLinkDto request, CancellationToken cancellationToken)

@@ -737,7 +737,11 @@
         "V2-P1-001: forced-change login returns flagged credentials and fresh login needs replacement password",
         "V2-P1-002: expired refresh token has a distinct stable error",
         "V2-P1-002: unknown refresh token returns the invalid-token code",
-        "WebApplicationFactory creates HTTP client without throwing during startup"
+        "WebApplicationFactory creates HTTP client without throwing during startup",
+        "RoadGuardSystem.ApiTests.Authentication.Milestone2AnonymousBoundaryHttpTests.AdvertisedProtectedOperationRejectsAnonymousAndInvalidBearer(operationKey: \"156FFF3464AE759F\", method: \"POST\", contractRoute: \"/api/v1/cases/{caseId}/routing-decisions\", requestRoute: \"/api/v1/cases/00000000-0000-0000-0000-000000000001\"···)",
+        "RoadGuardSystem.ApiTests.Authentication.Milestone2AnonymousBoundaryHttpTests.AdvertisedProtectedOperationRejectsAnonymousAndInvalidBearer(operationKey: \"6437D241B1E855B8\", method: \"GET\", contractRoute: \"/api/v1/cases/{caseId}/routing-decisions\", requestRoute: \"/api/v1/cases/00000000-0000-0000-0000-000000000001\"···)",
+        "RoadGuardSystem.ApiTests.Authentication.Milestone2AnonymousBoundaryHttpTests.AdvertisedProtectedOperationRejectsAnonymousAndInvalidBearer(operationKey: \"A7CA3E2EEAC69EAB\", method: \"GET\", contractRoute: \"/api/v1/company/road-map\", requestRoute: \"/api/v1/company/road-map\")",
+        "RoadGuardSystem.ApiTests.Authentication.Milestone2AnonymousBoundaryHttpTests.AdvertisedProtectedOperationRejectsAnonymousAndInvalidBearer(operationKey: \"EE13EDA257D7E6F6\", method: \"GET\", contractRoute: \"/api/v1/cases/{caseId}/routing-candidates\", requestRoute: \"/api/v1/cases/00000000-0000-0000-0000-000000000001\"···)"
       ]
     },
     {
@@ -1427,7 +1431,9 @@
         "RoadGuardSystem.ApiTests.Processing.ProcessingJobRetryBoundaryAcceptanceTests",
         "RoadGuardSystem.ApiTests.Processing.ProcessingLifecycleValidationAcceptanceTests",
         "RoadGuardSystem.ApiTests.Processing.ValidationRunAtomicityAcceptanceTests",
-        "RoadGuardSystem.ApiTests.Processing.ValidationRunCredentialAcceptanceTests"
+        "RoadGuardSystem.ApiTests.Processing.ValidationRunCredentialAcceptanceTests",
+        "RoadGuardSystem.ApiTests.Cases.ReporterRoutingMapHttpTests",
+        "RoadGuardSystem.ApiTests.Cases.ReporterRoutingMigrationTests"
       ],
       "expectedNames": [
         "RoadGuardSystem.ApiTests.Cases.CaseContractWireAcceptanceTests.EveryCaseRouteRejectsCredentialRoleProjectAndSessionViolations(action: \"conclude\", web: False)",
@@ -1603,7 +1609,17 @@
         "RoadGuardSystem.ApiTests.Processing.ValidationRunAtomicityAcceptanceTests.ValidationReceiptSampleAuditAndDispatchAreAtomic(mode: \"concurrent\")",
         "RoadGuardSystem.ApiTests.Processing.ValidationRunAtomicityAcceptanceTests.ValidationReceiptSampleAuditAndDispatchAreAtomic(mode: \"rollback\")",
         "RoadGuardSystem.ApiTests.Processing.ValidationRunCredentialAcceptanceTests.ExactValidationRouteEnforcesBearerExpiryRevocationAndWebSession(operation: \"API-204\", method: \"POST\", route: \"/api/v1/projects/{id}/validation-runs\", admittedStatus: 403)",
-        "RoadGuardSystem.ApiTests.Processing.ValidationRunCredentialAcceptanceTests.ExactValidationRouteEnforcesBearerExpiryRevocationAndWebSession(operation: \"API-241\", method: \"GET\", route: \"/api/v1/validation-runs/{id}\", admittedStatus: 404)"
+        "RoadGuardSystem.ApiTests.Processing.ValidationRunCredentialAcceptanceTests.ExactValidationRouteEnforcesBearerExpiryRevocationAndWebSession(operation: \"API-241\", method: \"GET\", route: \"/api/v1/validation-runs/{id}\", admittedStatus: 404)",
+        "RoadGuardSystem.ApiTests.Cases.ReporterRoutingMapHttpTests.CandidatesPinTheSelectedEvidenceAndKeepDistanceSeparateFromResponsibility",
+        "RoadGuardSystem.ApiTests.Cases.ReporterRoutingMapHttpTests.FieldTriageWithoutGpsSupersedesIntakeButDoesNotPermitSupervisorProjectTransfer",
+        "RoadGuardSystem.ApiTests.Cases.ReporterRoutingMapHttpTests.IntakeDecisionsReplayReconsiderInvalidateOnSupplementAndNeverPublishOrCreateWork",
+        "RoadGuardSystem.ApiTests.Cases.ReporterRoutingMapHttpTests.MapUsesRealGeometryIntersectionStablePagesAndCurrentSupervisorAuthority",
+        "RoadGuardSystem.ApiTests.Cases.ReporterRoutingMapHttpTests.OutsideRequiresCurrentRealSourceWholeCaseAttestationAndKeepsAppendOnlyHistory",
+        "RoadGuardSystem.ApiTests.Cases.ReporterRoutingMapHttpTests.RoutingDecisionChecksCsrfRoleScopeStaleVersionAndSerializesConcurrentWriters",
+        "RoadGuardSystem.ApiTests.Cases.ReporterRoutingMapHttpTests.RoutingSwaggerHasTypedContractsCookieAlternativesAndConditionalHeaders",
+        "RoadGuardSystem.ApiTests.Cases.ReporterRoutingMapHttpTests.SupplementAndChangedLinksRespectCaseProjectScopeAndInvalidateOldEvaluations",
+        "RoadGuardSystem.ApiTests.Cases.ReporterRoutingMapHttpTests.TestOnlyCoverageIsVisibleAsProvenanceButCannotAuthorizeOutsideAttestation",
+        "RoadGuardSystem.ApiTests.Cases.ReporterRoutingMigrationTests.UpgradeFromPreviousMigrationAddsEmptyImmutableHistoryAndPreservesLegacyProject"
       ]
     },
     {

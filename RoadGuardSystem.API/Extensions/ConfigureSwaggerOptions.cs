@@ -42,6 +42,8 @@ public class ConfigureSwaggerOptions : IConfigureOptions<SwaggerGenOptions>
         options.OperationFilter<WebPmCompletionOperationFilter>();
         options.OperationFilter<FieldSafetyAiOperationFilter>();
         options.OperationFilter<WebBReadOperationFilter>();
+        options.OperationFilter<ReporterRoutingOperationFilter>();
+        options.SchemaFilter<ReporterRoutingOperationFilter>();
         options.SchemaFilter<FieldSafetyAiOperationFilter>();
         options.SchemaFilter<WebBReadOperationFilter>();
         options.SchemaFilter<ManualContractSchemaFilter>();

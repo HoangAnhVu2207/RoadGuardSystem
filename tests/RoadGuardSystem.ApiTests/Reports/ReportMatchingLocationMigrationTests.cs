@@ -33,7 +33,7 @@ public sealed class ReportMatchingLocationMigrationTests
         Assert.Empty(await db.Set<ReportMatchingLocation>().ToArrayAsync());
         Assert.False(db.Database.HasPendingModelChanges());
         var schema = await SandboxSeedGuard.ReadSchemaAsync(db);
-        Assert.Equal("20261125072411_TemporarySafetyResolution", schema.Migrations[^1]);
+        Assert.Equal("20261126090000_ReporterRoutingMap", schema.Migrations[^1]);
         Assert.Contains("dbo.ReportMatchingLocations", schema.Tables);
         // Empty downgrade is supported without touching legacy data.
         await migrator.MigrateAsync(previous); await migrator.MigrateAsync();

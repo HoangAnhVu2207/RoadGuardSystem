@@ -6,6 +6,9 @@ namespace RoadGuardSystem.API.Constants;
 /// </summary>
 public static class ApiErrorCodes
 {
+    public const string UploadPartUrlsExpired = "upload_part_urls_expired";
+    public const string UploadSessionNotUploadable = "upload_session_not_uploadable";
+    public const string UploadPartUrlsMultipartConflict = "upload_part_urls_multipart_conflict";
     public const string ValidationError = "validation_error";
     public const string UnsupportedApiVersion = "unsupported_api_version";
     public const string NotFound = "not_found";

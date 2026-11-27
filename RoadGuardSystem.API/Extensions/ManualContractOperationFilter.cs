@@ -72,7 +72,7 @@ public sealed class ManualContractOperationFilter : IOperationFilter
             operation.Responses[error.GetProperty("status").ToString()] = new OpenApiResponse
             {
                 Description = codes.Length > 0 ? "Error codes: " + codes.Replace("\n", ", ", StringComparison.Ordinal) + "." : "Request rejected.",
-                Content = { ["application/problem+json"] = new OpenApiMediaType { Schema = context.SchemaGenerator.GenerateSchema(typeof(ProblemDetails), context.SchemaRepository) } }
+                Content = { ["application/problem+json"] = new OpenApiMediaType { Schema = ResponseSchema(TextOrNull(error, "type") ?? typeof(ProblemDetails).FullName, context) } }
             };
         }
         AddPlatformResponse(operation, context, "500", "Unexpected exception; generic internal_error ProblemDetails. No internal implementation details are returned.");

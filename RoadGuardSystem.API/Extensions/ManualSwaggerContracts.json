@@ -24051,9 +24051,13 @@
       {
         "status": 409,
         "codes": [
-          "duplicate_request"
+          "upload_part_urls_expired",
+          "idempotency_key_reused",
+          "upload_session_not_uploadable",
+          "upload_part_urls_multipart_conflict"
         ],
-        "description": "Reporter evidence GetPartUrls -> exact service method and upload repository method; MapSession/MapPartUrls only statuses reachable from that producer. Create has no storage transport or concurrency failure; Complete has no storage transport/Forbidden result; metadata/session hide access as404; publication resolver may explicitly return403. Source-inspected possible mapped response; negative HTTP execution not performed."
+        "description": "Matching receipt: terminal/expired session wins over receipt expiry; changed intent returns idempotency_key_reused without receipt metadata. Expired receipt permits a new key only when renewalAllowed is true at serverTime.",
+        "type": "RoadGuardSystem.DTOs.Files.UploadPartUrlsProblemResponseDto"
       },
       {
         "status": 422,
@@ -24084,7 +24088,7 @@
     ],
     "conditionalInputs": [],
     "wireLimitations": [],
-    "uiDescription": "Get part urls reporter evidence resources. Permissions: Reporter; own record / named publication recipient."
+    "uiDescription": "Get part urls reporter evidence resources. Permissions: Reporter; own record / named publication recipient. Replay keeps receipt expiry. Renew with a new key only after upload_part_urls_expired and renewalAllowed=true; reconcile other conflicts."
   },
   {
     "id": "SWG-171",
@@ -28612,9 +28616,13 @@
       {
         "status": 409,
         "codes": [
-          "duplicate_request"
+          "upload_part_urls_expired",
+          "idempotency_key_reused",
+          "upload_session_not_uploadable",
+          "upload_part_urls_multipart_conflict"
         ],
-        "description": "Idempotency payload mismatch or invalid current upload transition."
+        "description": "Matching receipt: terminal/expired session wins over receipt expiry; changed intent returns idempotency_key_reused without receipt metadata. Expired receipt permits a new key only when renewalAllowed is true at serverTime.",
+        "type": "RoadGuardSystem.DTOs.Files.UploadPartUrlsProblemResponseDto"
       },
       {
         "status": 422,
@@ -28636,7 +28644,7 @@
     "wireLimitations": [
       "External signed PUT is outside the 237 API operations. The presigner sets PUT, expiry, partNumber and uploadId; source does not establish an additional required custom signed PUT header. URLs contain secrets and must be redacted."
     ],
-    "uiDescription": "Get part urls uploads resources. Permissions: Scoped Supervisor / PM / Operator / Crew; survey upload requires assigned Operator."
+    "uiDescription": "Get part urls uploads resources. Permissions: Scoped Supervisor / PM / Operator / Crew; survey upload requires assigned Operator. Replay keeps receipt expiry. Renew with a new key only after upload_part_urls_expired and renewalAllowed=true; reconcile other conflicts."
   },
   {
     "id": "SWG-227",

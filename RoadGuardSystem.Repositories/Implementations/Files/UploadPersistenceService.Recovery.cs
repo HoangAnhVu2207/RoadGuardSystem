@@ -132,7 +132,7 @@ public sealed partial class UploadPersistenceService
             var fileId = await _context.UploadSessions.AsNoTracking().Where(s => s.Id == upload).Select(s => s.FileId).SingleAsync(ct);
             await GuardMultipartAsync(actor, fileId, true, ct);
             var s = await _context.UploadSessions.SingleAsync(s => s.Id == upload, ct);
-            var checkedNow = now > DateTimeOffset.UtcNow ? now : DateTimeOffset.UtcNow;
+            var checkedNow = PartUrlNow(now);
             if (s.MultipartFence != fence || s.MultipartPhase != phase || s.Status != UploadSessionStatus.Pending || checkedNow >= s.ExpiresAt)
                 return s.MultipartFence == fence && s.StorageUploadId == id && s.Status == UploadSessionStatus.Uploading && checkedNow < s.ExpiresAt;
             s.StartUploading(id, now);

@@ -237,47 +237,34 @@ public sealed partial class UploadPersistenceService : IUploadRepository
         DateTimeOffset urlExpiresAt,
         CancellationToken cancellationToken = default)
         => await GetPartUrlsCoreAsync(actorUserId, projectId, uploadId, partNumbers,
-            idempotencyKey, requestFingerprint, now, urlExpiresAt, cancellationToken);
+            idempotencyKey, requestFingerprint, now, urlExpiresAt, null, cancellationToken);
+
+    public Task<UploadPartUrlsPersistenceResult> GetPartUrlsAsync(Guid actorUserId, UserRoleCode role,
+        Guid? projectId, Guid uploadId, IReadOnlyList<int> partNumbers, string idempotencyKey,
+        string requestFingerprint, DateTimeOffset now, DateTimeOffset urlExpiresAt,
+        CancellationToken cancellationToken = default)
+        => GetPartUrlsCoreAsync(actorUserId, projectId, uploadId, partNumbers, idempotencyKey,
+            requestFingerprint, now, urlExpiresAt, role, cancellationToken);
 
     private async Task<UploadPartUrlsPersistenceResult> GetPartUrlsCoreAsync(
         Guid actorUserId, Guid? projectId, Guid uploadId, IReadOnlyList<int> partNumbers,
         string idempotencyKey, string requestFingerprint, DateTimeOffset now,
-        DateTimeOffset urlExpiresAt, CancellationToken cancellationToken)
+        DateTimeOffset urlExpiresAt, UserRoleCode? actorRole, CancellationToken cancellationToken)
     {
         if (partNumbers.Count == 0 || partNumbers.Distinct().Count() != partNumbers.Count || partNumbers.Any(number => number < 1))
         {
             return new(UploadPersistenceStatus.InvalidInput, []);
         }
 
-        var session = await _context.UploadSessions
-            .SingleOrDefaultAsync(candidate => candidate.Id == uploadId, cancellationToken);
-        if (session is null)
-        {
-            return new(UploadPersistenceStatus.NotFound, []);
-        }
-
+        UploadSession? session;
         try
         {
-            await MultipartTransactionAsync(async token =>
-            {
-                if (!await _context.FileScopes.AsNoTracking().AnyAsync(scope => scope.FileId == session.FileId && scope.ProjectId == projectId, token))
-                    throw new UploadNotFoundException();
-                await GuardMultipartAsync(actorUserId, session.FileId, token);
-                return true;
-            }, cancellationToken);
+            var failure = await CheckPartUrlRequestAsync(actorUserId, projectId, uploadId, partNumbers,
+                idempotencyKey, requestFingerprint, now, actorRole, cancellationToken);
+            if (failure is not null) return failure;
+            session = await _context.UploadSessions.AsNoTracking().SingleAsync(s => s.Id == uploadId, cancellationToken);
         }
         catch (UploadNotFoundException) { return new(UploadPersistenceStatus.NotFound, []); }
-
-        if (session.Status is UploadSessionStatus.Verifying or UploadSessionStatus.Verified or UploadSessionStatus.Failed || now >= session.ExpiresAt)
-        {
-            return new(UploadPersistenceStatus.Conflict, []);
-        }
-
-        var partCount = (session.ExpectedSizeBytes - 1) / session.PartSizeBytes + 1;
-        if (partNumbers.Any(number => number > partCount))
-        {
-            return new(UploadPersistenceStatus.InvalidInput, []);
-        }
 
         try
         {
@@ -300,7 +287,7 @@ public sealed partial class UploadPersistenceService : IUploadRepository
                             && r.IdempotencyKey == idempotencyKey, token);
                         if (won is not null)
                         {
-                            if (won.RequestFingerprint != requestFingerprint) throw new UploadPartConflictException();
+                            if (won.RequestFingerprint != requestFingerprint) throw new PartUrlKeyConflictException();
                             return (won.OperationId, won.OutcomeJson);
                         }
                     }
@@ -309,7 +296,7 @@ public sealed partial class UploadPersistenceService : IUploadRepository
                         ?? throw new UploadNotFoundException();
                     if (string.IsNullOrWhiteSpace(current.StorageUploadId))
                         throw new FileStorageException(FileStorageErrorCodes.StorageUnavailable, "Multipart recovery pending.");
-                    if (current.Status != UploadSessionStatus.Uploading || now >= current.ExpiresAt)
+                    if (current.Status != UploadSessionStatus.Uploading || PartUrlNow(now) >= current.ExpiresAt)
                         throw new UploadPartConflictException();
                     foreach (var partNumber in partNumbers)
                     {
@@ -339,39 +326,101 @@ public sealed partial class UploadPersistenceService : IUploadRepository
                     if (await IsCancelledAsync(uploadId, token)) throw new UploadPartConflictException();
                 });
             if (outcome.Status == IdempotencyOperationStatus.Conflict)
-            {
-                return new(UploadPersistenceStatus.Conflict, []);
-            }
+                return new(UploadPersistenceStatus.PartUrlsIdempotencyConflict, []);
 
             var receipt = JsonSerializer.Deserialize<UploadPartUrlReceipt>(outcome.OutcomeJson)
                 ?? throw new InvalidOperationException("Upload part URL replay payload is invalid.");
-            if (now >= receipt.ExpiresAt)
-                return new(UploadPersistenceStatus.Conflict, []);
-            var parts = await _storage.PresignPartsAsync(receipt.ObjectKey, receipt.StorageUploadId, receipt.PartNumbers, receipt.ExpiresAt, cancellationToken);
-            await MultipartTransactionAsync(async token =>
-                {
-                    await GuardMultipartAsync(actorUserId, session.FileId, true, token);
-                    var current = await _context.UploadSessions.AsNoTracking().SingleAsync(s => s.Id == uploadId, token);
-                    if (current.StorageUploadId != receipt.StorageUploadId || current.Status != UploadSessionStatus.Uploading ||
-                        now >= current.ExpiresAt || DateTimeOffset.UtcNow >= current.ExpiresAt || DateTimeOffset.UtcNow >= receipt.ExpiresAt)
-                        throw new UploadPartConflictException();
-                    return true;
-                }, cancellationToken);
+            var before = await CheckPartUrlRequestAsync(actorUserId, projectId, uploadId, partNumbers,
+                idempotencyKey, requestFingerprint, now, actorRole, cancellationToken);
+            if (before is not null) return before;
+            var parts = await _storage.PresignPartsAsync(receipt.ObjectKey, receipt.StorageUploadId,
+                receipt.PartNumbers, receipt.ExpiresAt, cancellationToken);
+            var after = await CheckPartUrlRequestAsync(actorUserId, projectId, uploadId, partNumbers,
+                idempotencyKey, requestFingerprint, now, actorRole, cancellationToken);
+            if (after is not null) return after;
             return new(outcome.Status == IdempotencyOperationStatus.Replayed ? UploadPersistenceStatus.Replayed : UploadPersistenceStatus.Success, parts);
         }
         catch (FileStorageException)
         {
-            return new(UploadPersistenceStatus.StorageUnavailable, []);
+            // A genuine provider failure remains 503, including a lost cleanup ACK after
+            // a durable terminal marker. Check current authority but never reinterpret the
+            // storage exception as proof of receipt expiry or successful cleanup.
+            try
+            {
+                await CheckPartUrlRequestAsync(actorUserId, projectId, uploadId, partNumbers,
+                    idempotencyKey, requestFingerprint, now, actorRole, cancellationToken);
+                return new(UploadPersistenceStatus.StorageUnavailable, []);
+            }
+            catch (UploadNotFoundException) { return new(UploadPersistenceStatus.NotFound, []); }
         }
-        catch (UploadNotFoundException)
-        {
-            return new(UploadPersistenceStatus.NotFound, []);
-        }
+        catch (UploadNotFoundException) { return new(UploadPersistenceStatus.NotFound, []); }
+        catch (PartUrlKeyConflictException) { return new(UploadPersistenceStatus.PartUrlsIdempotencyConflict, []); }
         catch (UploadPartConflictException)
         {
-            return new(UploadPersistenceStatus.Conflict, []);
+            try
+            {
+                return await CheckPartUrlRequestAsync(actorUserId, projectId, uploadId, partNumbers,
+                    idempotencyKey, requestFingerprint, now, actorRole, cancellationToken)
+                    ?? new(UploadPersistenceStatus.PartUrlsMultipartConflict, []);
+            }
+            catch (UploadNotFoundException) { return new(UploadPersistenceStatus.NotFound, []); }
         }
     }
+
+    private DateTimeOffset PartUrlNow(DateTimeOffset observed)
+    {
+        var current = _fieldClock.GetUtcNow();
+        return current > observed ? current : observed;
+    }
+
+    // The same authority/session lock used by complete/cancel protects both checks.
+    // Storage signing stays outside SQL; a racing transition/revocation discards its URLs.
+    private Task<UploadPartUrlsPersistenceResult?> CheckPartUrlRequestAsync(Guid actor, Guid? project,
+        Guid upload, IReadOnlyList<int> requestedParts, string key, string fingerprint,
+        DateTimeOffset observed, UserRoleCode? actorRole, CancellationToken cancellationToken)
+        => MultipartTransactionAsync<UploadPartUrlsPersistenceResult?>(async token =>
+        {
+            var file = await _context.UploadSessions.AsNoTracking().Where(s => s.Id == upload)
+                .Select(s => (Guid?)s.FileId).SingleOrDefaultAsync(token) ?? throw new UploadNotFoundException();
+            if (!await _context.FileScopes.AsNoTracking().AnyAsync(s => s.FileId == file && s.ProjectId == project, token))
+                throw new UploadNotFoundException();
+            await GuardMultipartAsync(actor, file, true, token);
+            if (actorRole is { } authenticatedRole && !await _context.Users.AsNoTracking()
+                .AnyAsync(u => u.Id == actor && u.RoleCode == authenticatedRole, token))
+                throw new UploadNotFoundException();
+            var current = await _context.UploadSessions.AsNoTracking().SingleAsync(s => s.Id == upload, token);
+            var partCount = (current.ExpectedSizeBytes - 1) / current.PartSizeBytes + 1;
+            if (requestedParts.Any(n => n > partCount)) return new(UploadPersistenceStatus.InvalidInput, []);
+            var saved = await _context.IdempotencyRecords.AsNoTracking().SingleOrDefaultAsync(r =>
+                r.ActorUserId == actor && r.ProjectId == project && r.Operation == "UploadPartUrlsIssued"
+                && r.IdempotencyKey == key, token);
+            // A different intent never receives metadata belonging to the saved intent.
+            if (saved is not null && saved.RequestFingerprint != fingerprint)
+                return new(UploadPersistenceStatus.PartUrlsIdempotencyConflict, []);
+            var checkedNow = PartUrlNow(observed);
+            var status = current.Status.ToString().ToUpperInvariant();
+            if (current.Status is not (UploadSessionStatus.Pending or UploadSessionStatus.Uploading) || checkedNow >= current.ExpiresAt)
+            {
+                var reason = current.Status == UploadSessionStatus.Failed && current.FailureCode == UploadSession.CancelledFailureCode
+                    ? UploadSession.CancelledFailureCode : checkedNow >= current.ExpiresAt ? "session_expired" : status.ToLowerInvariant();
+                return new(UploadPersistenceStatus.PartUrlsSessionUnavailable, [],
+                    new(upload, null, null, checkedNow, false, status, reason));
+            }
+            if (saved is null) return null;
+            var receipt = JsonSerializer.Deserialize<UploadPartUrlReceipt>(saved.OutcomeJson)
+                ?? throw new InvalidOperationException("Upload part URL replay payload is invalid.");
+            if (current.Status != UploadSessionStatus.Uploading || current.ObjectKey != receipt.ObjectKey ||
+                current.StorageUploadId != receipt.StorageUploadId ||
+                !requestedParts.OrderBy(n => n).SequenceEqual(receipt.PartNumbers))
+                return new(UploadPersistenceStatus.PartUrlsMultipartConflict, [],
+                    new(upload, null, null, checkedNow, false, status, "multipart_mismatch"));
+            if (checkedNow >= receipt.ExpiresAt)
+                return new(UploadPersistenceStatus.PartUrlsExpired, [],
+                    new(upload, receipt.PartNumbers, receipt.ExpiresAt, checkedNow, true, status, "receipt_expired"));
+            return null;
+        }, cancellationToken);
+
+    private sealed class PartUrlKeyConflictException : Exception;
 
     public async Task<UploadMutationPersistenceResult> CompleteAsync(
         UploadCompletePersistenceRequest request,

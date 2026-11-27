@@ -242,7 +242,7 @@ public sealed class MultipartRecoveryHttpTests(AuthenticationSqlServerFixture sq
         using var session = await client.GetAsync($"{ProjectUploads}/{id}");
         using var cancel = await CancelAsync(client, id, ProjectUploads);
         await AssertCancelledAsync(cancel, id);
-        await AssertProblemAsync(await PartsAsync(client, id, key, route: ProjectUploads), HttpStatusCode.Conflict, "duplicate_request");
+        await AssertProblemAsync(await PartsAsync(client, id, key, route: ProjectUploads), HttpStatusCode.Conflict, "upload_session_not_uploadable");
         var completeKey = Guid.NewGuid().ToString();
         var version = session.Headers.ETag!.ToString();
         using var complete = CompleteRequest(id, version, ProjectUploads, completeKey);
@@ -419,7 +419,7 @@ public sealed class MultipartRecoveryHttpTests(AuthenticationSqlServerFixture sq
         using var cancelled = await CancelAsync(client, id, ProjectUploads);
         await AssertCancelledAsync(cancelled, id);
 
-        await AssertProblemAsync(await PartsAsync(client, id, partKey, route: ProjectUploads), HttpStatusCode.Conflict, "duplicate_request");
+        await AssertProblemAsync(await PartsAsync(client, id, partKey, route: ProjectUploads), HttpStatusCode.Conflict, "upload_session_not_uploadable");
         var completeKey = Guid.NewGuid().ToString();
         var version = state.Headers.ETag!.ToString();
         using var complete = CompleteRequest(id, version, ProjectUploads, completeKey);
@@ -477,6 +477,321 @@ public sealed class MultipartRecoveryHttpTests(AuthenticationSqlServerFixture sq
         }
     }
 
+    [Fact]
+    public async Task PartUrlExpiredReceiptIsDistinctFromSessionAndFingerprintConflicts()
+    {
+        var fixture = await SeedCrewTaskAsync();
+        var clock = new PartUrlClock(DateTimeOffset.UtcNow);
+        await using var factory = Factory(new RemotePhoto(), false, clock);
+        using var client = factory.CreateClient();
+        await LoginAsync(client, fixture.Crew);
+        using var create = await CreateProjectUploadAsync(client, fixture.Project, fixture.Task, "AFTER");
+        var id = (await create.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        var key = Guid.NewGuid().ToString();
+        using var issued = await PartsAsync(client, id, key, route: ProjectUploads);
+        issued.StatusCode.Should().Be(HttpStatusCode.OK);
+        var original = await issued.Content.ReadFromJsonAsync<JsonElement>();
+        var expiry = original.GetProperty("parts")[0].GetProperty("expiresAt").GetDateTimeOffset();
+        clock.Advance(TimeSpan.FromMinutes(16));
+        using var expired = await PartsAsync(client, id, key, route: ProjectUploads);
+        expired.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        var body = await expired.Content.ReadFromJsonAsync<JsonElement>();
+        body.GetProperty("code").GetString().Should().Be("upload_part_urls_expired");
+        body.GetProperty("uploadId").GetGuid().Should().Be(id);
+        body.GetProperty("expiresAt").GetDateTimeOffset().Should().Be(expiry);
+        body.GetProperty("renewalAllowed").GetBoolean().Should().BeTrue();
+        body.GetProperty("partNumbers").EnumerateArray().Select(p => p.GetInt32()).Should().Equal(1);
+        body.GetProperty("correlationId").GetString().Should().NotBeNullOrWhiteSpace();
+        await File.WriteAllTextAsync(Path.Combine(AppContext.BaseDirectory, "upload-part-url-expired.json"), body.GetRawText());
+    }
+
+    [Fact]
+    public async Task PartUrlCanonicalReplayAndExpiredIntentNeverLeakDifferentReceipt()
+    {
+        var fixture = await SeedCrewTaskAsync();
+        var clock = new PartUrlClock(DateTimeOffset.UtcNow);
+        var remote = new RemotePhoto();
+        await using var factory = Factory(remote, false, clock);
+        using var client = factory.CreateClient();
+        await LoginAsync(client, fixture.Crew);
+        using var create = await CreateProjectUploadAsync(client, fixture.Project, fixture.Task, "AFTER", sizeBytes: 8388612);
+        var id = (await create.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        var key = Guid.NewGuid().ToString();
+        using var issued = await PartsAsync(client, id, key, [2, 1], ProjectUploads);
+        issued.StatusCode.Should().Be(HttpStatusCode.OK);
+        var original = await issued.Content.ReadFromJsonAsync<JsonElement>();
+        clock.Advance(TimeSpan.FromMinutes(1));
+        using var replay = await PartsAsync(client, id, key, [1, 2], ProjectUploads);
+        replay.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await replay.Content.ReadFromJsonAsync<JsonElement>()).GetRawText().Should().Be(original.GetRawText());
+        using var empty = await PartsAsync(client, id, Guid.NewGuid().ToString(), [], ProjectUploads);
+        empty.StatusCode.Should().Be(HttpStatusCode.BadRequest); // DTO MinLength, before repository validation.
+        foreach (var invalid in new[] { new[] { 1, 1 }, new[] { 0 }, new[] { 3 } })
+            await AssertProblemAsync(await PartsAsync(client, id, Guid.NewGuid().ToString(), invalid, ProjectUploads),
+                HttpStatusCode.UnprocessableEntity, "upload_validation_failed");
+        clock.Advance(TimeSpan.FromMinutes(15));
+        using var conflict = await PartsAsync(client, id, key, [1], ProjectUploads);
+        await AssertNoReceiptConflictAsync(conflict);
+        using var secondCreate = await CreateProjectUploadAsync(client, fixture.Project, fixture.Task, "AFTER");
+        var second = (await secondCreate.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        using var otherUpload = await PartsAsync(client, second, key, route: ProjectUploads);
+        await AssertNoReceiptConflictAsync(otherUpload);
+        using var expired = await PartsAsync(client, id, key, [1, 2], ProjectUploads);
+        await AssertProblemAsync(expired, HttpStatusCode.Conflict, "upload_part_urls_expired");
+        using var renewed = await PartsAsync(client, id, Guid.NewGuid().ToString(), [2], ProjectUploads);
+        renewed.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await renewed.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("parts")[0].GetProperty("partNumber").GetInt32().Should().Be(2);
+        remote.Initiations.Should().Be(1);
+        await using var db = sql.CreateDbContext();
+        (await db.IdempotencyRecords.CountAsync(r => r.ActorUserId == fixture.CrewId && r.Operation == "UploadPartUrlsIssued")).Should().Be(2);
+        await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE UploadSessions SET ExpiresAt={clock.GetUtcNow().AddSeconds(-1)} WHERE Id={id}");
+        using var bothExpired = await PartsAsync(client, id, key, [1, 2], ProjectUploads);
+        var body = await bothExpired.Content.ReadFromJsonAsync<JsonElement>();
+        body.GetProperty("code").GetString().Should().Be("upload_session_not_uploadable");
+        body.GetProperty("reason").GetString().Should().Be("session_expired");
+        body.GetProperty("renewalAllowed").GetBoolean().Should().BeFalse();
+        body.TryGetProperty("partNumbers", out _).Should().BeFalse();
+    }
+
+    private static async Task AssertNoReceiptConflictAsync(HttpResponseMessage response)
+    {
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        body.GetProperty("code").GetString().Should().Be("idempotency_key_reused");
+        foreach (var name in new[] { "uploadId", "partNumbers", "expiresAt", "renewalAllowed", "objectKey", "storageUploadId" })
+            body.TryGetProperty(name, out _).Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData("expiry")]
+    [InlineData("cancel")]
+    [InlineData("complete")]
+    [InlineData("revoke")]
+    [InlineData("multipart")]
+    [InlineData("session")]
+    [InlineData("provider-expiry")]
+    public async Task PartUrlSigningRechecksTimeStateAndAuthority(string change)
+    {
+        var fixture = await SeedCrewTaskAsync();
+        var clock = new PartUrlClock(DateTimeOffset.UtcNow);
+        var remote = new RemotePhoto();
+        await using var factory = Factory(remote, false, clock);
+        using var client = factory.CreateClient();
+        await LoginAsync(client, fixture.Crew);
+        using var create = await CreateProjectUploadAsync(client, fixture.Project, fixture.Task, "AFTER");
+        var id = (await create.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        remote.OnSign = async () =>
+        {
+            if (change is "expiry" or "provider-expiry")
+            {
+                clock.Advance(TimeSpan.FromMinutes(16));
+                remote.FailSign = change == "provider-expiry";
+            }
+            else if (change == "session")
+            {
+                await using var db = sql.CreateDbContext();
+                await db.Sessions.Where(row => row.UserId == fixture.CrewId && row.RevokedAt == null)
+                    .ExecuteUpdateAsync(setters => setters.SetProperty(row => row.RevokedAt, DateTimeOffset.UtcNow));
+            }
+            else if (change == "cancel")
+            {
+                using var cancelled = await CancelAsync(client, id, ProjectUploads);
+                cancelled.StatusCode.Should().Be(HttpStatusCode.OK);
+            }
+            else if (change == "complete")
+            {
+                using var session = await client.GetAsync($"{ProjectUploads}/{id}");
+                using var request = CompleteRequest(id, session.Headers.ETag!.ToString(), ProjectUploads);
+                using var completed = await client.SendAsync(request);
+                completed.StatusCode.Should().Be(HttpStatusCode.Accepted);
+            }
+            else
+            {
+                await using var db = sql.CreateDbContext();
+                if (change == "multipart")
+                    await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE UploadSessions SET StorageUploadId='replaced' WHERE Id={id}");
+                else
+                {
+                    var assignment = await db.FieldInspectionAssignments.SingleAsync(a => a.FieldInspectionTaskId == fixture.Task);
+                    assignment.End(DateTimeOffset.UtcNow, "Authority revoked during signing");
+                    await db.SaveChangesAsync();
+                }
+            }
+        };
+        using var response = await PartsAsync(client, id, Guid.NewGuid().ToString(), route: ProjectUploads);
+        response.StatusCode.Should().Be(change == "provider-expiry" ? HttpStatusCode.ServiceUnavailable : change == "session" ? HttpStatusCode.Unauthorized : change == "revoke" ? HttpStatusCode.NotFound : HttpStatusCode.Conflict);
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        var expected = change switch
+        {
+            "provider-expiry" => "upload_storage_unavailable",
+            "session" => "auth_session_revoked",
+            "expiry" => "upload_part_urls_expired",
+            "revoke" => "upload_session_not_found",
+            "multipart" => "upload_part_urls_multipart_conflict",
+            _ => "upload_session_not_uploadable"
+        };
+        body.GetProperty("code").GetString().Should().Be(expected);
+        body.TryGetProperty("parts", out _).Should().BeFalse();
+        body.GetRawText().Should().NotContain("storage.invalid").And.NotContain("fixture-id");
+        if (change is "cancel" or "complete" or "multipart") body.GetProperty("renewalAllowed").GetBoolean().Should().BeFalse();
+        if (change == "complete")
+        {
+            // Finish this test's verification explicitly; never leave work for another host's
+            // differently configured storage fixture in the shared isolated SQL collection.
+            using var scope = factory.Services.CreateScope();
+            (await scope.ServiceProvider.GetRequiredService<IUploadRepository>().VerifyAsync(id)).Should().Be(UploadPersistenceStatus.Success);
+        }
+    }
+
+    [Fact]
+    public async Task PartUrlProviderFailureAndConcurrentReplayPreserveOneReceiptAndScope()
+    {
+        var fixture = await SeedCrewTaskAsync();
+        var remote = new RemotePhoto { FailSign = true };
+        await using var factory = Factory(remote, false);
+        using var client = factory.CreateClient();
+        await LoginAsync(client, fixture.Crew);
+        using var create = await CreateProjectUploadAsync(client, fixture.Project, fixture.Task, "AFTER");
+        var id = (await create.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        var key = Guid.NewGuid().ToString();
+        await AssertProblemAsync(await PartsAsync(client, id, key, route: ProjectUploads), HttpStatusCode.ServiceUnavailable, "upload_storage_unavailable");
+        remote.FailSign = false;
+        var replies = await Task.WhenAll(PartsAsync(client, id, key, route: ProjectUploads), PartsAsync(client, id, key, route: ProjectUploads));
+        foreach (var response in replies)
+        {
+            using (response) response.StatusCode.Should().Be(HttpStatusCode.OK);
+        }
+        await using var db = sql.CreateDbContext();
+        (await db.IdempotencyRecords.CountAsync(r => r.ActorUserId == fixture.CrewId && r.Operation == "UploadPartUrlsIssued" && r.IdempotencyKey == key)).Should().Be(1);
+        using var stranger = factory.CreateClient();
+        await LoginAsync(stranger, fixture.Other);
+        using var denied = await PartsAsync(stranger, id, key, route: ProjectUploads);
+        denied.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await denied.Content.ReadAsStringAsync()).Should().NotContain("expiresAt");
+        var otherScope = await SeedCrewTaskAsync();
+        await LoginAsync(stranger, otherScope.Crew);
+        using var otherCreate = await CreateProjectUploadAsync(stranger, otherScope.Project, otherScope.Task, "AFTER");
+        var otherId = (await otherCreate.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        using var independent = await PartsAsync(stranger, otherId, key, route: ProjectUploads);
+        independent.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Theory]
+    [InlineData(UploadSessionStatus.Verifying, "verifying")]
+    [InlineData(UploadSessionStatus.Verified, "verified")]
+    [InlineData(UploadSessionStatus.Failed, "failed")]
+    public async Task PartUrlTerminalSessionNeverOffersReceiptRenewal(UploadSessionStatus status, string reason)
+    {
+        var fixture = await SeedCrewTaskAsync();
+        await using var factory = Factory(new RemotePhoto(), false);
+        using var client = factory.CreateClient();
+        await LoginAsync(client, fixture.Crew);
+        using var create = await CreateProjectUploadAsync(client, fixture.Project, fixture.Task, "AFTER");
+        var id = (await create.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        var key = Guid.NewGuid().ToString();
+        using var issued = await PartsAsync(client, id, key, route: ProjectUploads);
+        issued.StatusCode.Should().Be(HttpStatusCode.OK);
+        await using var db = sql.CreateDbContext();
+        await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE UploadSessions SET Status={(byte)status} WHERE Id={id}");
+        using var response = await PartsAsync(client, id, key, route: ProjectUploads);
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        body.GetProperty("code").GetString().Should().Be("upload_session_not_uploadable");
+        body.GetProperty("reason").GetString().Should().Be(reason);
+        body.GetProperty("renewalAllowed").GetBoolean().Should().BeFalse();
+        body.TryGetProperty("expiresAt", out _).Should().BeFalse();
+        // These terminal-state rows have no pending verification work for another test host.
+        await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE UploadSessions SET Status={(byte)UploadSessionStatus.Failed}, FailureCode='test_terminal' WHERE Id={id}");
+    }
+
+    [Fact]
+    public async Task PartUrlOpenApiDescribesTypedConflictsAndUnchangedAuthentication()
+    {
+        await using var factory = new CustomWebApplicationFactory("Development");
+        using var client = factory.CreateClient();
+        using var response = await client.GetAsync("/swagger/v1/swagger.json");
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var json = await response.Content.ReadAsStringAsync();
+        using var document = JsonDocument.Parse(json);
+        var root = document.RootElement;
+        foreach (var path in new[] { "/api/v1/uploads/{uploadId}/part-urls", "/api/v1/reporter-evidence/uploads/{uploadId}/part-urls" })
+        {
+            var operation = root.GetProperty("paths").GetProperty(path).GetProperty("post");
+            var conflict = operation.GetProperty("responses").GetProperty("409");
+            foreach (var code in new[] { "upload_part_urls_expired", "idempotency_key_reused", "upload_session_not_uploadable", "upload_part_urls_multipart_conflict" })
+                conflict.GetProperty("description").GetString().Should().Contain(code);
+            conflict.GetProperty("content").GetProperty("application/problem+json").GetProperty("schema").GetProperty("$ref").GetString().Should().EndWith("/UploadPartUrlsProblemResponseDto");
+            var security = operation.GetProperty("security").GetRawText();
+            security.Should().Contain("Bearer");
+            if (path.Contains("reporter-evidence", StringComparison.Ordinal)) security.Should().NotContain("WebSession");
+            else security.Should().Contain("WebSession").And.Contain("CsrfToken");
+        }
+        var properties = root.GetProperty("components").GetProperty("schemas").GetProperty("UploadPartUrlsProblemResponseDto").GetProperty("properties");
+        foreach (var field in new[] { "uploadId", "partNumbers", "expiresAt", "serverTime", "renewalAllowed", "sessionStatus", "reason", "correlationId", "code" })
+            properties.TryGetProperty(field, out _).Should().BeTrue();
+        // Static, credential-free contract artifact for the reviewed FE snapshot.
+        await File.WriteAllTextAsync(Path.Combine(AppContext.BaseDirectory, "upload-part-url-openapi.json"), json);
+    }
+
+    [Fact]
+    public async Task PartUrlDoesNotReturnUrlsToRequestWhoseAuthenticatedRoleChangedDuringSigning()
+    {
+        var fixture = await SeedCrewTaskAsync();
+        var actor = await sql.CreateUserAsync($"part-role-{Guid.NewGuid():N}", "Current1!", UserRoleCode.Supervisor);
+        var remote = new RemotePhoto();
+        await using var factory = Factory(remote, false);
+        using var client = factory.CreateClient();
+        await LoginAsync(client, actor.UserName!);
+        using var created = await CreateProjectUploadAsync(client, fixture.Project, fixture.Project, "DOCUMENT", "application/pdf", "source.pdf");
+        var id = (await created.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        Exception? callbackFailure = null;
+        remote.OnSign = async () =>
+        {
+            try
+            {
+                await using var scope = factory.Services.CreateAsyncScope();
+                var db = scope.ServiceProvider.GetRequiredService<RoadGuardSystem.Repositories.RoadGuardDbContext>();
+                var current = await db.Users.AsNoTracking().SingleAsync(u => u.Id == actor.Id);
+                var identity = scope.ServiceProvider.GetRequiredService<RoadGuardSystem.Repositories.Identity.IIdentityRepository>();
+                var changed = await identity.ChangeUserRoleAtomicAsync(actor.Id, UserRoleCode.ProjectManager,
+                    current.RowVersion, actor.Id, Guid.NewGuid(), reason: "Synthetic role change during signing");
+                changed.Status.Should().Be(RoadGuardSystem.Repositories.Identity.UserRoleChangeStatus.Success);
+                db.ProjectMembers.Add(new ProjectMember
+                {
+                    Id = Guid.NewGuid(),
+                    ProjectId = fixture.Project,
+                    UserId = actor.Id,
+                    RoleCode = UserRoleCode.ProjectManager,
+                    Status = ProjectMemberStatus.Active,
+                    ValidFrom = new(2000, 1, 1)
+                });
+                await db.SaveChangesAsync();
+            }
+            catch (Exception error) { callbackFailure = error; throw; }
+        };
+        var key = Guid.NewGuid().ToString();
+        using var denied = await PartsAsync(client, id, key, route: ProjectUploads);
+        callbackFailure.Should().BeNull();
+        denied.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        var body = await denied.Content.ReadFromJsonAsync<JsonElement>();
+        body.GetProperty("code").GetString().Should().Be("upload_session_not_found");
+        body.TryGetProperty("parts", out _).Should().BeFalse();
+        body.TryGetProperty("expiresAt", out _).Should().BeFalse();
+        // A fresh PM Bearer request has its own current authority. Do not confuse rejection
+        // of the old in-flight role with permanent revocation of the owned DOCUMENT.
+        remote.OnSign = null;
+        await LoginAsync(client, actor.UserName!);
+        using var fresh = await PartsAsync(client, id, key, route: ProjectUploads);
+        fresh.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    private sealed class PartUrlClock(DateTimeOffset now) : TimeProvider
+    {
+        private DateTimeOffset _now = now;
+        public override DateTimeOffset GetUtcNow() => _now;
+        public void Advance(TimeSpan value) => _now += value;
+    }
+
     private async Task<(Guid Project, Guid Task, Guid OwnerId, string Owner, Guid OtherId, string Other)> SeedSurveyTaskAsync()
     {
         var owner = await sql.CreateUserAsync($"operator-{Guid.NewGuid():N}", "Current1!", UserRoleCode.DroneOperator);
@@ -529,7 +844,7 @@ public sealed class MultipartRecoveryHttpTests(AuthenticationSqlServerFixture sq
     }
 
     private static async Task<HttpResponseMessage> CreateProjectUploadAsync(HttpClient client, Guid project, Guid task,
-        string purpose, string mediaType = "image/jpeg", string fileName = "crew.jpg")
+        string purpose, string mediaType = "image/jpeg", string fileName = "crew.jpg", long sizeBytes = 4)
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, ProjectUploads)
         {
@@ -540,7 +855,7 @@ public sealed class MultipartRecoveryHttpTests(AuthenticationSqlServerFixture sq
                 purpose,
                 fileName,
                 mediaType,
-                sizeBytes = 4,
+                sizeBytes,
                 checksumSha256 = RemotePhoto.Hash
             })
         };
@@ -576,9 +891,14 @@ public sealed class MultipartRecoveryHttpTests(AuthenticationSqlServerFixture sq
         (await PartsAsync(client, newUpload, Guid.NewGuid().ToString())).StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
-    private AuthenticationWebApplicationFactory Factory(RemotePhoto remote, bool loseAck)
-        => new(sql.ConnectionString, configureTestServices: services =>
+    private AuthenticationWebApplicationFactory Factory(RemotePhoto remote, bool loseAck, TimeProvider? clock = null)
+        => new(sql.ConnectionString, accessTokenLifetimeMinutes: clock is null ? 10 : 60, configureTestServices: services =>
         {
+            if (clock is not null)
+            {
+                services.RemoveAll<TimeProvider>(); services.AddSingleton(clock);
+
+            }
             services.RemoveAll<IUploadObjectStorage>(); services.AddSingleton<IUploadObjectStorage>(new PhotoAdapter(remote, loseAck));
             services.Configure<UploadSessionOptions>(o => o.RecoveryRetrySeconds = 1);
         });
@@ -633,6 +953,8 @@ public sealed class MultipartRecoveryHttpTests(AuthenticationSqlServerFixture sq
         public static string Hash => Convert.ToHexString(SHA256.HashData(Bytes)).ToLowerInvariant();
         public int Initiations { get; set; }
         public int Signatures { get; set; }
+        public Func<Task>? OnSign { get; set; }
+        public bool FailSign { get; set; }
         public string? ObjectKey { get; set; }
         public bool FailNextAbort { get; set; }
         public bool Aborted { get; set; }
@@ -658,10 +980,12 @@ public sealed class MultipartRecoveryHttpTests(AuthenticationSqlServerFixture sq
             remote.Aborted = true;
             return Task.CompletedTask;
         }
-        public Task<IReadOnlyList<PresignedUploadPart>> PresignPartsAsync(string objectKey, string uploadId, IReadOnlyList<int> partNumbers, DateTimeOffset expiresAt, CancellationToken cancellationToken = default)
+        public async Task<IReadOnlyList<PresignedUploadPart>> PresignPartsAsync(string objectKey, string uploadId, IReadOnlyList<int> partNumbers, DateTimeOffset expiresAt, CancellationToken cancellationToken = default)
         {
             remote.Signatures++;
-            return Task.FromResult<IReadOnlyList<PresignedUploadPart>>(partNumbers.Select(n => new PresignedUploadPart(n, "https://storage.invalid/part", expiresAt)).ToArray());
+            if (remote.OnSign is { } callback) await callback();
+            if (remote.FailSign) throw new FileStorageException(FileStorageErrorCodes.StorageUnavailable, "Synthetic signing failure");
+            return partNumbers.Select(n => new PresignedUploadPart(n, "https://storage.invalid/part", expiresAt)).ToArray();
         }
         public Task<UploadObjectVerification> CompleteAndVerifyAsync(string objectKey, string uploadId, IReadOnlyList<CompletedStoragePart> parts, CancellationToken cancellationToken = default) => Task.FromResult(new UploadObjectVerification(4, RemotePhoto.Hash, "image/jpeg"));
         public Task<Stream> OpenReadAsync(string objectKey, CancellationToken cancellationToken = default) => Task.FromResult<Stream>(new MemoryStream(RemotePhoto.Bytes));

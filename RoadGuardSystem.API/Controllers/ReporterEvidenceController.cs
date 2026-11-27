@@ -86,9 +86,20 @@ public sealed class ReporterEvidenceController : ControllerBase
         [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
         CancellationToken cancellationToken)
     {
+        Response.Headers.CacheControl = "private, no-store";
         if (!TryGetActor(out var actorUserId, out var role)) return ProblemResponse(401, ApiErrorCodes.Unauthorized, "Unauthorized");
         if (string.IsNullOrWhiteSpace(idempotencyKey)) return ProblemResponse(428, ApiErrorCodes.ValidationError, "Idempotency-Key is required");
-        return MapPartUrls(await _service.GetPartUrlsAsync(actorUserId, role, uploadId, request, idempotencyKey, cancellationToken));
+        var result = await _service.GetPartUrlsAsync(actorUserId, role, uploadId, request, idempotencyKey, cancellationToken);
+        if (result.PartUrls is not null || result.PartUrlsFailure is not null)
+        {
+            var current = await RoadGuardSystem.API.Authentication.PartUrlSessionRecheck.ValidateAsync(HttpContext, actorUserId, role, cancellationToken);
+            if (current != RoadGuardSystem.Services.Authentication.AuthoritativeSessionValidation.Success)
+                return ProblemResponse(current == RoadGuardSystem.Services.Authentication.AuthoritativeSessionValidation.MustChangePassword ? 403 : 401,
+                    current == RoadGuardSystem.Services.Authentication.AuthoritativeSessionValidation.MustChangePassword ? ApiErrorCodes.PasswordChangeRequired :
+                    current == RoadGuardSystem.Services.Authentication.AuthoritativeSessionValidation.SessionRevoked ? ApiErrorCodes.SessionRevoked : ApiErrorCodes.Unauthorized,
+                    "Current session required");
+        }
+        return MapPartUrls(result);
     }
 
     [Authorize]
@@ -180,10 +191,33 @@ public sealed class ReporterEvidenceController : ControllerBase
             UploadServiceStatus.Success or UploadServiceStatus.Replayed when result.PartUrls is not null => Ok(result.PartUrls),
             UploadServiceStatus.Forbidden => ProblemResponse(403, ApiErrorCodes.AccessForbidden, "Forbidden"),
             UploadServiceStatus.NotFound => ProblemResponse(404, ApiErrorCodes.UploadSessionNotFound, "Not found"),
+            UploadServiceStatus.PartUrlsExpired => PartUrlsProblem(ApiErrorCodes.UploadPartUrlsExpired, result),
+            UploadServiceStatus.PartUrlsIdempotencyConflict => ProblemResponse(409, ApiErrorCodes.IdempotencyKeyReused, "Idempotency key reused"),
+            UploadServiceStatus.PartUrlsSessionUnavailable => PartUrlsProblem(ApiErrorCodes.UploadSessionNotUploadable, result),
+            UploadServiceStatus.PartUrlsMultipartConflict => PartUrlsProblem(ApiErrorCodes.UploadPartUrlsMultipartConflict, result),
             UploadServiceStatus.Conflict => ProblemResponse(409, ApiErrorCodes.DuplicateRequest, "Conflict"),
             UploadServiceStatus.StorageUnavailable => ProblemResponse(503, ApiErrorCodes.UploadStorageUnavailable, "Storage unavailable"),
             _ => ProblemResponse(422, ApiErrorCodes.UploadValidationFailed, "Upload validation failed")
         };
+
+    private ObjectResult PartUrlsProblem(string code, UploadServiceResult result)
+    {
+        var response = ProblemResponse(409, code, "Part URLs unavailable");
+        if (response.Value is not ProblemDetails problem) return response;
+        problem.Extensions["renewalAllowed"] = false;
+        problem.Extensions["reason"] = "multipart_unavailable";
+        if (result.PartUrlsFailure is { } failure)
+        {
+            problem.Extensions["uploadId"] = failure.UploadId;
+            if (failure.PartNumbers is not null) problem.Extensions["partNumbers"] = failure.PartNumbers;
+            if (failure.ExpiresAt is not null) problem.Extensions["expiresAt"] = failure.ExpiresAt;
+            problem.Extensions["serverTime"] = failure.ServerTime;
+            problem.Extensions["renewalAllowed"] = failure.RenewalAllowed;
+            problem.Extensions["sessionStatus"] = failure.SessionStatus;
+            problem.Extensions["reason"] = failure.Reason;
+        }
+        return response;
+    }
 
     private bool TryGetActor(out Guid actorUserId, out UserRoleCode role)
     {

@@ -9,5 +9,9 @@ public enum UploadServiceStatus
     Conflict = 5,
     PreconditionFailed = 6,
     InvalidInput = 7,
-    StorageUnavailable = 8
+    StorageUnavailable = 8,
+    PartUrlsExpired = 9,
+    PartUrlsIdempotencyConflict = 10,
+    PartUrlsSessionUnavailable = 11,
+    PartUrlsMultipartConflict = 12
 }

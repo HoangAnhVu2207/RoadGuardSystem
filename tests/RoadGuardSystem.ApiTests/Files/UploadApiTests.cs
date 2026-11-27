@@ -205,7 +205,7 @@ public sealed class UploadApiTests
         {
             options.Endpoint = endpoint; options.UseSsl = false; options.BucketName = bucket;
             options.AccessKey = access; options.SecretKey = secret;
-        }));
+        }), new RenewalClock(DateTimeOffset.UtcNow));
         // Reporter-private bytes use the same real adapter, separate from project scope.
         var reporter = await _sql.CreateUserAsync($"minio-reporter-{Guid.NewGuid():N}", "Current1!", UserRoleCode.Reporter);
         var outsider = await _sql.CreateUserAsync($"minio-private-other-{Guid.NewGuid():N}", "Current1!", UserRoleCode.Reporter);
@@ -322,15 +322,26 @@ public sealed class UploadApiTests
         Assert.Equal(bytes.Length, preserved.ContentLength);
     }
 
-    private async Task VerifyMinioMultipartAsync(Action<IServiceCollection>? configureStorage = null)
+    private async Task VerifyMinioMultipartAsync(Action<IServiceCollection>? configureStorage = null, RenewalClock? clock = null)
     {
         var supervisor = await _sql.CreateUserAsync($"minio-supervisor-{Guid.NewGuid():N}", "Current1!", UserRoleCode.Supervisor);
         var manager = await _sql.CreateUserAsync($"minio-manager-{Guid.NewGuid():N}", "Current1!", UserRoleCode.ProjectManager);
         var content = Encoding.UTF8.GetBytes("%PDF-1.7 MinIO multipart upload smoke fixture");
         var checksum = Convert.ToHexString(SHA256.HashData(content)).ToLowerInvariant();
         await using var factory = new AuthenticationWebApplicationFactory(_sql.ConnectionString,
-            configureTestServices: configureStorage, allowExternalStorage: true);
+            accessTokenLifetimeMinutes: clock is null ? 10 : 60,
+            configureTestServices: services =>
+            {
+                configureStorage?.Invoke(services);
+                if (clock is not null)
+                {
+                    services.RemoveAll<TimeProvider>(); services.AddSingleton<TimeProvider>(clock);
+                }
+            }, allowExternalStorage: true);
         using var client = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") });
+        var outsider = await _sql.CreateUserAsync($"minio-outsider-{Guid.NewGuid():N}", "Current1!", UserRoleCode.ProjectManager);
+        using var outsiderClient = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") });
+        await AuthenticateAsync(outsiderClient, outsider.UserName!);
 
         await AuthenticateAsync(client, supervisor.UserName!);
         var projectId = await CreateProjectAsync(client, manager.Id);
@@ -366,6 +377,27 @@ public sealed class UploadApiTests
         var partUrlBody = await partUrlResponse.Content.ReadFromJsonAsync<JsonElement>();
         var partUrl = partUrlBody.GetProperty("parts")[0].GetProperty("url").GetString();
         partUrl.Should().NotBeNullOrWhiteSpace();
+
+        if (clock is not null)
+        {
+            var originalExpiry = partUrlBody.GetProperty("parts")[0].GetProperty("expiresAt").GetDateTimeOffset();
+            clock.Advance(TimeSpan.FromMinutes(16));
+            using var replayRequest = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/uploads/{uploadId}/part-urls")
+            { Content = JsonContent.Create(new { partNumbers = new[] { 1 } }) };
+            replayRequest.Headers.Add("Idempotency-Key", partRequest.Headers.GetValues("Idempotency-Key").Single());
+            using var expired = await client.SendAsync(replayRequest);
+            expired.StatusCode.Should().Be(HttpStatusCode.Conflict);
+            var expiredBody = await expired.Content.ReadFromJsonAsync<JsonElement>();
+            expiredBody.GetProperty("code").GetString().Should().Be("upload_part_urls_expired");
+            expiredBody.GetProperty("expiresAt").GetDateTimeOffset().Should().Be(originalExpiry);
+            expiredBody.GetProperty("renewalAllowed").GetBoolean().Should().BeTrue();
+            using var renewalRequest = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/uploads/{uploadId}/part-urls")
+            { Content = JsonContent.Create(new { partNumbers = new[] { 1 } }) };
+            renewalRequest.Headers.Add("Idempotency-Key", Guid.NewGuid().ToString());
+            using var renewal = await client.SendAsync(renewalRequest);
+            renewal.StatusCode.Should().Be(HttpStatusCode.OK);
+            partUrl = (await renewal.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("parts")[0].GetProperty("url").GetString();
+        }
 
         using var storageClient = new HttpClient();
         // Signed capability is bound to its method/query. Never print the URL or credentials.
@@ -410,14 +442,19 @@ public sealed class UploadApiTests
             anonymous.StatusCode.Should().Be(HttpStatusCode.Forbidden);
             objectKey.Should().NotBeNullOrWhiteSpace();
         }
-        var outsider = await _sql.CreateUserAsync($"minio-outsider-{Guid.NewGuid():N}", "Current1!", UserRoleCode.ProjectManager);
-        await AuthenticateAsync(client, outsider.UserName!);
-        (await client.GetAsync($"/api/v1/files/{fileId}")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
-        (await client.GetAsync($"/api/v1/files/{fileId}/content")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
-        (await client.GetAsync($"/api/v1/uploads/{uploadId}")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await outsiderClient.GetAsync($"/api/v1/files/{fileId}")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await outsiderClient.GetAsync($"/api/v1/files/{fileId}/content")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await outsiderClient.GetAsync($"/api/v1/uploads/{uploadId}")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
         await using var verification = _sql.CreateDbContext();
         (await verification.UploadSessions.AsNoTracking().SingleAsync(x => x.Id == uploadId)).Status.Should().Be(UploadSessionStatus.Verified);
         (await verification.FileScopes.AsNoTracking().SingleAsync(x => x.FileId == fileId)).ProjectId.Should().Be(projectId);
+    }
+
+    private sealed class RenewalClock(DateTimeOffset now) : TimeProvider
+    {
+        private DateTimeOffset _now = now;
+        public override DateTimeOffset GetUtcNow() => _now;
+        public void Advance(TimeSpan value) => _now += value;
     }
 
     private static async Task<HttpResponseMessage> CompleteAsync(

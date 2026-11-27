@@ -18,18 +18,18 @@ The following baseline, counts, execution labels and gap statements describe the
 
 <!-- CURRENT-DOCS-SYNC-END -->
 
-The supported source chain is PM plan/task → current Operator assignment → verified `SURVEY_VIDEO` and `TELEMETRY` files → dataset submission. API-229 does not authorize an unverified upload or a task from another project.
+The default flow is PM plan/task → current Operator assignment → verified `SURVEY_VIDEO` from the DJI camera → dataset submission. API-229 requires a verified video from the assigned task. Submit `telemetryFileIds: []` and omit `pairs` when uploading only the video.
 
 ## Multipart sequence
 
 1. Read API-225/226 and verify assignment, task status and version.
-2. Create each purpose-specific upload with API-233 `POST /api/v1/uploads`; use the exact `UploadCreateRequestDto` from the catalog, checksum and declared media metadata. Do not set server `VERIFIED`.
+2. Create one `SURVEY_VIDEO` upload per video with API-233 `POST /api/v1/uploads`. Use the catalog DTO, checksum and declared media metadata. Preserve the original DJI file so its subtitle track reaches the worker.
 3. Request part URLs with API-236. Upload bytes to returned presigned URLs and retain each returned ETag; ETag is not the complete SHA-256.
 4. Complete with API-235 and current upload version/part list. A `202`/accepted result means verification intent only.
 5. Poll API-234 until the server reports `VERIFIED` or a terminal failure. A worker/provider deployment is not proven by the route existing.
-6. Submit API-229 with verified file IDs, task/dataset version, scope and telemetry binding. Preserve K and exact body on timeout.
+6. Submit API-229 with verified video file IDs, task version and scope. Preserve the idempotency key and exact body on timeout.
 
-Video, SRT and GPS are distinct evidence. An absent SRT/GPS file is not a coverage PASS. The app must not fabricate timestamps, route pins, model results or physical measurements. No DJI SDK or automatic telemetry integration is source-verified.
+The AI worker extracts an embedded SRT via FFmpeg after inference. If usable GPS data is unavailable, the telemetry response reports `MISSING_TELEMETRY` with the warning `error when get srt`. Upload, dataset submission and AI detections remain available. GPS from SRT represents the drone reference position. Measured ground coordinates and coverage require their own evidence. Previously paired SRT and the separate authorized supplementation flow are supported.
 
 ## Client responsibilities
 

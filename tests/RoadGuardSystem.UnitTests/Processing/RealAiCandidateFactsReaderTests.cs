@@ -32,6 +32,8 @@ public sealed class RealAiCandidateFactsReaderTests
     { var mock = DispatchProxy.Create<T, Proxy>(); ((Proxy)(object)mock).Handler = handler; return mock; }
     private sealed class Repo(RealAiCandidateReadFacts? facts, Guid? project) : IRealAiCandidateRepository
     {
+        public Task<RealAiDetectionPage> ListAsync(Guid projectId, Guid jobId, int offset, int limit, CancellationToken ct)
+            => throw new InvalidOperationException("Unexpected list call");
         public Task<RealAiCandidateReadFacts?> ReadAsync(Guid projectId, Guid detectionId, CancellationToken ct) => Task.FromResult(facts);
         public Task<Guid?> DetectionProjectAsync(Guid detectionId, CancellationToken ct) => Task.FromResult(project);
     }

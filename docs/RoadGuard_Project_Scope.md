@@ -38,7 +38,7 @@ Phạm vi warranty ở đây là theo dõi thời điểm, tình trạng, lỗi,
 
 ### 3. Khảo sát drone và dữ liệu hiện trường
 
-- PM lập lịch và giao phạm vi khảo sát; Drone Operator nhận nhiệm vụ và nộp video, ảnh, SRT/telemetry, metadata chuyến bay và quality checks.
+- PM lập lịch và giao phạm vi khảo sát. Drone Operator nhận nhiệm vụ và nộp video gốc từ drone DJI cùng metadata chuyến bay theo yêu cầu của nhiệm vụ. AI worker tự tách SRT nhúng bằng FFmpeg khi xử lý video.
 - Survey có thể yêu cầu `SURFACE`, `LEFT_EDGE`, `RIGHT_EDGE`; coverage được đánh giá riêng theo segment, band và dataset.
 - Lưu raw aircraft GPS, projected station, camera footprint, defect location và độ chính xác như các fact riêng.
 - Hỗ trợ bay baseline/periodic/incident, nhiều segment trong một nhiệm vụ và nhiều video interval cho cùng vùng.

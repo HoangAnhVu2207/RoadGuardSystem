@@ -30,13 +30,13 @@ def read_worker_facts(compose, job, attempt):
     return [identifier(i) for i in ids], {"fileId": identifier(file_id), "sha256": digest, "modelVersionId": identifier(model_id)}
 
 
-def verify(api, users, code, record, compose, checkpoint):
+def verify(api, users, code, record, compose, checkpoint, *, suffix=None, decide=True):
     project = record["foundation"]
     project_id = project["projectId"]
-    suffix = PROJECTS[code][1]
+    suffix = suffix or PROJECTS[code][1]
     pm = users["pm-" + suffix][1]
     supervisor = users["supervisor-a"][1]
-    forbidden = {"wrongPm": users["pm-" + ("duong-so-2" if code == "DKD" else "kenh-dong")][1],
+    forbidden = {"wrongPm": users["pm-" + ("duong-so-2" if suffix == "kenh-dong" else "kenh-dong")][1],
                  "crew": users["crew-" + suffix + "-1"][1], "reporter": users["reporter-" + suffix + "-1"][1]}
     root = "/projects/" + project_id
     path = root + "/ai-videos?datasetId=" + identifier(record["datasetId"])
@@ -48,9 +48,15 @@ def verify(api, users, code, record, compose, checkpoint):
     previous = None
     while True:
         rows, _ = api.request(code + " real jobs", "GET", path, token=pm)
-        require(len(rows["items"]) <= 1 and not rows["hasMore"], "Duplicate real jobs")
-        if rows["items"]:
-            work, = rows["items"]
+        items = rows["items"]
+        superseded = record.get("supersededJob")
+        if superseded:
+            require(superseded in items and superseded["state"] == "TerminalFailed" and
+                    superseded["sourceVideoFileId"] == record["pair"]["videoFileId"], "Superseded job changed")
+            items = [item for item in items if item != superseded]
+        require(len(items) <= 1 and not rows["hasMore"], "Duplicate current real jobs")
+        if items:
+            work, = items
             require(work["sourceVideoFileId"] == record["pair"]["videoFileId"], "Unexpected inference source")
             if work["state"] != previous:
                 print(code, "real worker", work["state"], flush=True)
@@ -65,9 +71,16 @@ def verify(api, users, code, record, compose, checkpoint):
     job, _ = api.request(code + " job readback", "GET", "/processing-jobs/" + job_id, token=pm)
     require(job["id"] == job_id and job["status"] == "SUCCEEDED", "Ingested work has no successful job")
     telemetry, _ = api.request(code + " telemetry", "GET", root + "/ai-videos/" + identifier(work["workId"]) + "/telemetry", token=pm)
+    correction = record.get("telemetryCorrection")
+    expected_source = "PAIRED_SRT"
+    if correction:
+        expected_source = "EXTERNAL_SRT"
+        require(telemetry["headRevisionId"] == correction["revisionId"]
+                and len(telemetry["intervals"]) == correction["unchangedGpsFixes"]
+                and telemetry["intervals"][-1]["endMs"] == correction["videoDurationMs"], "Telemetry correction mismatch")
     require(telemetry["attemptId"] == work["currentAttemptId"] and telemetry["sourceVideoFileId"] == work["sourceVideoFileId"]
             and telemetry["positionMeaning"] == "DRONE_REFERENCE_NOT_GROUND_LOCATION"
-            and telemetry["measuredTelemetryStatus"] == "PAIRED_SRT", "Paired telemetry readback mismatch")
+            and telemetry["measuredTelemetryStatus"] == expected_source, "Measured telemetry readback mismatch")
     ids, raw = read_worker_facts(compose, job_id, work["currentAttemptId"])
     require((job["resultId"] in ids) if ids else job["resultId"] is None, "Job result does not match detection readback")
     candidates = []
@@ -87,6 +100,8 @@ def verify(api, users, code, record, compose, checkpoint):
             active_decisions[detection] = identifier(item["disposition"]["decisionId"])
         candidates.append({k: item[k] for k in ("detectionId", "modelVersionId", "resultId", "resultHash",
                           "typeCode", "positionStatus", "frameFileId", "frameSha256", "timestampMs")})
+        if not decide:
+            candidates[-1]["confidence"] = item.get("confidence")
         if review is None and item["typeCode"] != "REPAIR_PATCH":
             review = item
         elif second is None:
@@ -100,6 +115,8 @@ def verify(api, users, code, record, compose, checkpoint):
     record["videoAuthorization"] = {"anonymous": 401, "wrongPm": 403, "crew": 403, "reporter": 403,
                                     "ownPm": 200, "supervisor": 200}
     checkpoint()
+    if not decide:
+        return
     if review is None:
         record["pmReview"] = {"status": "NOT_RUN", "reason": "No non-repair candidate was observed"}
     else:

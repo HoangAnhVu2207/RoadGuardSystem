@@ -17,6 +17,10 @@ docker --context desktop-linux compose -p rg-fe-real-replay -f compose.json stop
 docker --context desktop-linux compose -p rg-fe-real-replay -f compose.json start
 ```
 
+## Nộp video DJI
+
+Operator tải video gốc DJI với purpose `SURVEY_VIDEO`, đợi `VERIFIED` rồi nộp dataset với `telemetryFileIds: []`. AI worker dùng FFmpeg tách track SRT nhúng sau bước nhận diện. Nếu thiếu SRT hoặc GPS không hợp lệ, BE vẫn trả kết quả nhận diện. Endpoint telemetry trả `measuredTelemetryStatus: "MISSING_TELEMETRY"` và `warning: "error when get srt"`. Nếu tách được, trạng thái là `EMBEDDED_SRT`. [Luồng upload và nộp dataset](OPERATOR-DATASET-RETRY.md).
+
 ## Tra kết quả qua BE
 
 Các đường dẫn sau dùng tiền tố `/api/v1`. Đăng nhập bằng PM phụ trách dự án. Kênh Đông dùng video `1123-part-00`, Đường số 2 dùng `11234`.
@@ -25,14 +29,15 @@ Các đường dẫn sau dùng tiền tố `/api/v1`. Đăng nhập bằng PM ph
 | --- | --- |
 | Tìm lần chạy AI của dataset | `GET /projects/{projectId}/ai-videos?datasetId={datasetId}` |
 | Kiểm tra job | `GET /processing-jobs/{jobId}` |
-| Đọc SRT đã ghép | `GET /projects/{projectId}/ai-videos/{workId}/telemetry` |
+| Liệt kê phát hiện của job REAL | `GET /projects/{projectId}/ai-jobs/{jobId}/detections?offset=0&limit=50` |
+| Đọc GPS tham chiếu của drone và cảnh báo tách SRT qua Bearer | `GET /projects/{projectId}/ai-videos/{workId}/telemetry` |
 | Đọc đề xuất | `GET /projects/{projectId}/ai-candidates/{detectionId}` |
 | Tải ảnh frame | `GET /files/{frameFileId}/content` |
 | Tra lỗi hiện có theo một phát hiện | `GET /projects/{projectId}/candidates?sourceKind=AI_DETECTION&sourceId={detectionId}` |
 | PM giữ hoặc từ chối | `POST /projects/{projectId}/candidate-decisions` với `KEEP_NEW` hoặc `REJECT`, version của đề xuất, version hình học và idempotency key |
 | Xem lỗi được giữ | `GET /projects/{projectId}/defects/{defectId}` |
 
-Job trả ID kết quả đầu tiên. Để thử toàn bộ đề xuất trên bộ local, dùng `projects.<DKD hoặc DS2>.inference.candidates` trong `real-flow.json`. Trình kiểm thử lấy danh sách ID từ SQL local ở chế độ đọc rồi đọc từng đề xuất qua BE với quyền PM. API phân trang toàn bộ phát hiện theo job còn thiếu. API tra lỗi hiện có nhận một `detectionId` và trả 404 khi gửi `jobId` làm `sourceId`. PM khác dự án, Crew và Reporter nhận 403 ở danh sách video AI. Request ẩn danh nhận 401. Version nguồn cũ khi PM quyết định trả 409.
+Web gọi danh sách video và danh sách phát hiện qua BE HTTPS với `credentials: "include"`. Xem [cách bật HTTPS và cấu hình origin local](FE-HTTPS-LOCAL.md). Hai GET này dùng cookie phiên Web và không yêu cầu header CSRF. Tham số `datasetId` cần có khi gọi danh sách video. Dùng `jobId` từ work để liệt kê phát hiện. Khi `hasMore` là true, gửi tiếp `offset + limit`. Chọn `detectionId` để đọc ảnh, khung AI và version thẩm định từ API chi tiết. PM khác dự án, Crew và Reporter nhận 403 khi đọc danh sách của dự án. Request ẩn danh nhận 401. Version nguồn cũ khi PM quyết định trả 409.
 
 ## Biên bản để tìm dữ liệu cho từng màn hình
 

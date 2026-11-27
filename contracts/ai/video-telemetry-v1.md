@@ -4,19 +4,36 @@ Status: implementation contract for the owner-authorized local BE–AI slice.
 Adoption: `AiVideoTelemetryController`, `AiVideoTelemetryService`, SQL repository
 and focused HTTP/SQL tests. No production compatibility claim is implied.
 
-All routes use the existing bearer authentication and project authorization.
+All routes support Bearer and enforce current project authorization. Video work
+discovery and the REAL detection collection also accept the existing HTTPS Web
+session cookie. These GET actions require no CSRF token.
 No service token, object key, private artifact URL or database credential appears
 in these DTOs. Existing candidate/PM decision routes remain authoritative.
 
 | Method and path | Meaning |
 | --- | --- |
 | GET `/api/v1/projects/{projectId}/ai-videos?datasetId={id}&offset=0&limit=50` | Discover per-video work, including pending/failed/zero-detection work; limit 1–100 |
+| GET `/api/v1/projects/{projectId}/ai-jobs/{jobId}/detections?offset=0&limit=50` | Enumerate detections for the successfully ingested current attempt of a REAL video job |
 | GET `/api/v1/projects/{projectId}/ai-videos/{workId}/telemetry` | Read current measured/estimated drone-reference intervals and revision history |
 | POST `/api/v1/projects/{projectId}/ai-videos/{workId}/telemetry-revisions` | Append an immutable operator supplementation/correction |
 
 Discovery items contain `workId`, `sourceVideoFileId`, `jobId`,
 `currentAttemptId`, `state`, `errorCode`; page contains `items`, `offset`, `limit`,
 `hasMore`. Discovery does not imply that pending work already has readable results.
+
+The detection collection uses `jobId` from a discovery item. The response has
+`jobId`, `attemptId`, `items`, `offset`, `limit`, and `hasMore`. Items have
+`detectionId`, `typeCode`, and `confidence` and are ordered by the detection ID
+in SQL Server. Advance by `offset + limit` while `hasMore` is true. A successful
+job with zero detections returns an empty page with `hasMore: false`.
+
+The collection uses the candidate detail role and scope checks (current project
+PM or Supervisor). It returns 401 for an unauthenticated request, 403 for a
+denied actor, 404 for an absent project or a job outside the project's REAL
+video work, 409 `result_not_ready` while the current attempt has no successful
+ingestion, and 422 `invalid_detection_query` for out-of-range paging. Read
+`GET /api/v1/projects/{projectId}/ai-candidates/{detectionId}` for the
+`boundingBox`, `frameFileId`, timestamp, and current review versions.
 
 Current project PM and Supervisor can read; DroneOperator must retain active
 project membership and accepted, unended assignment to the survey. A password
@@ -29,6 +46,13 @@ GET telemetry returns `workId`, `attemptId`, `sourceVideoFileId`,
 `"00000000-0000-0000-0000-000000000000"`. Intervals have `startMs`, `endMs`,
 `latitude`, `longitude`; intervals are half-open and bounded by media duration.
 `positionMeaning` is always `DRONE_REFERENCE_NOT_GROUND_LOCATION`.
+
+Operators can submit the original DJI video with `telemetryFileIds: []`. The
+AI worker uses FFmpeg to extract its embedded SRT after inference. Once the
+current attempt has been ingested, GET telemetry returns HTTP 200 with
+`warning: "error when get srt"` when `measuredTelemetryStatus` is
+`MISSING_TELEMETRY`. The warning is omitted when measured intervals are
+available. The warning is independent of job status and detection availability.
 
 POST requires a nonempty `Idempotency-Key` (at most 200 characters) and `If-Match`
 with the exact quoted head UUID. Request body is one of these shapes:

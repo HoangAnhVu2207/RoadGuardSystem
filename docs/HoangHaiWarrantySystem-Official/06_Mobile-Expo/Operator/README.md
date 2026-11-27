@@ -18,11 +18,11 @@ The following baseline, counts, execution labels and gap statements describe the
 
 <!-- CURRENT-DOCS-SYNC-END -->
 
-Drone Operator is a Mobile React Native + Expo actor using bearer transport. PM creates and assigns survey work on Web; Operator reads the current assignment, accepts or declines it, uploads survey video and telemetry, and submits the dataset. Supervisor/PM approval, processing decisions, candidate decisions and repair authority stay in Backend/Web boundaries.
+Drone Operator is a Mobile React Native + Expo actor using bearer transport. PM creates and assigns survey work on Web. Operator reads the current assignment, accepts or declines it, uploads the original DJI video and submits the dataset. The AI worker extracts embedded telemetry when available. Supervisor/PM approval, processing decisions, candidate decisions and repair authority stay in Backend/Web boundaries.
 
 ## Screens and order
 
-Read [the screen/API matrix](01_Operator-Screen-API-Matrix.md), then [survey video/SRT upload](02_Survey-Video-SRT-and-Upload.md), and finally [task, dataset and error handling](03_Task-Dataset-and-Error-Handling.md). The matrix covers eight screens: session, work list, task detail, decline/supplement, work package, capture/upload, dataset submission and recovery/history.
+Read [the screen/API matrix](01_Operator-Screen-API-Matrix.md), then [DJI video upload and SRT extraction](02_Survey-Video-SRT-and-Upload.md), and finally [task, dataset and error handling](03_Task-Dataset-and-Error-Handling.md). The matrix covers eight screens: session, work list, task detail, decline/supplement, work package, capture/upload, dataset submission and recovery/history.
 
 ## API boundary
 

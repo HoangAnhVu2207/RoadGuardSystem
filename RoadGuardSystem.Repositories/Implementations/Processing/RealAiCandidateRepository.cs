@@ -1,3 +1,4 @@
+using System.Data;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
 using System.Text;
@@ -11,6 +12,37 @@ namespace RoadGuardSystem.Repositories.Implementations.Processing;
 
 public sealed class RealAiCandidateRepository(RoadGuardDbContext db, IAiVideoWorkRepository videos) : IRealAiCandidateRepository
 {
+    public Task<RealAiDetectionPage> ListAsync(Guid projectId, Guid jobId, int offset, int limit, CancellationToken ct)
+        => db.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
+        {
+            await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+            var scope = await (from job in db.ProcessingJobs.AsNoTracking()
+                               join work in db.AiVideoWorkItems.AsNoTracking() on job.Id equals work.ProcessingJobId
+                               join block in db.ProcessingBlocks.AsNoTracking() on job.ProcessingBlockId equals block.Id
+                               where job.Id == jobId && job.ProjectId == projectId && job.Mode == "REAL" &&
+                                   work.ProjectId == projectId && block.SurveyDataVersionId == work.DatasetId
+                               select new { WorkId = work.Id, work.CurrentAttemptId, work.State, job.Status, job.ModelVersionId })
+                .SingleOrDefaultAsync(ct) ?? throw new AiRequestException(404, "not_found");
+            var latest = await db.ProcessingAttempts.AsNoTracking().Where(attempt => attempt.ProcessingJobId == jobId)
+                .OrderByDescending(attempt => attempt.AttemptNo).Select(attempt => (Guid?)attempt.Id).FirstOrDefaultAsync(ct);
+            if (scope.State != AiVideoWorkState.Ingested || scope.Status != ProcessingJobStatus.Completed ||
+                latest != scope.CurrentAttemptId ||
+                !await db.AiVideoAttemptOutcomes.AsNoTracking().AnyAsync(outcome => outcome.WorkId == scope.WorkId &&
+                    outcome.AttemptId == scope.CurrentAttemptId && outcome.ProcessingJobId == jobId &&
+                    outcome.State == AiVideoWorkState.Ingested, ct))
+                throw new AiRequestException(409, "result_not_ready");
+
+            // REAL ingestion stores detections and its terminal attempt outcome in one transaction.
+            var rows = await db.AIDetections.AsNoTracking()
+                .Where(detection => detection.ProcessingJobId == jobId && detection.ModelVersionId == scope.ModelVersionId)
+                .OrderBy(detection => detection.Id).Skip(offset).Take(limit + 1)
+                .Select(detection => new RealAiDetectionSummary(detection.Id, detection.DefectTypeCode, detection.Confidence))
+                .ToArrayAsync(ct);
+            await tx.CommitAsync(ct);
+            return new RealAiDetectionPage(jobId, scope.CurrentAttemptId, rows.Take(limit).ToArray(),
+                offset, limit, rows.Length > limit);
+        });
+
     public async Task<RealAiCandidateReadFacts?> ReadAsync(Guid projectId, Guid detectionId, CancellationToken ct)
     {
         var row = await (from d in db.AIDetections.AsNoTracking()

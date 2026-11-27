@@ -45,6 +45,7 @@ public sealed class AiVideoTelemetryServiceTests
         var uploads = new Uploaded(bytes);
         var view = await new AiVideoTelemetryService(repo, store, uploads).GetAsync(Guid.NewGuid(), UserRoleCode.ProjectManager, repo.Scope.ProjectId, repo.Scope.WorkId, default);
         view.Status.Should().Be("PAIRED_SRT"); view.MeasuredTelemetryStatus.Should().Be("PAIRED_SRT");
+        view.Warning.Should().BeNull();
         view.Intervals.Should().ContainSingle().Which.StartMs.Should().Be(500);
         uploads.Keys.Should().Equal("paired.srt"); store.Keys.Should().BeEmpty();
     }
@@ -58,6 +59,7 @@ public sealed class AiVideoTelemetryServiceTests
             null, null, null, 0, "operator estimate", new string('b',64), new string('c',64))];
         var view = await new AiVideoTelemetryService(repo, new Store()).GetAsync(actor, UserRoleCode.ProjectManager, repo.Scope.ProjectId, repo.Scope.WorkId, default);
         view.Status.Should().Be("OPERATOR_ESTIMATE"); view.MeasuredTelemetryStatus.Should().Be("MISSING_TELEMETRY");
+        view.Warning.Should().Be("error when get srt");
         view.PositionMeaning.Should().Be("DRONE_REFERENCE_NOT_GROUND_LOCATION");
     }
     [Fact]

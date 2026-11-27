@@ -12,14 +12,27 @@ using RoadGuardSystem.Services.Processing.Worker;
 namespace RoadGuardSystem.API.Controllers;
 
 [ApiController, ApiVersion("1.0"), Authorize, Route("api/v{version:apiVersion}/projects/{projectId:guid}/ai-videos/{workId:guid}")]
-public sealed class AiVideoTelemetryController(AiVideoTelemetryService service, IAiVideoTelemetryRepository repository) : ControllerBase
+public sealed class AiVideoTelemetryController(AiVideoTelemetryService service, IAiVideoTelemetryRepository repository,
+    RealAiCandidateFactsReader candidates) : ControllerBase
 {
+    [RoadGuardSystem.API.Authentication.WebCookieEligible]
     [HttpGet("~/api/v{version:apiVersion}/projects/{projectId:guid}/ai-videos")]
     public async Task<IActionResult> Discover(Guid projectId, [FromQuery] Guid datasetId, CancellationToken ct,
         [FromQuery] int offset = 0, [FromQuery] int limit = 50)
     {
         if (!Actor(out var actor, out var role)) return Error(401, "unauthorized");
         try { return Ok(await repository.DiscoverAsync(actor, role, projectId, datasetId, offset, limit, ct)); }
+        catch (AiRequestException ex) { return Error(ex.Status, ex.Code); }
+    }
+
+    [RoadGuardSystem.API.Authentication.WebCookieEligible]
+    [HttpGet("~/api/v{version:apiVersion}/projects/{projectId:guid}/ai-jobs/{jobId:guid}/detections")]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+    public async Task<ActionResult<RealAiDetectionPage>> ListDetections(Guid projectId, Guid jobId, CancellationToken ct,
+        [FromQuery] int offset = 0, [FromQuery] int limit = 50)
+    {
+        if (!Actor(out var actor, out var role)) return Error(401, "unauthorized");
+        try { return Ok(await candidates.ListAsync(actor, role, projectId, jobId, offset, limit, ct)); }
         catch (AiRequestException ex) { return Error(ex.Status, ex.Code); }
     }
 

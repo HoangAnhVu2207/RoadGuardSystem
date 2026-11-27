@@ -53,6 +53,8 @@ public sealed class AiVideoTelemetryHttpTests(AuthenticationSqlServerFixture sql
         Assert.Equal(repository.AttemptId, body.GetProperty("attemptId").GetGuid());
         Assert.Equal(repository.FileId, body.GetProperty("sourceVideoFileId").GetGuid());
         Assert.Equal("MISSING_TELEMETRY", body.GetProperty("status").GetString());
+        Assert.True(body.TryGetProperty("warning", out var warning));
+        Assert.Equal("error when get srt", warning.GetString());
         Assert.Equal("DRONE_REFERENCE_NOT_GROUND_LOCATION", body.GetProperty("positionMeaning").GetString());
         Assert.Equal(0, body.GetProperty("intervals").GetArrayLength());
         using var discovery = await client.GetAsync($"/api/v1/projects/{repository.ProjectId}/ai-videos?datasetId={repository.DatasetId}&offset=2&limit=3");
@@ -63,6 +65,44 @@ public sealed class AiVideoTelemetryHttpTests(AuthenticationSqlServerFixture sql
         Assert.Equal(repository.WorkId, page.GetProperty("items")[0].GetProperty("workId").GetGuid());
         Assert.Equal(role, repository.LastRole);
         Assert.Equal(repository.DatasetId, repository.LastDatasetId);
+    }
+
+    [Fact]
+    public async Task Web_pm_can_discover_video_work_without_csrf_on_get()
+    {
+        var repository = new TelemetryRepository();
+        await using var factory = Host(repository, new ArtifactStore());
+        using var client = Client(factory);
+        var user = await sql.CreateUserAsync("telemetry-web-pm-" + Guid.NewGuid().ToString("N"),
+            "Current1!", UserRoleCode.ProjectManager);
+        using var csrf = await client.GetAsync("/api/v1/auth/web/csrf");
+        csrf.EnsureSuccessStatusCode();
+        var token = (await csrf.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("requestToken").GetString();
+        using var login = new HttpRequestMessage(HttpMethod.Post, "/api/v1/auth/web/login")
+        {
+            Content = JsonContent.Create(new { email = user.Email, password = "Current1!" })
+        };
+        login.Headers.Add("X-CSRF-TOKEN", token);
+        using var loggedIn = await client.SendAsync(login);
+        loggedIn.EnsureSuccessStatusCode();
+        using var session = await client.GetAsync("/api/v1/auth/web/session");
+        Assert.Equal(HttpStatusCode.OK, session.StatusCode);
+        using var discovery = await client.GetAsync($"/api/v1/projects/{repository.ProjectId}/ai-videos?datasetId={repository.DatasetId}");
+        Assert.Equal(HttpStatusCode.OK, discovery.StatusCode);
+        Assert.Equal(UserRoleCode.ProjectManager, repository.LastRole);
+        Assert.Equal(repository.DatasetId, repository.LastDatasetId);
+        using var revision = await Send(client, repository, Estimate(), "cookie-only", Quote(Guid.Empty));
+        Assert.Equal(HttpStatusCode.Unauthorized, revision.StatusCode);
+        Assert.Equal(0, repository.AppendCalls);
+
+        var detectionsPath = $"/api/v1/projects/{repository.ProjectId}/ai-jobs/{Guid.NewGuid()}/detections";
+        using var invalidPage = await client.GetAsync(detectionsPath + "?limit=101");
+        await Problem(invalidPage, 422, "invalid_detection_query");
+        using var missingProject = await client.GetAsync(detectionsPath);
+        await Problem(missingProject, 404, "not_found");
+        using var anonymous = Client(factory);
+        using var anonymousDetections = await anonymous.GetAsync(detectionsPath);
+        Assert.Equal(HttpStatusCode.Unauthorized, anonymousDetections.StatusCode);
     }
 
     [Theory]

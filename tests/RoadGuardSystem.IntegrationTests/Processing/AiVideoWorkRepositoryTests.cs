@@ -307,7 +307,12 @@ public sealed class AiVideoWorkRepositoryTests : IAsyncLifetime, IClassFixture<S
         var frame = new AiRegisteredArtifact(Guid.NewGuid(), new string('c', 64), 20, "image/jpeg", "FRAME", "fixture/frame.jpg", 100, 100);
         var detections = Labels.Select(label => new AiProposedDetection(Guid.NewGuid(), frame.ArtifactId, label, seed.Map[label], .9m, "{\"bbox\":[0.1,0.1,0.2,0.2]}")).ToArray();
         await using var db = _fixture.CreateDbContext();
-        await new AiVideoWorkRepository(db).CompleteAsync(work.Id, "worker", work.CurrentAttemptId, [raw, frame], detections, seed.Map, work.UpdatedAt.AddSeconds(1), Ct);
+        var workRepository = new AiVideoWorkRepository(db);
+        var candidateRepository = new RealAiCandidateRepository(db, workRepository);
+        var beforeIngestion = await Assert.ThrowsAsync<AiRequestException>(() =>
+            candidateRepository.ListAsync(work.ProjectId, work.ProcessingJobId, 0, 4, Ct));
+        beforeIngestion.Status.Should().Be(409);
+        await workRepository.CompleteAsync(work.Id, "worker", work.CurrentAttemptId, [raw, frame], detections, seed.Map, work.UpdatedAt.AddSeconds(1), Ct);
         db.ChangeTracker.Clear();
         var proofs = await db.AiWorkerArtifacts.ToListAsync();
         proofs.Should().HaveCount(2);
@@ -328,6 +333,19 @@ public sealed class AiVideoWorkRepositoryTests : IAsyncLifetime, IClassFixture<S
         }
         (await db.AiVideoWorkItems.SingleAsync()).State.Should().Be(AiVideoWorkState.Ingested);
         (await db.Defects.CountAsync()).Should().Be(0);
+        var firstPage = await candidateRepository.ListAsync(work.ProjectId, work.ProcessingJobId, 0, 4, Ct);
+        var lastPage = await candidateRepository.ListAsync(work.ProjectId, work.ProcessingJobId, 4, 4, Ct);
+        firstPage.AttemptId.Should().Be(work.CurrentAttemptId);
+        firstPage.HasMore.Should().BeTrue();
+        firstPage.Items.Should().HaveCount(4);
+        lastPage.HasMore.Should().BeFalse();
+        lastPage.Items.Should().HaveCount(2);
+        firstPage.Items.Concat(lastPage.Items).Select(x => x.DetectionId).Should()
+            .BeEquivalentTo(detections.Select(x => x.Id));
+        firstPage.Items.Concat(lastPage.Items).Select(x => x.TypeCode).Should().BeEquivalentTo(seed.Map.Values);
+        var crossProject = await Assert.ThrowsAsync<AiRequestException>(() =>
+            candidateRepository.ListAsync(Guid.NewGuid(), work.ProcessingJobId, 0, 4, Ct));
+        crossProject.Status.Should().Be(404);
         // Metadata-only seam performs no object-store operations.
         var files = new RoadGuardSystem.Repositories.Implementations.Files.UploadPersistenceService(db,
             new RoadGuardSystem.Repositories.Idempotency.IdempotencyOperationService(db), null!);

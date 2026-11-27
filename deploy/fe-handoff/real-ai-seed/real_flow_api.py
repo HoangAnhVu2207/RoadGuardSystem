@@ -131,13 +131,14 @@ class Api:
             conn.close()
 
 
-def upload(api, token, project_id, target, source, checksum, purpose, media_type):
+def upload(api, token, project_id, target, source, checksum, purpose, media_type, *, handover=False):
     size = source.stat().st_size
     label = purpose + " " + source.name
-    item, _ = api.request(label, "POST", "/uploads", {
+    intake = "/projects/handover-upload-intents" if handover else "/uploads"
+    item, _ = api.request(label, "POST", intake, {
         "projectId": project_id, "targetId": target, "purpose": purpose, "fileName": source.name,
         "mediaType": media_type, "sizeBytes": size, "checksumSha256": checksum,
-    }, token=token, idem=operation(target, purpose, checksum), statuses=(201, 200))
+    }, token=token, idem=operation("handover" if handover else target, purpose, checksum), statuses=(201, 200))
     base = "/uploads/" + identifier(item["id"])
     file_id = identifier(item["fileId"])
     current, headers = api.request(label, "GET", base, token=token)
@@ -159,21 +160,28 @@ def upload(api, token, project_id, target, source, checksum, purpose, media_type
                     token=token, idem=operation(base, "complete"), etag=valid_etag(headers), statuses=(202,))
     until = time.monotonic() + 240
     while True:
-        current, _ = api.request(label, "GET", base, token=token)
+        current, headers = api.request(label, "GET", base, token=token)
         require(identifier(current["fileId"]) == file_id, "File identity changed")
         if current["status"] == "VERIFIED":
-            return file_id
+            return (file_id, valid_etag(headers)) if handover else file_id
         require(current["status"] == "VERIFYING" and time.monotonic() < until, label + " verification incomplete")
         time.sleep(2)
 
 
-def login(api, credentials):
+def login(api, credentials, *, retries=0):
     roles = {1: "SUPERVISOR", 2: "PM", 3: "OPERATOR", 4: "CREW", 5: "REPORTER"}
     actors = {}
     for account in credentials:
         name = account["key"]
-        session, _ = api.request(name + " login", "POST", "/auth/login",
-                                 {"email": account["email"], "password": account["password"]})
+        for attempt in range(retries + 1):
+            try:
+                session, _ = api.request(name + " login", "POST", "/auth/login",
+                                         {"email": account["email"], "password": account["password"]})
+                break
+            except FlowError as error:
+                if attempt == retries or str(error) != f"{name} login HTTP 409 (auth_concurrency_conflict)":
+                    raise
+                time.sleep(0.5 * (attempt + 1))
         require(session["user"]["role"] == roles[account["role"]] and not session["mustChangePassword"],
                 name + " role mismatch")
         api.remember(name, session)

@@ -11,6 +11,16 @@ public sealed class RealAiCandidateFactsReader(IRealAiCandidateRepository reposi
     IAnhHuyProducerService geometry) : IAiCandidateFactsReader
 {
     private static readonly JsonSerializerOptions SnapshotJson = new() { PropertyNameCaseInsensitive = true };
+
+    public async Task<RealAiDetectionPage> ListAsync(Guid actorId, UserRoleCode role, Guid projectId, Guid jobId,
+        int offset, int limit, CancellationToken ct)
+    {
+        if (projectId == Guid.Empty || jobId == Guid.Empty || offset < 0 || limit is < 1 or > 100)
+            throw new AiRequestException(422, "invalid_detection_query");
+        await authorization.AuthorizeAsync(actorId, role, projectId, false, ct);
+        return await repository.ListAsync(projectId, jobId, offset, limit, ct);
+    }
+
     public async Task<AnhHuyProducerResult<AiCandidateFactsV1>> ResolveAsync(Guid actorId, UserRoleCode role, Guid projectId, Guid detectionId,
         string? expectedSourceVersion = null, string? expectedGeometryVersion = null, string? expectedDispositionVersion = null,
         CancellationToken cancellationToken = default)

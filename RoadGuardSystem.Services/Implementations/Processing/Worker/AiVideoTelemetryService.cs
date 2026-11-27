@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using RoadGuardSystem.aBusinessObjects.Commons;
 using RoadGuardSystem.Repositories.Processing;
@@ -13,7 +14,11 @@ public sealed record AiTelemetryAppendRequest(string Kind, string? SrtText, long
 public sealed record AiTelemetryRevisionView(Guid Id, int Number, Guid? PreviousId, string Kind, Guid ActorId, DateTimeOffset CreatedAt, string? Note);
 public sealed record AiTelemetryView(Guid WorkId, Guid AttemptId, Guid SourceVideoFileId, Guid HeadRevisionId,
     string Status, string PositionMeaning, IReadOnlyList<AiDroneInterval> Intervals, IReadOnlyList<AiTelemetryRevisionView> Revisions,
-    string MeasuredTelemetryStatus = "MISSING_TELEMETRY");
+    string MeasuredTelemetryStatus = "MISSING_TELEMETRY")
+{
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Warning { get; init; }
+}
 
 /// <summary>Small telemetry-only workflow. Revisions do not re-run inference or change candidate/PM/crew facts.</summary>
 public sealed class AiVideoTelemetryService(IAiVideoTelemetryRepository repository, IAnh02ArtifactStore artifacts, IUploadObjectStorage? uploads = null)
@@ -33,7 +38,10 @@ public sealed class AiVideoTelemetryService(IAiVideoTelemetryRepository reposito
         if (intervals is null && revisions.LastOrDefault(x => x.Kind == "OPERATOR_ESTIMATE") is { } estimate)
         { intervals = Decode(estimate.IntervalsJson); status = "OPERATOR_ESTIMATE"; }
         return new(workId, scope.CurrentAttemptId, scope.SourceVideoFileId, scope.HeadRevisionId, status, "DRONE_REFERENCE_NOT_GROUND_LOCATION",
-            intervals ?? [], revisions.Select(x => new AiTelemetryRevisionView(x.Id, x.Number, x.PreviousId, x.Kind, x.ActorId, x.CreatedAt, x.Note)).ToArray(), measuredStatus);
+            intervals ?? [], revisions.Select(x => new AiTelemetryRevisionView(x.Id, x.Number, x.PreviousId, x.Kind, x.ActorId, x.CreatedAt, x.Note)).ToArray(), measuredStatus)
+        {
+            Warning = measuredStatus == "MISSING_TELEMETRY" ? "error when get srt" : null
+        };
     }
 
     public async Task<Guid> AppendAsync(Guid actorId, UserRoleCode role, Guid projectId, Guid workId,

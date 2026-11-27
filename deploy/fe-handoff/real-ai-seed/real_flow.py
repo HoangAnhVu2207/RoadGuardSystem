@@ -32,18 +32,24 @@ def catalog(api, token):
     require(CATALOG.keys() <= {r["code"] for r in rows if r["isActive"]}, "Missing active FT95 class")
 
 
-def submit(api, code, record, users, source, files, assets, checkpoint):
-    project = record["foundation"]
+def assign_survey(api, code, project, users, source, *, suffix):
     project_id = project["projectId"]
     scope = [{k: project[k] for k in ("routeVersionId", "segmentSetId", "segmentIds")}]
     scope[0]["targetBand"] = "SURFACE"
-    suffix = PROJECTS[code][1]
-    operator_id, operator = users["operator-" + suffix]
+    operator_id, _ = users["operator-" + suffix]
     task, _ = api.request(code + " create task", "POST", f"/projects/{project_id}/survey-tasks",
                           {"scope": scope, "surveyType": "BASELINE", "operatorId": operator_id},
                           token=users["pm-" + suffix][1], idem=operation(project_id, source["key"], "task"),
                           statuses=(200, 201))
-    task_id = identifier(task["id"])
+    return identifier(task["id"])
+
+
+def submit(api, code, record, users, source, files, assets, checkpoint, *, suffix=None):
+    project = record["foundation"]
+    project_id = project["projectId"]
+    suffix = suffix or PROJECTS[code][1]
+    operator_id, operator = users["operator-" + suffix]
+    task_id = record.get("taskId") or assign_survey(api, code, project, users, source, suffix=suffix)
     path = "/survey-tasks/" + task_id
     task, headers = api.request(code + " operator task", "GET", path, token=operator)
     require(task["projectId"] == project_id and task["operatorId"] == operator_id, "Survey task scope mismatch")

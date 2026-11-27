@@ -4,6 +4,8 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using RoadGuardSystem.API.Workers;
 using RoadGuardSystem.ApiTests.Infrastructure;
 using RoadGuardSystem.BusinessObjects.Repairs;
 using RoadGuardSystem.BusinessObjects.Files;
@@ -28,8 +30,15 @@ public sealed class CloseoutNormalJourneyHttpTests(AuthenticationSqlServerFixtur
         using var logs = new InMemoryLogProvider();
         await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString, allowExternalStorage: useMinio,
             loggerProvider: logs,
-            configureTestServices: services => services.PostConfigure<ExportOptions>(options =>
-                options.UnicodeFontPath = Environment.GetEnvironmentVariable("RG_TEST_UNICODE_FONT") ?? options.UnicodeFontPath));
+            configureTestServices: services =>
+            {
+                // This journey drains the real dispatcher explicitly after assignment.
+                var worker = services.Single(x => x.ServiceType == typeof(IHostedService)
+                    && x.ImplementationType == typeof(H6NotificationWorker));
+                services.Remove(worker);
+                services.PostConfigure<ExportOptions>(options =>
+                    options.UnicodeFontPath = Environment.GetEnvironmentVariable("RG_TEST_UNICODE_FONT") ?? options.UnicodeFontPath);
+            });
         using var pm = await Client(source.Pm);
         using var supervisor = await Client(source.Supervisor);
         using var crew = await Client(source.Crew);

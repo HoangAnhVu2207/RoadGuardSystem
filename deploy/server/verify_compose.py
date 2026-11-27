@@ -34,6 +34,10 @@ def main():
         assert services['minio']['ports'][0]['published'] == '9443'
         assert services['minio']['ports'][0]['target'] == 9000
         ai = services['ai']
+        assert ai['healthcheck']['test'] == ['CMD', 'python', '/app/ai-healthcheck.py']
+        for name in ('sql', 'minio', 'ai', 'api'):
+            assert services[name]['restart'] == 'unless-stopped', name
+        assert set(services['api']['depends_on']) == {'sql', 'minio'}
         assert ai.get('profiles') == ['ai']
         assert not ai.get('ports'), 'AI must not publish a host port'
         assert set(ai.get('networks', {})) == {'backend'}, 'AI must stay on the private backend network'

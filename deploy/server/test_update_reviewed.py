@@ -9,7 +9,8 @@ import unittest
 
 @unittest.skipUnless(os.name == 'posix' and shutil.which('bash'), 'Requires POSIX bash')
 class ReviewedUpdateTests(unittest.TestCase):
-    def exercise(self, fail_backup=False, active_mismatch=False, target='b' * 40):
+    def exercise(self, fail_backup=False, active_mismatch=False, target='b' * 40,
+                 fail_activation=False, incompatible=False):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             old, new = 'a' * 40, 'b' * 40
@@ -20,11 +21,19 @@ class ReviewedUpdateTests(unittest.TestCase):
                 directory = root / 'releases' / sha / 'deploy' / 'server'
                 directory.mkdir(parents=True)
                 (directory.parents[1] / 'REVISION').write_text(sha)
+                migrations = directory.parents[1] / 'RoadGuardSystem.Repositories/Migrations'
+                migrations.mkdir(parents=True)
+                (migrations / '20261008171739_BaselineCurrentSchema.cs').touch()
                 (directory / 'manage.sh').write_text(
                     f'#!/bin/bash\necho "manage {sha[0]} $*" >> "$TRACE"\n'
                     'if [[ "$1" = backup* ]] && [ "${FAIL_BACKUP:-0}" = 1 ]; then exit 9; fi\n'
+                    'if [ "$1" = migrations ]; then echo 20261008171739_BaselineCurrentSchema; fi\n'
+                    f'if [ "$1" = backup-for-update ]; then echo "{root}/backups" > "$3"; fi\n'
+                    'if [ "$1" = activate ] && [ "${FAIL_ACTIVATION:-0}" = 1 ]; then exit 9; fi\n'
+                    f'if [ "$1" = rollback ]; then bash {root}/current/deploy/server/manage.sh start; fi\n'
                     f'if [ "$1" = activate ]; then echo {new} > {config}/active-release; fi\n')
             (root / 'current').symlink_to(root / 'releases' / old)
+            (root / 'backups').mkdir()
             common = f'''RG_REPOSITORY={root}/repository.git
 RG_RELEASES={root}/releases
 RG_CONFIG={config}
@@ -34,7 +43,10 @@ extract_release() {{ echo "extract $1" >> "$TRACE"; }}
 prepare_ai_assets() {{ echo "prepare_ai_assets" >> "$TRACE"; }}
 ai_configured() {{ return 1; }}
 compose() {{ echo "compose $*" >> "$TRACE"; }}
-git() {{ echo "git $*" >> "$TRACE"; return 0; }}
+git() {{
+    echo "git $*" >> "$TRACE"
+    if [[ "$*" == *merge-base* ]] && [ "${{INCOMPATIBLE:-0}}" = 1 ]; then return 1; fi
+}}
 hostname() {{ echo roadguardsystem; }}
 # Deterministic resource fixture: never depend on CI runner free RAM/disk.
 awk() {{ echo 8388608; }}
@@ -44,16 +56,23 @@ df() {{ printf 'Avail\\n21474836480\\n'; }}
             source = Path(__file__).with_name('update-reviewed.sh')
             self.assertTrue(source.is_file(), 'Missing SHA-pinned deployment entrypoint')
             script = source.read_text().replace('/opt/roadguard', str(root)).replace(
-                '/run/lock/roadguard-server.lock', str(root / 'lock'))
+                '/run/lock/roadguard-server.lock', str(root / 'lock')).replace(
+                '/run/roadguard-backup.', str(root / 'roadguard-backup.'))
             runner = root / 'update.sh'
             runner.write_text(script)
             for sha in (old, new):
                 directory = root / 'releases' / sha / 'deploy/server'
                 (directory / 'common.sh').write_text(common)
             (root / 'releases' / new / 'deploy/server/update-reviewed.sh').write_text(script)
+            scripts = root / 'releases' / new / 'deploy/server'
+            shutil.copy(source.with_name('release_manifest.py'), scripts)
+            (scripts / 'release-manifest.sh').write_text(
+                'applied_migrations() { echo 20261008171739_BaselineCurrentSchema; }\n')
             trace = root / 'trace'
             result = subprocess.run(['bash', str(runner), old, target], capture_output=True, text=True,
-                                    env={**os.environ, 'TRACE': str(trace), 'FAIL_BACKUP': str(int(fail_backup))}, timeout=15)
+                                    env={**os.environ, 'TRACE': str(trace), 'FAIL_BACKUP': str(int(fail_backup)),
+                                         'FAIL_ACTIVATION': str(int(fail_activation)),
+                                         'INCOMPATIBLE': str(int(incompatible))}, timeout=15)
             return result, trace.read_text() if trace.exists() else ''
 
     def test_exact_target_is_built_then_backed_up_then_activated(self):
@@ -81,11 +100,71 @@ df() {{ printf 'Avail\\n21474836480\\n'; }}
         self.assertNotEqual(0, result.returncode)
         self.assertEqual('', trace)
 
+    def test_non_descendant_never_builds(self):
+        result, trace = self.exercise(incompatible=True)
+        self.assertNotEqual(0, result.returncode)
+        self.assertNotIn('compose build', trace)
+
+    def test_activation_failure_restarts_old_release_on_unchanged_schema(self):
+        result, trace = self.exercise(fail_activation=True)
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn('manage a start', trace)
+        self.assertNotIn(' restore', trace)
+
     def test_deployment_backup_records_active_release_and_does_not_restart_services(self):
         self.exercise_deployment_backup()
 
     def test_deployment_backup_rejects_corrupted_archive(self):
         self.exercise_deployment_backup(corrupt=True)
+
+    def test_rollback_only_restarts_previous_release_on_verified_schemas(self):
+        before = '20261008171739_BaselineCurrentSchema'
+        middle = before + '\n20261009180000_Intermediate'
+        target = middle + '\n20261010180000_Target'
+        for schema in (before, middle, target):
+            with self.subTest(schema=schema), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                old, new = 'a' * 40, 'b' * 40
+                code = root / 'releases' / old
+                candidate = root / 'releases' / new
+                source = Path(__file__).with_name('manage.sh')
+                scripts = candidate / 'deploy/server'
+                config = root / 'config'
+                backup = root / 'backups/20261124T010000Z'
+                trace = root / 'trace'
+                for path in (code / 'deploy/server', scripts, config, backup):
+                    path.mkdir(parents=True)
+                (code / 'REVISION').write_text(old)
+                (candidate / 'REVISION').write_text(new)
+                (root / 'current').symlink_to(candidate)
+                (config / 'active-release').write_text(new)
+                (backup / 'RELEASE').write_text(old)
+                (backup / 'TRANSITION').write_text(f'{old}\n{new}\n')
+                (backup / 'MIGRATIONS_BEFORE').write_text(before)
+                (backup / 'MIGRATIONS_TARGET').write_text(target)
+                (scripts / 'common.sh').write_text(f'''RG_RELEASES={root}/releases
+RG_CONFIG={config}
+RG_DATA={root}
+require_root() {{ :; }}
+''')
+                (scripts / 'release-manifest.sh').write_text(
+                    f"applied_migrations() {{ printf '%s\\n' '{schema}'; }}\n")
+                (code / 'deploy/server/manage.sh').write_text(f'echo "$*" >> {trace}\n')
+                script = scripts / source.name
+                script.write_text(source.read_text().replace('/opt/roadguard', str(root)).replace(
+                    '/run/lock/roadguard-server.lock', str(root / 'lock')))
+                result = subprocess.run(['bash', str(script), 'rollback', str(backup)],
+                                        capture_output=True, text=True, timeout=15)
+                if schema == middle:
+                    self.assertNotEqual(0, result.returncode)
+                    self.assertFalse(trace.exists())
+                    self.assertEqual(candidate, (root / 'current').resolve())
+                    self.assertEqual(new, (config / 'active-release').read_text().strip())
+                else:
+                    self.assertEqual(0, result.returncode, result.stderr)
+                    self.assertEqual('start', trace.read_text().strip())
+                    self.assertEqual(code, (root / 'current').resolve())
+                    self.assertEqual(old, (config / 'active-release').read_text().strip())
 
     def exercise_deployment_backup(self, corrupt=False):
         with tempfile.TemporaryDirectory() as temp:
@@ -123,6 +202,7 @@ compose() {{
                         'if [ "$1" = database.bak ]; then printf invalid >> database.bak; fi; }\n'
                     )
             source = Path(__file__).with_name('manage.sh').read_text()
+            shutil.copy(Path(__file__).with_name('release-manifest.sh'), scripts)
             script = scripts / 'manage.sh'
             script.write_text(source.replace('/opt/roadguard', str(root))
                               .replace('/run/lock/roadguard-server.lock', str(root / 'lock'))

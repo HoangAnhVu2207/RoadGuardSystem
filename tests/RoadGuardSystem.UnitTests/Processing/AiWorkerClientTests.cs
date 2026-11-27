@@ -91,6 +91,30 @@ public sealed class AiWorkerClientTests
     {
         Action act = () => _ = new AiWorkerClient(new HttpClient(), new Uri(url), new string('t', 32)); act.Should().Throw<ArgumentException>();
     }
+
+    [Theory]
+    [InlineData(HttpStatusCode.OK, "{\"status\":\"ok\"}", true)]
+    [InlineData(HttpStatusCode.OK, "{\"status\":\"booting\"}", false)]
+    [InlineData(HttpStatusCode.Unauthorized, "{\"status\":\"ok\"}", false)]
+    public async Task ReadinessUsesPrivateAuthenticatedEndpoint(HttpStatusCode status, string body, bool expected)
+    {
+        var client = Client(new Handler((request, _) =>
+        {
+            request.Method.Should().Be(HttpMethod.Get);
+            request.RequestUri!.AbsolutePath.Should().Be("/internal/v1/health");
+            request.Headers.Authorization!.Scheme.Should().Be("Bearer");
+            request.Headers.Authorization.Parameter.Should().Be(new string('t', 32));
+            return Task.FromResult(Json(body, status));
+        }));
+
+        if (status == HttpStatusCode.Unauthorized)
+        {
+            await Assert.ThrowsAsync<AiWorkerHttpException>(() => client.IsHealthyAsync(CancellationToken.None));
+            return;
+        }
+        (await client.IsHealthyAsync(CancellationToken.None)).Should().Be(expected);
+    }
+
     [Fact]
     public async Task AdmissionSendsDedicatedBearerAndRejectsWrongAttemptStatus()
     {

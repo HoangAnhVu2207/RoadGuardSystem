@@ -29,6 +29,12 @@ services:
     security_opt: [no-new-privileges:true]
     tmpfs: ['/tmp:rw,noexec,nosuid,size=256m,uid=10001,gid=10001']
     stop_grace_period: 120s
+    healthcheck:
+      test: [CMD, python, /app/ai-healthcheck.py]
+      interval: 15s
+      timeout: 5s
+      start_period: 120s
+      retries: 4
     logging: *logging
     volumes:
       - /srv/roadguard/ai/worker:/worker
@@ -62,7 +68,7 @@ services:
       start_period: 30s
     networks: [backend]
   minio:
-    image: roadguard/server-storage:pinned-20250907
+    image: roadguard/server-storage:${RG_RELEASE:?Set RG_RELEASE}
     build: {context: ., dockerfile: Dockerfile.Storage}
     restart: unless-stopped
     mem_limit: 1g

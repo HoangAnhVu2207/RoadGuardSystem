@@ -33,7 +33,7 @@ public sealed class AiWorkerClient
         if (_timeout <= TimeSpan.Zero || _timeout > TimeSpan.FromHours(1)) throw new ArgumentOutOfRangeException(nameof(timeout));
         _http = http; _endpoint = endpoint; _token = token;
     }
-    public static HttpClient CreateHttpClient() => new(new SocketsHttpHandler { AllowAutoRedirect = false, ConnectTimeout = TimeSpan.FromSeconds(15) }) { Timeout = Timeout.InfiniteTimeSpan };
+    public static HttpClient CreateHttpClient() => new(new SocketsHttpHandler { AllowAutoRedirect = false, UseProxy = false, ConnectTimeout = TimeSpan.FromSeconds(15) }) { Timeout = Timeout.InfiniteTimeSpan };
     private static bool PrivateHost(string host)
     {
         if (host == "localhost" || host.EndsWith(".localhost", StringComparison.OrdinalIgnoreCase)) return true;
@@ -55,6 +55,15 @@ public sealed class AiWorkerClient
     }
     public Task<AiWorkerStatus> GetStatusAsync(Guid attemptId, CancellationToken cancellationToken = default)
         => StatusAsync(HttpMethod.Get, Path(attemptId), attemptId, null, cancellationToken);
+    public async Task<bool> IsHealthyAsync(CancellationToken cancellationToken)
+    {
+        using var deadline = Deadline(cancellationToken);
+        using var response = await SendAsync(HttpMethod.Get, "internal/v1/health", null, deadline.Token);
+        using var json = await ReadJsonAsync(response, 1024, deadline.Token);
+        var root = json.RootElement;
+        return root.ValueKind == JsonValueKind.Object && root.EnumerateObject().Count() == 1 &&
+            root.TryGetProperty("status", out var status) && status.ValueKind == JsonValueKind.String && status.GetString() == "ok";
+    }
     public Task<AiWorkerStatus> CancelAsync(Guid attemptId, CancellationToken cancellationToken = default)
         => StatusAsync(HttpMethod.Post, Path(attemptId, "/cancel"), attemptId, null, cancellationToken);
     public Task<AiWorkerStatus> UploadInputAsync(AiWorkerAdmission admission, Stream input, CancellationToken cancellationToken = default)

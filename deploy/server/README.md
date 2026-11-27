@@ -81,9 +81,13 @@ Gói hiện tại được theo dõi tại [SERVER-DEVELOP-E2E](../../planning/d
 có thể đặt file đã đối chiếu checksum ở `/tmp` để nâng từ release chưa có script này.
 Script kiểm tra hostname, active release, khóa bảo trì, quan hệ tổ tiên với origin/deploy,
 RAM và dung lượng, build đúng target rồi gọi backup của bản cũ trước activation.
-Backup lỗi không kích hoạt candidate. Backup vẫn có downtime như mô tả bên dưới;
-script không tự restore/downgrade hoặc dọn dữ liệu. `manage.sh update` cũ vẫn lấy HEAD,
-nên dùng entrypoint mới khi công việc đã chốt một SHA cụ thể.
+Nếu có migration mới, đối chiếu lịch sử SQL với cây migration của target. Chỉ đặt
+`RG_VERIFIED_MIGRATION_RANGE` bằng danh sách ID migration, mỗi ID một dòng, sau
+khi đã chạy nâng schema trên DB cách ly và kiểm tra API cũ với schema mới.
+Nếu backup thất bại, script thử khởi động lại release hiện hành.
+Nếu activate thất bại, script thử rollback bản cũ khi schema nằm trong phạm vi đã kiểm.
+Nếu smoke BE–AI thất bại sau activate, dùng `manage.sh rollback BACKUP_DIRECTORY`
+của target và ghi lại job đã tạo. Rollback giữ SQL và tệp hiện có.
 
 Sau cập nhật, chạy `python3 /opt/roadguard/current/deploy/server/live-smoke.py` trong SSH
 có terminal. Người dùng tự nhập email/mật khẩu; nếu tài khoản bắt buộc đổi mật khẩu,
@@ -99,15 +103,29 @@ sudo bash /opt/roadguard/current/deploy/server/manage.sh logs
 sudo bash /opt/roadguard/current/deploy/server/manage.sh backup
 sudo bash /opt/roadguard/current/deploy/server/manage.sh stop
 sudo bash /opt/roadguard/current/deploy/server/manage.sh start
-sudo bash /opt/roadguard/current/deploy/server/manage.sh update
+sudo bash /opt/roadguard/current/deploy/server/recovery-check.sh
 df -h / /srv/roadguard
 ```
 
-Sau khi code đã được kiểm tra và push vào `origin/deploy`, `update` lấy commit mới, chỉ chấp nhận tiến tới commit hậu duệ, build trước khi dừng dịch vụ. Sau đó dừng API/MinIO, backup, migrate bằng maintenance và kiểm tra health trước khi đổi `current`. Có khóa chống hai lệnh bảo trì đồng thời. Không dùng `git pull` đè vào release đang chạy. Docker restart policy khởi động lại container cùng Docker sau reboot; `stop` chủ động giữ dịch vụ dừng cho đến khi `start`.
+Sau khi CI xanh trên đúng SHA của `origin/deploy`, updater build trước khi dừng dịch vụ.
+Nó backup SQL và storage, chạy maintenance và đợi SQL, MinIO, AI và API healthy
+trước khi ghi `release.json` cạnh backup và chuyển `current`. Các image ID trong receipt
+là digest nội dung của image local do Docker ghi nhận. API, AI và MinIO có tag theo SHA.
+Docker tự khởi động các container theo restart policy. API kiểm tra SQL, bucket MinIO
+và AI riêng tư trước khi khởi động HTTP và worker. Với AI tắt, API chỉ kiểm tra SQL và MinIO.
+`stop` giữ container dừng cho tới khi gọi `start`.
+
+Để diễn tập phục hồi, lưu kết quả `recovery-check.sh` trước khi restart có kiểm soát,
+rồi chạy lại với `--after-restart`. Đối chiếu SHA, schema, số project/account và fingerprint
+của các kết quả đã hoàn tất. Kết quả kiểm tra này là dữ liệu đọc từ SQL và container.
+Dùng một video có SRT để xác minh worker thật, tệp kết quả và retry idempotent qua API.
 
 Backup SQL dùng `COPY_ONLY`, checksum và `RESTORE VERIFYONLY`; object/file/key/config được chụp khi API và MinIO đã dừng. Điều này gây downtime, cần chọn thời điểm phù hợp. `VERIFYONLY` không thay thế thử phục hồi toàn bộ trên máy khác. Nếu backup/update lỗi, API/MinIO có thể giữ trạng thái dừng: xem log trước, không chạy `start` bản cũ sau migration khi chưa đánh giá tương thích. Backup thành công riêng lẻ sẽ tự khởi động dịch vụ lại.
 
-Sao chép backup mã hóa sang ổ/máy khác: bản sao cùng SSD không chống hỏng ổ. Backup chứa secret và dữ liệu, chỉ root đọc. Chưa có tự động xóa hoặc lịch backup; theo dõi dung lượng, quản lý thời gian giữ backup/images/releases theo nhu cầu, tránh `docker system prune --volumes`. Không có tự động hạ schema/rollback. Khi cần phục hồi, giữ nguyên hiện trạng, thử SQL restore và giải nén file/key/config vào môi trường cách ly, dùng đúng release trong file `RELEASE`, xác minh rồi mới chuyển dịch vụ.
+Sao chép backup mã hóa sang ổ hoặc máy khác để bảo vệ trước lỗi ổ đĩa. Backup chứa secret
+và dữ liệu, chỉ root đọc. Quản lý dung lượng và thời gian giữ backup, image và release.
+Khi cần phục hồi dữ liệu, giữ nguyên hiện trạng và thử SQL restore cùng file, key, config
+trong môi trường cách ly. Dùng đúng SHA trong file `RELEASE` để thử phục hồi.
 
 ## Phạm vi chưa hoàn thành
 

@@ -66,6 +66,7 @@ if (await ServerDeployment.TryExecuteMaintenanceAsync(app) is int serverExitCode
     return;
 }
 await HandoffBootstrap.InitializeAsync(app);
+await ServerDeployment.WaitForDependenciesAsync(app, app.Lifetime.ApplicationStopping);
 
 if (await SandboxSeedCommand.TryExecuteAsync(app, args) is int seedExitCode)
 {

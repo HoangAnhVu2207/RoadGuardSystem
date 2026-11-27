@@ -68,7 +68,7 @@ prepare_ai_assets() {
     test -s "$RG_CONFIG/ai-token"
 }
 
-compose() {
+compose() (
     local profile=()
     if ai_configured; then
         profile=(--profile ai)
@@ -79,4 +79,4 @@ compose() {
     fi
     docker compose "${profile[@]}" --project-directory "$RG_CODE/deploy/server" --env-file "$RG_CONFIG/server.env" \
         -f "$RG_CODE/deploy/server/compose.yaml" "$@"
-}
+)

@@ -12,6 +12,7 @@ using RoadGuardSystem.BusinessObjects.Identity;
 using RoadGuardSystem.Repositories;
 using RoadGuardSystem.Repositories.Options;
 using RoadGuardSystem.Repositories.Seeding;
+using RoadGuardSystem.Services.Processing.Worker;
 
 namespace RoadGuardSystem.API.Extensions;
 
@@ -59,6 +60,16 @@ public static class ServerDeployment
             Console.Error.WriteLine($"Server maintenance failed ({error.GetType().Name}). No automatic rollback or data deletion.");
             return 70;
         }
+    }
+
+    public static async Task WaitForDependenciesAsync(WebApplication app, CancellationToken cancellationToken)
+    {
+        var health = app.Services.GetService<ServerDependencyHealthCheck>();
+        if (health is null) return;
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        deadline.CancelAfter(TimeSpan.FromMinutes(5));
+        while ((await health.CheckHealthAsync(new HealthCheckContext(), deadline.Token)).Status != HealthStatus.Healthy)
+            await Task.Delay(TimeSpan.FromSeconds(5), deadline.Token);
     }
 
     private static async Task InitializeAsync(WebApplication app)
@@ -159,7 +170,8 @@ public static class ServerDeployment
     }
 }
 
-public sealed class ServerDependencyHealthCheck(IServiceScopeFactory scopes, IOptions<MinioStorageOptions> options) : IHealthCheck
+public sealed class ServerDependencyHealthCheck(IServiceScopeFactory scopes, IOptions<MinioStorageOptions> options,
+    AiWorkerClient? worker = null) : IHealthCheck
 {
     public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
     {
@@ -172,6 +184,8 @@ public sealed class ServerDependencyHealthCheck(IServiceScopeFactory scopes, IOp
                 return HealthCheckResult.Unhealthy("Database unavailable.");
             using var client = CreateStorageClient(options.Value);
             await client.GetBucketLocationAsync(new GetBucketLocationRequest { BucketName = options.Value.BucketName }, deadline.Token);
+            if (worker is not null && !await worker.IsHealthyAsync(deadline.Token))
+                return HealthCheckResult.Unhealthy("AI worker unavailable.");
             return HealthCheckResult.Healthy();
         }
         catch (Exception error) when (error is not OutOfMemoryException)

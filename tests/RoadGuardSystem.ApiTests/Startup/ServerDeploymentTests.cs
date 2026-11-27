@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.DataProtection.Repositories;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using RoadGuardSystem.API.Extensions;
@@ -99,6 +100,16 @@ public sealed class ServerDeploymentTests
             {
                 Verifiers = services.Count(x => x.ServiceType == typeof(IHostedService) && x.ImplementationType == typeof(UploadVerificationWorker));
                 RealWorkers = services.Count(x => x.ServiceType == typeof(IHostedService) && x.ImplementationType == typeof(AiRealVideoWorker));
+                services.PostConfigure<HealthCheckServiceOptions>(options =>
+                {
+                    var readiness = Assert.Single(options.Registrations,
+                        check => check.Name == ServerDeployment.DependencyHealthCheck);
+                    options.Registrations.Remove(readiness);
+                    // This composition test intentionally has disconnected SQL and storage.
+                    // Keep the startup gate while providing deterministic fixture readiness.
+                    options.Registrations.Add(new HealthCheckRegistration(readiness.Name,
+                        new ReadyFixture(), null, null));
+                });
             });
             base.ConfigureWebHost(builder);
             builder.UseSetting("ServerDeployment:Enabled", "true");
@@ -108,5 +119,11 @@ public sealed class ServerDeploymentTests
             builder.UseSetting("AiRealWorker:Enabled", "true");
             builder.UseSetting("AiRealWorker:ServiceTokenFile", token);
         }
+    }
+
+    private sealed class ReadyFixture : IHealthCheck
+    {
+        public Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
+            => Task.FromResult(HealthCheckResult.Healthy());
     }
 }

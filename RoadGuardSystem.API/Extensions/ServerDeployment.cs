@@ -20,6 +20,7 @@ namespace RoadGuardSystem.API.Extensions;
 public static class ServerDeployment
 {
     public const string CorsPolicy = "ServerDeployment";
+    public const string DependencyHealthCheck = "server-dependencies";
 
     public static IServiceCollection AddRoadGuardServerDeployment(this IServiceCollection services,
         IConfiguration configuration, string environmentName)
@@ -38,7 +39,7 @@ public static class ServerDeployment
             .WithOrigins(origins).AllowAnyMethod().AllowAnyHeader().AllowCredentials()));
         services.AddDataProtection().PersistKeysToFileSystem(new DirectoryInfo(keys)).SetApplicationName("RoadGuardSystem.Server");
         services.AddSingleton<ServerDependencyHealthCheck>();
-        services.AddHealthChecks().AddCheck<ServerDependencyHealthCheck>("server-dependencies");
+        services.AddHealthChecks().AddCheck<ServerDependencyHealthCheck>(DependencyHealthCheck);
         return services;
     }
 
@@ -64,11 +65,11 @@ public static class ServerDeployment
 
     public static async Task WaitForDependenciesAsync(WebApplication app, CancellationToken cancellationToken)
     {
-        var health = app.Services.GetService<ServerDependencyHealthCheck>();
-        if (health is null) return;
+        if (!app.Configuration.GetValue("ServerDeployment:Enabled", false)) return;
+        var health = app.Services.GetRequiredService<HealthCheckService>();
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         deadline.CancelAfter(TimeSpan.FromMinutes(5));
-        while ((await health.CheckHealthAsync(new HealthCheckContext(), deadline.Token)).Status != HealthStatus.Healthy)
+        while ((await health.CheckHealthAsync(check => check.Name == DependencyHealthCheck, deadline.Token)).Status != HealthStatus.Healthy)
             await Task.Delay(TimeSpan.FromSeconds(5), deadline.Token);
     }
 

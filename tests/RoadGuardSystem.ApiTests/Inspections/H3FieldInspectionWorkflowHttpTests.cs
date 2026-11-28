@@ -103,6 +103,65 @@ public sealed class H3FieldInspectionWorkflowHttpTests(AuthenticationSqlServerFi
     }
 
     [Fact]
+    public async Task ProjectManagerReassignsStartedMeasurementAndFormerCrewGetsScopedProblem()
+    {
+        var pm = await sql.CreateUserAsync($"replace-pm-{Guid.NewGuid():N}", "Current1!", UserRoleCode.ProjectManager);
+        var crew = await sql.CreateUserAsync($"replace-crew-{Guid.NewGuid():N}", "Current1!", UserRoleCode.RepairCrew);
+        var replacement = await sql.CreateUserAsync($"replace-next-{Guid.NewGuid():N}", "Current1!", UserRoleCode.RepairCrew);
+        var reporter = await sql.CreateUserAsync($"replace-reporter-{Guid.NewGuid():N}", "Current1!", UserRoleCode.Reporter);
+        var scope = await Seed(sql, pm.Id, crew.Id, replacement.Id, reporter.Id);
+        await using var factory = new AuthenticationWebApplicationFactory(sql.ConnectionString);
+        using var client = factory.CreateClient(new() { BaseAddress = new("https://localhost") });
+        await Login(client, pm.UserName!);
+        var root = $"/api/v1/projects/{scope.Project}/field-inspection-tasks";
+        using var created = await Post(client, root, new
+        {
+            defectId = scope.Defect,
+            defectVersion = scope.Version,
+            sourceKind = "REPORTER",
+            routeVersionId = scope.Route,
+            segmentSetId = scope.Set,
+            purpose = "PRE_MEASUREMENT",
+            requiredMeasurementType = 4,
+            measurementScope = "{}",
+            assignedToUserId = crew.Id,
+            dueAt = DateTimeOffset.UtcNow.AddDays(1)
+        });
+        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+        var taskId = (await created.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        var path = $"{root}/{taskId}";
+        await Login(client, replacement.UserName!);
+        using var unrelated = await client.GetAsync(path);
+        Assert.Equal(HttpStatusCode.Forbidden, unrelated.StatusCode);
+        Assert.Equal("access_forbidden", (await unrelated.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("code").GetString());
+        await Login(client, crew.UserName!);
+        using var accepted = await Post(client, path + "/accept", new { reason = "Accept task" }, version: await Version(client, path));
+        Assert.Equal(HttpStatusCode.Created, accepted.StatusCode);
+        using var started = await Post(client, path + "/start", new { originId = Guid.NewGuid(), claimedAt = DateTimeOffset.UtcNow },
+            version: await Version(client, path));
+        Assert.Equal(HttpStatusCode.Created, started.StatusCode);
+        var firstStartOriginId = (await started.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        var before = await Version(client, path);
+        await Login(client, pm.UserName!);
+        using var reassigned = await Post(client, path + "/reassign",
+            new { reason = "Replace assigned Crew", assignedToUserId = replacement.Id }, version: before);
+        Assert.Equal(HttpStatusCode.Created, reassigned.StatusCode);
+        Assert.NotEqual(before, reassigned.Headers.ETag!.Tag.Trim('"'));
+        var task = await reassigned.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(taskId, task.GetProperty("id").GetGuid());
+        Assert.Equal(firstStartOriginId, task.GetProperty("firstStartOriginId").GetGuid());
+        await Login(client, crew.UserName!);
+        using var former = await client.GetAsync(path);
+        Assert.Equal(HttpStatusCode.Forbidden, former.StatusCode);
+        Assert.Equal("application/problem+json", former.Content.Headers.ContentType?.MediaType);
+        Assert.Equal("field_assignment_reassigned", (await former.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("code").GetString());
+        await Login(client, replacement.UserName!);
+        var current = await client.GetFromJsonAsync<JsonElement>(path);
+        Assert.Equal(replacement.Id, current.GetProperty("assignedToUserId").GetGuid());
+        Assert.Equal(firstStartOriginId, current.GetProperty("firstStartOriginId").GetGuid());
+    }
+
+    [Fact]
     public async Task AssignedCrewReadsOnlyStoredDefectPointWithoutNeedingSegmentSet()
     {
         var pm = await sql.CreateUserAsync($"marker-pm-{Guid.NewGuid():N}", "Current1!", UserRoleCode.ProjectManager);

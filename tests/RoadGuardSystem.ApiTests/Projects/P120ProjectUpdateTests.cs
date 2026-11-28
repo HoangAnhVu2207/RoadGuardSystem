@@ -223,7 +223,13 @@ public sealed class P120ProjectUpdateTests
         var invalidDateResponse = await setup.Client.PutAsJsonAsync(
             $"/api/v1/projects/{setup.ProjectId}",
             invalidDates);
-        invalidDateResponse.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        invalidDateResponse.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
+        invalidDateResponse.Content.Headers.ContentType!.MediaType.Should().Be("application/problem+json");
+        var dateProblem = await invalidDateResponse.Content.ReadFromJsonAsync<JsonElement>();
+        dateProblem.GetProperty("status").GetInt32().Should().Be(422);
+        dateProblem.GetProperty("code").GetString().Should().Be("project_dates_invalid");
+        dateProblem.GetProperty("field").GetString().Should().Be("endDate");
+        dateProblem.GetProperty("correlationId").GetString().Should().NotBeNullOrWhiteSpace();
 
         var missing = await setup.Client.PutAsJsonAsync(
             $"/api/v1/projects/{Guid.NewGuid()}",
@@ -231,13 +237,12 @@ public sealed class P120ProjectUpdateTests
         missing.StatusCode.Should().Be(HttpStatusCode.NotFound);
         (await ProblemCodeAsync(missing)).Should().Be("project_not_found");
 
-        var accepted = ValidUpdate(setup.RowVersion);
+        var accepted = ValidUpdate(setup.RowVersion) with { OperationId = invalidDates.OperationId };
         (await setup.Client.PutAsJsonAsync($"/api/v1/projects/{setup.ProjectId}", accepted))
             .StatusCode.Should().Be(HttpStatusCode.OK);
-        var changedPayload = accepted with { Name = "Changed retry payload" };
         var duplicate = await setup.Client.PutAsJsonAsync(
             $"/api/v1/projects/{setup.ProjectId}",
-            changedPayload);
+            invalidDates);
         duplicate.StatusCode.Should().Be(HttpStatusCode.Conflict);
         (await ProblemCodeAsync(duplicate)).Should().Be("duplicate_request");
     }

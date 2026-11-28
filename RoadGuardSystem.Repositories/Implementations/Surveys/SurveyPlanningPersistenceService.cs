@@ -56,6 +56,9 @@ public sealed class SurveyPlanningPersistenceService : ISurveyPlanningRepository
                         request.RoadSectionId,
                         request.RoadSectionVersionId,
                         operationCancellationToken);
+                    var warranty = await SurveyWarrantyPolicy.ValidateAsync(
+                        _context, request.ProjectId, request.RoadSectionId, request.WarrantyId,
+                        request.PlannedStartAt, request.PlannedEndAt, "plannedStartAt", operationCancellationToken);
                     var plan = SurveyPlan.Create(
                         Guid.NewGuid(),
                         request.ProjectId,
@@ -66,6 +69,7 @@ public sealed class SurveyPlanningPersistenceService : ISurveyPlanningRepository
                         SurveyPlanStatus.Planned,
                         request.OutputRequirements,
                         request.RoadSectionVersionId);
+                    plan.SetWarranty(warranty.Id);
                     _context.SurveyPlans.Add(plan);
                     var now = DateTimeOffset.UtcNow;
                     _context.AuditLogs.Add(AuditLog.Create(
@@ -100,6 +104,19 @@ public sealed class SurveyPlanningPersistenceService : ISurveyPlanningRepository
         catch (ScopeConflictException)
         {
             return new(SurveyPlanPersistenceStatus.ScopeConflict);
+        }
+        catch (SurveyScheduleException exception)
+        {
+            var error = exception.Error;
+            var start = request.PlannedStartAt.ToUniversalTime();
+            var pointsToEnd = error switch
+            {
+                { Code: "survey_time_range_invalid" } => start != default,
+                { Code: "survey_outside_warranty", WarrantyId: { } id, WarrantyStartDate: { } firstDay, WarrantyEndDate: { } lastDay } =>
+                    SurveyWarrantyCalendar.Contains(new(id, firstDay, lastDay), start, start.AddTicks(1)),
+                _ => false
+            };
+            return new(SurveyPlanPersistenceStatus.InvalidInput, ScheduleError: pointsToEnd ? error with { Field = "plannedEndAt" } : error);
         }
         catch (ArgumentException)
         {
@@ -148,6 +165,14 @@ public sealed class SurveyPlanningPersistenceService : ISurveyPlanningRepository
                             plan.SurveyType != request.SurveyType)
                         {
                             throw new ScopeConflictException();
+                        }
+
+                        if (request.HasExplicitDueAt && plan.WarrantyId is Guid warrantyId)
+                        {
+                            var dueAt = request.DueAt.ToUniversalTime();
+                            var instantEnd = dueAt < DateTimeOffset.MaxValue ? dueAt.AddTicks(1) : dueAt;
+                            await SurveyWarrantyPolicy.ValidateAsync(_context, request.ProjectId, request.RoadSectionId, warrantyId,
+                                dueAt, instantEnd, "dueAt", operationCancellationToken);
                         }
                     }
 
@@ -198,6 +223,10 @@ public sealed class SurveyPlanningPersistenceService : ISurveyPlanningRepository
         {
             return new(SurveyRequestPersistenceStatus.ScopeConflict);
         }
+        catch (SurveyScheduleException exception)
+        {
+            return new(SurveyRequestPersistenceStatus.InvalidInput, ScheduleError: exception.Error);
+        }
         catch (ArgumentException)
         {
             return new(SurveyRequestPersistenceStatus.InvalidInput);
@@ -235,6 +264,12 @@ public sealed class SurveyPlanningPersistenceService : ISurveyPlanningRepository
                     if (plan.ProjectId != request.ProjectId)
                     {
                         throw new ScopeConflictException();
+                    }
+
+                    if (request.NewPlannedStartAt is { } newStart &&
+                        plan.Status is not (SurveyPlanStatus.Completed or SurveyPlanStatus.Cancelled))
+                    {
+                        await ValidateDatedPostponementAsync(plan, newStart, request.WarrantyId, operationCancellationToken);
                     }
 
                     var now = DateTimeOffset.UtcNow;
@@ -289,6 +324,10 @@ public sealed class SurveyPlanningPersistenceService : ISurveyPlanningRepository
         {
             return new(SurveyPlanPostponementPersistenceStatus.ScopeConflict);
         }
+        catch (SurveyScheduleException exception)
+        {
+            return new(SurveyPlanPostponementPersistenceStatus.InvalidInput, ScheduleError: exception.Error);
+        }
         catch (ArgumentException)
         {
             return new(SurveyPlanPostponementPersistenceStatus.InvalidInput);
@@ -297,6 +336,58 @@ public sealed class SurveyPlanningPersistenceService : ISurveyPlanningRepository
         {
             return new(SurveyPlanPostponementPersistenceStatus.Conflict);
         }
+        catch (DbUpdateConcurrencyException)
+        {
+            _context.ChangeTracker.Clear();
+            return new(SurveyPlanPostponementPersistenceStatus.Conflict);
+        }
+        catch (DbUpdateException exception) when (IsUniqueConstraintViolation(exception) &&
+            exception.GetBaseException().Message.Contains("IX_SurveyPlanOccurrences_SeriesPlanId_PlannedStartAt", StringComparison.Ordinal))
+        {
+            return new(SurveyPlanPostponementPersistenceStatus.Conflict, ScheduleError:
+                new("survey_schedule_conflict", "newPlannedStartAt", RequestedStartAt: request.NewPlannedStartAt));
+        }
+    }
+
+    private async Task ValidateDatedPostponementAsync(
+        SurveyPlan plan, DateTimeOffset newStart, Guid? warrantyId, CancellationToken token)
+    {
+        var occurrence = await _context.SurveyPlanOccurrences.SingleOrDefaultAsync(row => row.SurveyPlanId == plan.Id, token);
+        var selectedWarrantyId = warrantyId ?? plan.WarrantyId;
+        if (occurrence is not null)
+        {
+            var seriesWarrantyId = occurrence.SeriesPlanId == plan.Id
+                ? plan.WarrantyId
+                : await _context.SurveyPlans.Where(row => row.Id == occurrence.SeriesPlanId)
+                    .Select(row => row.WarrantyId).SingleAsync(token);
+            if (warrantyId is not null && warrantyId != seriesWarrantyId)
+                throw new SurveyScheduleException(new("survey_recurrence_invalid", "warrantyId",
+                    seriesWarrantyId, RequestedStartAt: newStart, RequestedEndAt: plan.PlannedEndAt));
+            selectedWarrantyId = seriesWarrantyId;
+        }
+
+        var selected = await SurveyWarrantyPolicy.ValidateAsync(
+            _context, plan.ProjectId, plan.RoadSectionId, selectedWarrantyId,
+            newStart, plan.PlannedEndAt, "newPlannedStartAt", token);
+        if (plan.ScopeFormatVersion == "BAND_V1")
+        {
+            var additionalRoads = await (from scope in _context.SurveyPlanScopes
+                                         join version in _context.RoadSectionVersions on scope.RouteSectionVersionId equals version.Id
+                                         where scope.SurveyPlanId == plan.Id && version.RoadSectionId != plan.RoadSectionId
+                                         select version.RoadSectionId).Distinct().ToListAsync(token);
+            foreach (var roadSectionId in additionalRoads)
+            {
+                var warranty = await SurveyWarrantyPolicy.ValidateAsync(
+                    _context, plan.ProjectId, roadSectionId, selectedWarrantyId,
+                    newStart, plan.PlannedEndAt, "newPlannedStartAt", token);
+                if (selected.Id != warranty.Id)
+                    throw new SurveyScheduleException(new("survey_warranty_selection_required", "warrantyId",
+                        RequestedStartAt: newStart, RequestedEndAt: plan.PlannedEndAt));
+            }
+        }
+
+        plan.SetWarranty(selected.Id);
+        occurrence?.Reschedule(newStart, plan.PlannedEndAt);
     }
 
     private async Task EnsureProjectAndRoadSectionAsync(

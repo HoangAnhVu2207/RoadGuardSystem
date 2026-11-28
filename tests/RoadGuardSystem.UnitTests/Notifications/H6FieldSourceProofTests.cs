@@ -28,6 +28,22 @@ public sealed class H6FieldSourceProofTests
         Assert.True(NotificationFieldSourceProof.Verify(claim, task, source, assignment));
     }
     [Fact]
+    public void AssignmentEndRequiresExactFormerCrewAndPersistedEndTime()
+    {
+        var (_, task, _, assignment) = Assignment();
+        var endedAt = At.AddHours(1);
+        var source = FieldInspectionTaskEvent.Create(Guid.NewGuid(), task.ProjectId, task.Id, assignment.Id,
+            task.AssignedByUserId, "ASSIGNMENT_ENDED", "Replace former Crew", endedAt);
+        var claim = new NotificationFieldSourceClaim(source.Id, source.Id, task.ProjectId, task.Id, source.Kind,
+            endedAt, null, assignment.AssignedToUserId);
+
+        Assert.False(NotificationFieldSourceProof.Verify(claim, task, source, assignment));
+        assignment.End(endedAt, "Replace former Crew");
+        Assert.True(NotificationFieldSourceProof.Verify(claim, task, source, assignment));
+        Assert.False(NotificationFieldSourceProof.Verify(claim with { ResponsibleUserId = Guid.NewGuid() }, task, source, assignment));
+        Assert.False(NotificationFieldSourceProof.Verify(claim with { OccurredAtUtc = endedAt.AddTicks(1) }, task, source, assignment));
+    }
+    [Fact]
     public void PayloadCannotChooseAProjectOrResponsibleActorDifferentFromSourceRows()
     {
         var (claim, task, source, assignment) = Assignment();

@@ -38,7 +38,7 @@ public sealed class SurveyPlanningService : ISurveyPlanningService
         if (
             command.ProjectId == Guid.Empty || command.RoadSectionId == Guid.Empty ||
             command.RoadSectionVersionId == Guid.Empty ||
-            command.OperationId == Guid.Empty || command.PlannedEndAt < command.PlannedStartAt ||
+            command.OperationId == Guid.Empty ||
             command.SurveyType == SurveyType.Unknown || string.IsNullOrWhiteSpace(command.OutputRequirements))
         {
             return new(SurveyPlanningServiceStatus.InvalidInput);
@@ -69,11 +69,12 @@ public sealed class SurveyPlanningService : ISurveyPlanningService
                     command.PlannedEndAt,
                     command.SurveyType,
                     command.OutputRequirements
-                }),
+                }, command.WarrantyId),
                 command.OperationId,
-                command.CorrelationId),
+                command.CorrelationId,
+                command.WarrantyId),
             cancellationToken);
-        return new(MapStatus(result.Status), result.Plan);
+        return new(MapStatus(result.Status), result.Plan, result.ScheduleError);
     }
 
     public async Task<SurveyRequestServiceResult> CreateRequestAsync(
@@ -125,9 +126,10 @@ public sealed class SurveyPlanningService : ISurveyPlanningService
                     command.OutputRequirements,
                 }),
                 command.OperationId,
-                command.CorrelationId),
+                command.CorrelationId,
+                HasExplicitDueAt: command.DueAt.HasValue),
             cancellationToken);
-        return new(MapStatus(result.Status), result.Request);
+        return new(MapStatus(result.Status), result.Request, result.ScheduleError);
     }
 
     public async Task<SurveyPlanPostponementServiceResult> PostponePlanAsync(
@@ -168,11 +170,12 @@ public sealed class SurveyPlanningService : ISurveyPlanningService
                     command.SurveyPlanId,
                     command.NewPlannedStartAt,
                     command.Reason
-                }),
+                }, command.WarrantyId),
                 command.OperationId,
-                command.CorrelationId),
+                command.CorrelationId,
+                command.WarrantyId),
             cancellationToken);
-        return new(MapStatus(result.Status), result.Postponement);
+        return new(MapStatus(result.Status), result.Postponement, result.ScheduleError);
     }
 
     private static bool IsProjectManager(Guid actorUserId, UserRoleCode actorRole)
@@ -211,6 +214,11 @@ public sealed class SurveyPlanningService : ISurveyPlanningService
         _ => SurveyPlanningServiceStatus.InvalidInput
     };
 
-    private static string Fingerprint<T>(T command)
-        => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(command)))).ToLowerInvariant();
+    private static string Fingerprint<T>(T command, Guid? warrantyId = null)
+    {
+        var json = warrantyId is { } selectedWarrantyId
+            ? JsonSerializer.Serialize(new { Command = command, WarrantyId = selectedWarrantyId })
+            : JsonSerializer.Serialize(command);
+        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(json))).ToLowerInvariant();
+    }
 }

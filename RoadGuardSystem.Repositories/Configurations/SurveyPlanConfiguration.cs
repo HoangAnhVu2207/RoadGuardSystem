@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using RoadGuardSystem.BusinessObjects.Projects;
 using RoadGuardSystem.BusinessObjects.Surveys;
+using RoadGuardSystem.BusinessObjects.Warranties;
 
 namespace RoadGuardSystem.Repositories.Configurations;
 
@@ -71,6 +72,10 @@ public sealed class SurveyPlanConfiguration : IEntityTypeConfiguration<SurveyPla
         builder.HasOne<RoadSectionVersion>()
             .WithMany()
             .HasForeignKey(plan => plan.RoadSectionVersionId)
+            .OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<Warranty>()
+            .WithMany()
+            .HasForeignKey(plan => plan.WarrantyId)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }

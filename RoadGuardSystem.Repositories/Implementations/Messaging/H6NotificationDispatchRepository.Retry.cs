@@ -96,6 +96,7 @@ public sealed partial class H6NotificationDispatchRepository
                 "survey.task.submitted.v1" => NotificationEventKind.SurveySubmitted,
                 "survey.task.supplement_requested.v1" => NotificationEventKind.SurveySupplementRequested,
                 "field.task.assigned.v1" => NotificationEventKind.FieldAssigned,
+                "field.task.assignment_ended.v1" => NotificationEventKind.FieldAssignmentEnded,
                 "field.task.submitted.v1" => NotificationEventKind.FieldSubmitted,
                 "field.task.supplement_requested.v1" => NotificationEventKind.FieldSupplementRequested,
                 "repair.work.assigned.v1" => NotificationEventKind.RepairAssigned,

@@ -32,6 +32,25 @@ public sealed partial class H6ProtectedNotificationRepository
             role == UserRoleCode.Supervisor && EF.Functions.Collate(row.SourceEntityType, ExactNames) == "PasswordRecoveryRequest" &&
                 EF.Functions.Collate(row.EventType, ExactNames) == "password_recovery_requested" && db.PasswordRecoveryRequests.Any(source => source.Id == row.SourceEntityId && source.TargetUserId.HasValue))
             .Select(row => row.Id);
+        if (role == UserRoleCode.RepairCrew)
+        {
+            // The former assignee can read the notice while their project membership is active.
+            // Task details and other notifications still depend on current assignment authority.
+            var formerAssignments =
+                from scope in db.Set<H6NotificationScopeRow>()
+                join occurrence in db.Set<H6NotificationOccurrenceRow>() on scope.OccurrenceId equals occurrence.Id
+                join ended in db.FieldInspectionTaskEvents on occurrence.OriginEventId equals ended.Id
+                join assignment in db.FieldInspectionAssignments on ended.AssignmentId equals (Guid?)assignment.Id
+                where scope.SourceKind == "FieldTask" && scope.EventType == "field.task.assignment_ended.v1" &&
+                    ended.Kind == "ASSIGNMENT_ENDED" && ended.TaskId == scope.SourceId && ended.ProjectId == scope.ProjectId &&
+                    assignment.AssignedToUserId == actor && assignment.FieldInspectionTaskId == ended.TaskId &&
+                    assignment.Status == FieldInspectionAssignmentStatus.Ended && assignment.EndedAt == ended.OccurredAt &&
+                    scope.ProjectId.HasValue && projects.Contains(scope.ProjectId.Value)
+                select new { scope.NotificationId, scope.SourceId };
+            ids = ids.Union(owned.Where(row => EF.Functions.Collate(row.SourceEntityType, ExactNames) == "FieldTask" &&
+                formerAssignments.Any(scope => scope.NotificationId == row.Id && scope.SourceId == row.SourceEntityId))
+                .Select(row => row.Id));
+        }
         foreach (var adapter in sources)
         {
             var actual = adapter.ScopeQuery();

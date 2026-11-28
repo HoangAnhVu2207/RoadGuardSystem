@@ -12,4 +12,5 @@ public sealed record SurveyRequestCreationPersistenceRequest(
     string IdempotencyKey,
     string RequestFingerprint,
     Guid OperationId,
-    Guid? CorrelationId);
+    Guid? CorrelationId,
+    bool HasExplicitDueAt = true);

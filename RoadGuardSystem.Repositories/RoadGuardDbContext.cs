@@ -138,6 +138,7 @@ public class RoadGuardDbContext : DbContext
     public DbSet<Warranty> Warranties => Set<Warranty>();
 
     public DbSet<SurveyPlan> SurveyPlans => Set<SurveyPlan>();
+    public DbSet<SurveyPlanOccurrence> SurveyPlanOccurrences => Set<SurveyPlanOccurrence>();
 
     public DbSet<SurveyPlanScope> SurveyPlanScopes => Set<SurveyPlanScope>();
 

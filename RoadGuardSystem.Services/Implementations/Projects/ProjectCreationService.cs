@@ -56,11 +56,6 @@ public sealed class ProjectCreationService : IProjectCreationService
             fileIds,
             command.IdempotencyKey,
             command.HandoverFileVersion);
-        if (command.WarrantyEndDate is DateOnly warrantyEndDate && warrantyEndDate < command.HandoverDate)
-        {
-            return new(ProjectCreationStatus.InvalidInput);
-        }
-
         var result = await _persistence.CreateAsync(request, cancellationToken);
 
         return ToResult(result);
@@ -94,6 +89,8 @@ public sealed class ProjectCreationService : IProjectCreationService
         ProjectCreationPersistenceStatus.HandoverVersionConflict => ProjectCreationStatus.HandoverVersionConflict,
         ProjectCreationPersistenceStatus.ProjectCodeConflict => ProjectCreationStatus.ProjectCodeConflict,
         ProjectCreationPersistenceStatus.IdempotentConflict => ProjectCreationStatus.IdempotentConflict,
+        ProjectCreationPersistenceStatus.ProjectDatesInvalid => ProjectCreationStatus.ProjectDatesInvalid,
+        ProjectCreationPersistenceStatus.WarrantyDatesInvalid => ProjectCreationStatus.WarrantyDatesInvalid,
         _ => ProjectCreationStatus.InvalidInput
     };
 }

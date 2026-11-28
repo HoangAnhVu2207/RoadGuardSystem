@@ -17,7 +17,8 @@ public sealed class FieldInspectionTaskEvent
     public static FieldInspectionTaskEvent Create(Guid id, Guid project, Guid task, Guid? assignment, Guid actor, string kind, string reason, DateTimeOffset at, string factsJson = "{}", Guid? impactId = null, Guid? impactDecisionId = null)
     {
         if (new[] { id, project, task, actor }.Any(x => x == Guid.Empty) || assignment == Guid.Empty ||
-            kind is not ("CREATED" or "ASSIGNED" or "ACCEPTED" or "REJECTED" or "STARTED" or "SUBMITTED" or "SUPPLEMENT" or "REVIEWED" or "CANCELLED" or "REASSIGNED" or "IMPACT_CONTINUE" or "IMPACT_VERIFY") ||
+            kind is not ("CREATED" or "ASSIGNED" or "ACCEPTED" or "REJECTED" or "STARTED" or "SUBMITTED" or "SUPPLEMENT" or "REVIEWED" or "CANCELLED" or "REASSIGNED" or "ASSIGNMENT_ENDED" or "IMPACT_CONTINUE" or "IMPACT_VERIFY") ||
+            kind == "ASSIGNMENT_ENDED" && assignment is null ||
             string.IsNullOrWhiteSpace(reason) || reason.Trim().Length > 2000) throw new ArgumentException("Explicit bounded task event required.");
         if (impactId == Guid.Empty || impactDecisionId == Guid.Empty || impactDecisionId.HasValue != impactId.HasValue) throw new ArgumentException("Impact relation must be explicit.");
         using var facts = System.Text.Json.JsonDocument.Parse(factsJson);

@@ -19,7 +19,8 @@ public enum WarrantyCreationPersistenceStatus
     RoadSectionNotFound,
     HandoverDocumentNotFound,
     SourceDocumentNotFound,
-    IdempotentConflict
+    IdempotentConflict,
+    WarrantyDatesInvalid
 }
 
 public sealed record WarrantyCreationPersistenceRequest(
@@ -137,6 +138,10 @@ public sealed class WarrantyPersistenceService : IWarrantyRepository
                     ? WarrantyCreationPersistenceStatus.Success
                     : WarrantyCreationPersistenceStatus.Replayed,
                 view);
+        }
+        catch (ArgumentException exception) when (exception.ParamName == "warrantyEndDate")
+        {
+            return new(WarrantyCreationPersistenceStatus.WarrantyDatesInvalid);
         }
         catch (ArgumentException)
         {

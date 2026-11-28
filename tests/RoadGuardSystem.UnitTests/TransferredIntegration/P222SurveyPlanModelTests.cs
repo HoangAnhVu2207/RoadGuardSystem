@@ -23,7 +23,13 @@ public sealed class P222SurveyPlanModelTests
         plan.Should().NotBeNull();
         var mappedPlan = plan!;
         mappedPlan.GetTableName().Should().Be("SurveyPlans");
-        mappedPlan.GetForeignKeys().Should().HaveCount(3);
+        mappedPlan.GetForeignKeys().Select(foreignKey => foreignKey.Properties.Single().Name)
+            .Should().BeEquivalentTo([
+                nameof(SurveyPlan.ProjectId), nameof(SurveyPlan.RoadSectionId),
+                nameof(SurveyPlan.RoadSectionVersionId), nameof(SurveyPlan.WarrantyId)
+            ]);
+        mappedPlan.GetForeignKeys().Should().ContainSingle(foreignKey =>
+            foreignKey.Properties.Single().Name == nameof(SurveyPlan.WarrantyId) && !foreignKey.IsRequired);
         postponement.Should().NotBeNull();
         var mappedPostponement = postponement!;
         mappedPostponement.GetTableName().Should().Be("SurveyPlanPostponements");

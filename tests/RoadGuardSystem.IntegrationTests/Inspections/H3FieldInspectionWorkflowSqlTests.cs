@@ -15,6 +15,7 @@ using RoadGuardSystem.BusinessObjects.Clocks;
 using RoadGuardSystem.BusinessObjects.Defects;
 using RoadGuardSystem.BusinessObjects.Files;
 using RoadGuardSystem.BusinessObjects.Inspections;
+using RoadGuardSystem.BusinessObjects.Messaging;
 using RoadGuardSystem.BusinessObjects.Projects;
 using RoadGuardSystem.BusinessObjects.Processing;
 using RoadGuardSystem.BusinessObjects.Processing.Worker;
@@ -37,9 +38,11 @@ using RoadGuardSystem.Repositories.Implementations.Retention;
 using RoadGuardSystem.Repositories.Inspections;
 using RoadGuardSystem.Repositories.Idempotency;
 using RoadGuardSystem.Repositories.Models.Huy01;
+using RoadGuardSystem.Repositories.Messaging;
 using RoadGuardSystem.Repositories.Projects;
 using RoadGuardSystem.Services.Authorization;
 using RoadGuardSystem.Services.Integration;
+using RoadGuardSystem.Services.Messaging;
 using RoadGuardSystem.Services.Implementations.Defects;
 using RoadGuardSystem.Services.Projects;
 using Xunit;
@@ -646,15 +649,102 @@ public sealed class H3FieldInspectionWorkflowSqlTests(IdentitySqlServerFixture s
         await Assert.ThrowsAsync<SqlException>(() => check.Database.ExecuteSqlInterpolatedAsync($"UPDATE FieldTaskStartOrigins SET ClaimedAt=SYSUTCDATETIME() WHERE Id={start.Id}"));
     }
     [Fact]
-    public async Task In_progress_reassignment_requires_performed_facts_preserves_first_origin_and_revokes_old_crew()
+    public async Task In_progress_reassignment_still_validates_supplied_performed_facts()
     {
         var s = await Seed(); await using var db = sql.CreateDbContext(); var task = await Create(db, s, 4); var id = task.GetProperty("id").GetGuid(); await Accept(db, s, id); var start = await Start(db, s, id); var origin = start.GetProperty("id").GetGuid();
-        Assert.Equal(400, (await Cmd(db, s, s.Pm, UserRoleCode.ProjectManager, id, "reassign", new FieldTaskActionInput("reason alone inadequate", s.OtherCrew))).Status);
+        Assert.Equal(400, (await Cmd(db, s, s.Pm, UserRoleCode.ProjectManager, id, "reassign",
+            new FieldTaskActionInput("incorrect performed facts", s.OtherCrew, new("PARTIAL", "measuring route marker only", Guid.NewGuid(), [], s.OtherCrew)))).Status);
         var action = new FieldTaskActionInput("handover actual performed portion", s.OtherCrew, new("PARTIAL", "measuring route marker only", origin, [], s.OtherCrew));
         Assert.Equal(201, (await Cmd(db, s, s.Pm, UserRoleCode.ProjectManager, id, "reassign", action)).Status);
         Assert.Equal(403, (await Cmd(db, s, s.Crew, UserRoleCode.RepairCrew, id, "get", null)).Status);
         Assert.Equal(origin, (await db.Set<FieldTaskStartOrigin>().AsNoTracking().SingleAsync(x => x.TaskId == id)).Id);
         var history = await db.Set<FieldInspectionTaskEvent>().AsNoTracking().SingleAsync(x => x.TaskId == id && x.Kind == "REASSIGNED"); Assert.Contains("PARTIAL", history.FactsJson);
+    }
+    [Fact]
+    public async Task Measure_only_reassignment_advances_version_before_acceptance()
+    {
+        var s = await Seed(); await using var db = sql.CreateDbContext();
+        var task = await Create(db, s, 4);
+        var id = task.GetProperty("id").GetGuid();
+        var version = task.GetProperty("version").GetString();
+        var key = Guid.NewGuid().ToString();
+        var action = new FieldTaskActionInput("Replace the assigned Crew", s.OtherCrew);
+        var first = await Cmd(db, s, s.Pm, UserRoleCode.ProjectManager, id, "reassign", action, key, version);
+        Assert.Equal(201, first.Status);
+        Assert.NotEqual(version, AsJson(first).GetProperty("version").GetString());
+        Assert.Equal(200, (await Cmd(db, s, s.Pm, UserRoleCode.ProjectManager, id, "reassign", action, key, version)).Status);
+        Assert.Equal("concurrency_conflict", (await Cmd(db, s, s.Pm, UserRoleCode.ProjectManager, id, "reassign", action, version: version)).Code);
+        Assert.Equal(2, await db.FieldInspectionAssignments.CountAsync(x => x.FieldInspectionTaskId == id));
+        Assert.Equal(1, await db.FieldInspectionTaskEvents.CountAsync(x => x.TaskId == id && x.Kind == "ASSIGNMENT_ENDED"));
+    }
+    [Fact]
+    public async Task Measure_only_reassignment_preserves_committed_facts_and_reaches_both_crews()
+    {
+        var s = await Seed(); await using var db = sql.CreateDbContext();
+        var task = await Create(db, s, 4);
+        var id = task.GetProperty("id").GetGuid();
+        var originalAssignmentId = task.GetProperty("assignmentId").GetGuid();
+        await Accept(db, s, id);
+        var start = (await Start(db, s, id)).GetProperty("id").GetGuid();
+        var supplied = Input(start, null, false, await File(db, s, id));
+        var submitKey = Guid.NewGuid().ToString();
+        var submitVersion = await Version(db, id);
+        var original = await Cmd(db, s, s.Crew, UserRoleCode.RepairCrew, id, "submit", supplied, submitKey, submitVersion);
+        Assert.Equal(201, original.Status);
+        var submissionId = AsJson(original).GetProperty("id").GetGuid();
+        var originalEvidence = await db.Set<FieldInspectionEvidenceLink>().AsNoTracking().SingleAsync(x => x.TaskId == id);
+        var action = new FieldTaskActionInput("Replacement Crew handles the additional measurements", s.OtherCrew);
+        var pending = await Cmd(db, s, s.Pm, UserRoleCode.ProjectManager, id, "reassign", action);
+        Assert.Equal(409, pending.Status);
+        Assert.Equal("field_submission_review_required", pending.Code);
+        Assert.Single(await db.FieldInspectionAssignments.Where(x => x.FieldInspectionTaskId == id).ToArrayAsync());
+        Assert.Equal(201, (await Cmd(db, s, s.Pm, UserRoleCode.ProjectManager, id, "review",
+            new FieldReviewInput(submissionId, "SUPPLEMENT", "Take a second measurement"))).Status);
+
+        var version = await Version(db, id);
+        var key = Guid.NewGuid().ToString();
+        var reassigned = await Cmd(db, s, s.Pm, UserRoleCode.ProjectManager, id, "reassign", action, key, version);
+        Assert.Equal(201, reassigned.Status);
+        Assert.Equal(id, AsJson(reassigned).GetProperty("id").GetGuid());
+        Assert.Equal(start, AsJson(reassigned).GetProperty("firstStartOriginId").GetGuid());
+        Assert.Equal(200, (await Cmd(db, s, s.Pm, UserRoleCode.ProjectManager, id, "reassign", action, key, version)).Status);
+        var previous = await Cmd(db, s, s.Crew, UserRoleCode.RepairCrew, id, "get", null);
+        Assert.Equal(403, previous.Status);
+        Assert.Equal("field_assignment_reassigned", previous.Code);
+        Assert.Equal("access_forbidden", (await Cmd(db, s, s.Crew, UserRoleCode.RepairCrew, id, "history", null)).Code);
+        Assert.Equal(403, (await Cmd(db, s, s.Crew, UserRoleCode.RepairCrew, id, "submit", supplied, submitKey, submitVersion)).Status);
+        Assert.Equal(403, (await Cmd(db, s, s.Crew, UserRoleCode.RepairCrew, id, "submit", Input(start, submissionId, true, null))).Status);
+        Assert.Equal(200, (await Cmd(db, s, s.OtherCrew, UserRoleCode.RepairCrew, id, "get", null)).Status);
+        Assert.Equal(201, (await Cmd(db, s, s.OtherCrew, UserRoleCode.RepairCrew, id, "accept", new FieldTaskActionInput("accept replacement"))).Status);
+        var resumed = await Cmd(db, s, s.OtherCrew, UserRoleCode.RepairCrew, id, "start", new FieldStartInput(Guid.NewGuid(), DateTimeOffset.UtcNow));
+        Assert.Equal(start, AsJson(resumed).GetProperty("id").GetGuid());
+        var newSubmission = await Cmd(db, s, s.OtherCrew, UserRoleCode.RepairCrew, id, "submit", Input(start, submissionId, true, null));
+        Assert.Equal(201, newSubmission.Status);
+        var replacementSubmissionId = AsJson(newSubmission).GetProperty("id").GetGuid();
+        var replacement = await db.Set<FieldInspectionSubmission>().AsNoTracking().SingleAsync(x => x.Id == replacementSubmissionId);
+        Assert.Equal(s.OtherCrew, replacement.OriginalActorId);
+        Assert.NotEqual(originalAssignmentId, replacement.AssignmentId);
+        Assert.Equal(submissionId, replacement.ParentId);
+        Assert.Equal(originalAssignmentId, (await db.Set<FieldInspectionEvidenceLink>().AsNoTracking().SingleAsync(x => x.Id == originalEvidence.Id)).AssignmentId);
+        Assert.Equal(s.Crew, (await db.Set<FieldTaskStartOrigin>().AsNoTracking().SingleAsync(x => x.TaskId == id)).OriginalActorId);
+
+        var dispatcher = new H6NotificationDispatchService(new H6NotificationDispatchRepository(db, TimeProvider.System));
+        var processed = false;
+        for (int i = 0; i < 200; i++)
+        {
+            if ((await dispatcher.ProcessOneAsync()).Status != "IDLE") continue;
+            processed = true;
+            break;
+        }
+        Assert.True(processed, "The isolated notification outbox should drain.");
+        var inbox = new H6ProtectedNotificationRepository(db, new IdempotencyOperationService(db), TimeProvider.System,
+            [new H6FieldNotificationSourceAdapter(db)]);
+        var oldNotice = Assert.Single((await inbox.ListAsync(s.Crew, null, null, 100)).Items, x => x.ResourceId == id);
+        Assert.Contains("reassigned", oldNotice.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.NotNull(await inbox.GetAsync(s.Crew, oldNotice.Id));
+        var newNotice = Assert.Single((await inbox.ListAsync(s.OtherCrew, null, null, 100)).Items, x => x.ResourceId == id);
+        Assert.Contains("assigned", newNotice.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(1, await db.Set<H6NotificationOccurrenceRow>().CountAsync(x => x.SourceId == id && x.EventType == "field.task.assignment_ended.v1"));
     }
     [Fact]
     public async Task Range_valid_GPS_and_contradictory_checklist_cannot_confirm_accuracy()

@@ -64,7 +64,7 @@ public sealed class H6FieldNotificationSourceAdapter(RoadGuardDbContext db) : IH
             c.TargetId == task.Id && c.Kind == DeadlineClockKind.ProjectManagerReview && c.CompletedAt == null)
             .Select(c => c.AppointedActorId).SingleOrDefaultAsync(cancellationToken) : null;
         return new("VERIFIED", TaskId: task.Id, AssignmentId: assignment?.Id, ResponsibleUserId: appointed ?? source.ResponsibleUserId,
-            ResponsibleRole: source.Kind == "SUPPLEMENT" ? UserRoleCode.RepairCrew : appointed != null ? UserRoleCode.ProjectManager : null);
+            ResponsibleRole: source.Kind is "SUPPLEMENT" or "ASSIGNMENT_ENDED" ? UserRoleCode.RepairCrew : appointed != null ? UserRoleCode.ProjectManager : null);
     }
     internal static bool MatchesTransport(OutboxMessage transport, H6DispatchPlan plan)
     {

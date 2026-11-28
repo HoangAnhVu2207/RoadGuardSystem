@@ -177,6 +177,8 @@ public sealed class P120ProjectCreationTests
             code = $"CAN-{Guid.NewGuid():N}",
             name = "Canonical project",
             primaryPmId = projectManager.Id,
+            startDate = "2026-01-01",
+            endDate = "2026-09-29",
             handoverDate = "2026-09-29",
             warrantyEndDate = "2027-09-29",
             handoverFileIds = new[] { staged.FileId }
@@ -199,6 +201,16 @@ public sealed class P120ProjectCreationTests
         var replay = await client.PostAsJsonAsync("/api/v1/projects", request);
         replay.StatusCode.Should().Be(HttpStatusCode.Created);
         (await replay.Content.ReadAsStringAsync()).Should().Be(await created.Content.ReadAsStringAsync());
+
+        var changedDates = request with { warrantyEndDate = "2026-09-28" };
+        var conflict = await client.PostAsJsonAsync("/api/v1/projects", changedDates);
+        conflict.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await ProblemCodeAsync(conflict)).Should().Be("duplicate_request");
+
+        client.DefaultRequestHeaders.Remove("Idempotency-Key");
+        client.DefaultRequestHeaders.Add("Idempotency-Key", "canonical-project-invalid-warranty-date-test");
+        var reversedWarranty = await client.PostAsJsonAsync("/api/v1/projects", changedDates);
+        await AssertDateProblemAsync(reversedWarranty, "warranty_dates_invalid", "warrantyEndDate");
     }
 
     [Fact]
@@ -275,8 +287,15 @@ public sealed class P120ProjectCreationTests
             EndDate = new DateOnly(2027, 1, 1)
         };
         var invalidDateResponse = await client.PostAsJsonAsync("/api/v1/projects", invalidDateRange);
-        invalidDateResponse.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        (await ProblemCodeAsync(invalidDateResponse)).Should().Be("validation_error");
+        await AssertDateProblemAsync(invalidDateResponse, "project_dates_invalid", "endDate");
+
+        var invalidWarrantyAlias = WithFile(ValidRequest(projectManager.Id), staged.FileId) with
+        {
+            StartDate = null,
+            EndDate = new DateOnly(2026, 8, 30)
+        };
+        var invalidWarrantyAliasResponse = await client.PostAsJsonAsync("/api/v1/projects", invalidWarrantyAlias);
+        await AssertDateProblemAsync(invalidWarrantyAliasResponse, "warranty_dates_invalid", "endDate");
 
         var missingFile = ValidRequest(projectManager.Id);
         missingFile = missingFile with
@@ -333,6 +352,19 @@ public sealed class P120ProjectCreationTests
             .Should().BeFalse();
         verification.Projects.Any(project => project.ProjectCode == missingProjectManager.ProjectCode)
             .Should().BeFalse();
+        verification.Projects.Any(project => project.ProjectCode == invalidDateRange.ProjectCode ||
+            project.ProjectCode == invalidWarrantyAlias.ProjectCode).Should().BeFalse();
+    }
+
+    private static async Task AssertDateProblemAsync(HttpResponseMessage response, string code, string field)
+    {
+        response.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
+        response.Content.Headers.ContentType!.MediaType.Should().Be("application/problem+json");
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        body.GetProperty("status").GetInt32().Should().Be(422);
+        body.GetProperty("code").GetString().Should().Be(code);
+        body.GetProperty("field").GetString().Should().Be(field);
+        body.GetProperty("correlationId").GetString().Should().NotBeNullOrWhiteSpace();
     }
 
     private static CreateProjectRequest WithFile(CreateProjectRequest request, Guid fileId)

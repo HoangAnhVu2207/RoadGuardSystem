@@ -94,7 +94,8 @@ public sealed class Rf1003SameRowSurveyTests
         {
             scope = new[] { new { routeVersionId = scenario.VersionId, segmentSetId = scenario.SegmentSetId, segmentIds = new[] { scenario.SegmentId }, targetBand = "SURFACE" } },
             plannedAt = "2026-10-01T08:00:00Z",
-            surveyType = "BASELINE"
+            surveyType = "PERIODIC",
+            recurrence = new { frequency = "MONTHLY", untilWarrantyEnd = true }
         };
         var createRoute = $"/api/v1/projects/{scenario.ProjectId}/survey-plans";
         var created = await PostV2Async(scenario.Client, createRoute, sharedKey.ToString("N"), v2Body);
@@ -124,6 +125,12 @@ public sealed class Rf1003SameRowSurveyTests
         after.PlanId.Should().Be(planId);
         after.Start.Should().Be(DateTimeOffset.Parse("2026-10-01T08:30:00Z"));
         after.End.Should().Be(before.End);
+        await using (var context = _sql.CreateDbContext())
+        {
+            var occurrence = await context.SurveyPlanOccurrences.SingleAsync(row => row.SurveyPlanId == planId);
+            occurrence.PlannedStartAt.Should().Be(after.Start);
+            occurrence.PlannedEndAt.Should().Be(after.End);
+        }
         after.Status.Should().Be(SurveyPlanStatus.Postponed);
         after.Version.Should().NotBe(before.Version);
         after.ScopeCount.Should().Be(1);

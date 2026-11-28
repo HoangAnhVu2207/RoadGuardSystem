@@ -16,7 +16,9 @@ public enum ProjectCreationStatus
     HandoverFileNotReady,
     HandoverVersionConflict,
     ProjectCodeConflict,
-    IdempotentConflict
+    IdempotentConflict,
+    ProjectDatesInvalid,
+    WarrantyDatesInvalid
 }
 
 public sealed record CreateProjectCommand(

@@ -315,7 +315,29 @@ public sealed class Anh01SurveyFlowTests(AuthenticationSqlServerFixture sql)
             .Select(d => d.GetProperty("id").GetGuid()).Should().NotContain(device);
         await using (var db = sql.CreateDbContext())
             await db.DroneDevices.Where(d => d.Id == device).ExecuteUpdateAsync(x => x.SetProperty(d => d.Status, DroneDeviceStatus.Active));
-        var submitted = await Command(client, submitPath, submit, accepted.Headers.ETag!.Tag, submitKey);
+        foreach (var date in new[] { "2026-08-30T23:59:59+07:00", "2027-09-02T00:00:00+07:00" })
+        {
+            using var invalidCapture = await Command(client, submitPath,
+                submit with { recordedAt = date }, accepted.Headers.ETag!.Tag, submitKey);
+            invalidCapture.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
+            var invalidProblem = await Body(invalidCapture);
+            invalidProblem.GetProperty("code").GetString().Should().Be("survey_outside_warranty");
+            invalidProblem.GetProperty("field").GetString().Should().Be("recordedAt");
+        }
+        await using var warrantyDb = sql.CreateDbContext();
+        var policyId = await warrantyDb.SurveyPlans.Where(p => p.Id == planId).Select(p => p.WarrantyId).SingleAsync();
+        var policy = warrantyDb.Warranties.Where(w => w.Id == policyId);
+        var previousStatus = await policy.Select(w => w.Status).SingleAsync();
+        await policy.ExecuteUpdateAsync(x => x.SetProperty(w => w.Status, WarrantyStatus.Expired));
+        HttpResponseMessage submitted;
+        try
+        {
+            submitted = await Command(client, submitPath, submit, accepted.Headers.ETag!.Tag, submitKey);
+        }
+        finally
+        {
+            await policy.ExecuteUpdateAsync(x => x.SetProperty(w => w.Status, previousStatus));
+        }
         submitted.StatusCode.Should().Be(HttpStatusCode.Created);
         var submittedBody = await Body(submitted);
         var dataset = submittedBody.GetProperty("id").GetGuid();

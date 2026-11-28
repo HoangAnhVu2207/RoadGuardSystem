@@ -12,7 +12,8 @@ public enum ProjectUpdateStatus
     Forbidden,
     NotFound,
     StaleConcurrency,
-    IdempotentConflict
+    IdempotentConflict,
+    ProjectDatesInvalid
 }
 
 public sealed record UpdateProjectCommand(

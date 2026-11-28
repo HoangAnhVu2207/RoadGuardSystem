@@ -4,7 +4,9 @@ using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RoadGuardSystem.API.Constants;
+using RoadGuardSystem.API.Extensions;
 using RoadGuardSystem.API.Middlewares;
+using RoadGuardSystem.BusinessObjects.Surveys;
 using RoadGuardSystem.DTOs.Surveys;
 using RoadGuardSystem.Services.Surveys;
 using RoadGuardSystem.aBusinessObjects.Commons;
@@ -55,8 +57,11 @@ public sealed class SurveyPlanningController : ControllerBase
                 request.SurveyType,
                 request.OutputRequirements,
                 request.OperationId,
-                CorrelationId()),
+                CorrelationId(),
+                request.WarrantyId),
             cancellationToken);
+
+        if (result.ScheduleError is { } scheduleError) return ScheduleProblem(scheduleError);
 
         return result.Status switch
         {
@@ -105,6 +110,8 @@ public sealed class SurveyPlanningController : ControllerBase
                 CorrelationId()),
             cancellationToken);
 
+        if (result.ScheduleError is { } scheduleError) return ScheduleProblem(scheduleError);
+
         return result.Status switch
         {
             SurveyPlanningServiceStatus.Success or SurveyPlanningServiceStatus.Replayed when result.Request is not null =>
@@ -146,8 +153,11 @@ public sealed class SurveyPlanningController : ControllerBase
                 request.NewPlannedStartAt,
                 request.Reason,
                 request.OperationId,
-                CorrelationId()),
+                CorrelationId(),
+                request.WarrantyId),
             cancellationToken);
+
+        if (result.ScheduleError is { } scheduleError) return ScheduleProblem(scheduleError);
 
         return result.Status switch
         {
@@ -191,6 +201,22 @@ public sealed class SurveyPlanningController : ControllerBase
 
     private static PostponeSurveyPlanResponseDto ToResponse(RoadGuardSystem.Repositories.Surveys.SurveyPlanPostponementPersistenceView value) => new(
         value.PlanId, value.Status, value.NewPlannedStartAt, value.PostponementId);
+
+    private ObjectResult ScheduleProblem(SurveyScheduleError error)
+    {
+        var (status, title) = error.Code switch
+        {
+            "survey_schedule_conflict" => (409, "Survey schedule conflicts with an existing occurrence"),
+            "survey_warranty_required" => (422, "An applicable warranty is required"),
+            "survey_warranty_selection_required" => (422, "Select an applicable warranty"),
+            "survey_outside_warranty" => (422, "Survey time falls outside the warranty"),
+            "survey_recurrence_invalid" => (422, "Survey recurrence is invalid"),
+            _ => (422, "Survey time range is invalid")
+        };
+        var result = ProblemResponse(status, error.Code, title);
+        ((ProblemDetails)result.Value!).AddSurveyScheduleDetails(error);
+        return result;
+    }
 
     private ObjectResult ProblemResponse(int status, string code, string title)
     {

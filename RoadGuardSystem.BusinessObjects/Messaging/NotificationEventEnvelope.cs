@@ -8,7 +8,8 @@ public enum NotificationEventKind : byte
     SupervisorApprovalRequired = 7, DeadlineBreached = 8, SafetyWarning = 9,
     SafetyInspectionDue = 10, WeeklyReviewPending = 11,
     ProjectObligationTransferred = 12, ProjectHandlingRenewed = 13, FastTrackConfirmedInformation = 14,
-    SafetyMeasureAssigned = 15, SurveyAssigned = 16, SurveySubmitted = 17, SurveySupplementRequested = 18, SurveyAssessed = 19
+    SafetyMeasureAssigned = 15, SurveyAssigned = 16, SurveySubmitted = 17, SurveySupplementRequested = 18, SurveyAssessed = 19,
+    FieldAssignmentEnded = 20
 }
 
 public enum NotificationSourceKind : byte
@@ -43,6 +44,7 @@ public sealed class NotificationEventEnvelope
         NotificationEventKind.SurveySubmitted => "survey.task.submitted.v1",
         NotificationEventKind.SurveySupplementRequested => "survey.task.supplement_requested.v1",
         NotificationEventKind.FieldAssigned => "field.task.assigned.v1",
+        NotificationEventKind.FieldAssignmentEnded => "field.task.assignment_ended.v1",
         NotificationEventKind.FieldSubmitted => "field.task.submitted.v1",
         NotificationEventKind.FieldSupplementRequested => "field.task.supplement_requested.v1",
         NotificationEventKind.RepairAssigned => "repair.work.assigned.v1",
@@ -61,7 +63,8 @@ public sealed class NotificationEventEnvelope
     };
     public NotificationRecipientStrategy RecipientStrategy => Kind switch
     {
-        NotificationEventKind.SurveyAssessed or NotificationEventKind.SurveyAssigned or NotificationEventKind.SurveySupplementRequested => NotificationRecipientStrategy.ExplicitResponsibleActors,
+        NotificationEventKind.SurveyAssessed or NotificationEventKind.SurveyAssigned or NotificationEventKind.SurveySupplementRequested
+            or NotificationEventKind.FieldAssignmentEnded => NotificationRecipientStrategy.ExplicitResponsibleActors,
         NotificationEventKind.SurveySubmitted => NotificationRecipientStrategy.ProjectManager,
         NotificationEventKind.FieldAssigned or NotificationEventKind.FieldSupplementRequested
             or NotificationEventKind.RepairAssigned or NotificationEventKind.RepairReworkRequested => NotificationRecipientStrategy.AssignedCrew,
@@ -87,7 +90,7 @@ public sealed class NotificationEventEnvelope
         var allowed = kind switch
         {
             NotificationEventKind.SurveyAssessed or NotificationEventKind.SurveyAssigned or NotificationEventKind.SurveySubmitted or NotificationEventKind.SurveySupplementRequested => sourceKind == NotificationSourceKind.SurveyTask,
-            NotificationEventKind.FieldAssigned or NotificationEventKind.FieldSubmitted or NotificationEventKind.FieldSupplementRequested
+            NotificationEventKind.FieldAssigned or NotificationEventKind.FieldAssignmentEnded or NotificationEventKind.FieldSubmitted or NotificationEventKind.FieldSupplementRequested
                 => sourceKind == NotificationSourceKind.FieldTask,
             NotificationEventKind.RepairAssigned or NotificationEventKind.RepairSubmitted or NotificationEventKind.RepairReworkRequested or NotificationEventKind.FastTrackConfirmedInformation
                 => sourceKind == NotificationSourceKind.RepairWork,
@@ -100,6 +103,8 @@ public sealed class NotificationEventEnvelope
             _ => false
         };
         if (!allowed) throw new ArgumentException("The event has no resolver for this source kind.", nameof(sourceKind));
+        if (kind == NotificationEventKind.FieldAssignmentEnded && responsibleUserId is null)
+            throw new ArgumentException("Assignment end requires the former assignee.", nameof(responsibleUserId));
         if (kind is NotificationEventKind.SurveyAssessed or NotificationEventKind.FieldSubmitted or NotificationEventKind.FieldSupplementRequested
             or NotificationEventKind.RepairSubmitted or NotificationEventKind.RepairReworkRequested or NotificationEventKind.FastTrackConfirmedInformation
             && sourceRevisionId is null)

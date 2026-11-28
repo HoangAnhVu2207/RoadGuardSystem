@@ -74,14 +74,30 @@ public sealed partial class FieldInspectionWorkflowRepository
                 var action = c.Input as FieldTaskActionInputFact ?? throw new ArgumentException("Assignment input required.");
                 var next = action.AssignedToUserId.GetValueOrDefault();
                 if (next == Guid.Empty) Deny(400, "validation_error");
+                var directMeasurement = task.TaskMode == "MEASURE_ONLY" && c.Admission.Mode == "DIRECT";
+                if (directMeasurement && task.Status == FieldInspectionTaskStatus.Submitted)
+                    Deny(409, "field_submission_review_required");
+                if (directMeasurement && task.Status is FieldInspectionTaskStatus.Completed or FieldInspectionTaskStatus.Cancelled)
+                    Deny(409, "invalid_state_transition");
+                if (directMeasurement && assignment?.AssignedToUserId == next)
+                    Deny(400, "validation_error");
+                var reason = Reason(action);
                 await GuardCrewAsync(c.ProjectId, next, token);
-                var handoverFacts = await HandoverFactsAsync(task, action, token);
-                assignment?.End(now, Reason(action)); task.Reassign();
+                var handoverFacts = await HandoverFactsAsync(task, action, token,
+                    optional: directMeasurement && c.Action == "reassign" && assignment is not null);
+                if (assignment is not null)
+                {
+                    assignment.End(now, reason);
+                    if (directMeasurement) Emit(c, task, assignment, "ASSIGNMENT_ENDED", reason, now);
+                }
+                task.Reassign();
+                if (directMeasurement)
+                    db.Entry(task).Property(x => x.Status).IsModified = true;
                 var replacement = FieldInspectionAssignment.Create(Guid.NewGuid(), task.Id, next, c.Admission.CallerId, now, null, FieldInspectionAssignmentStatus.Active, null);
                 db.FieldInspectionAssignments.Add(replacement);
                 await RoadGuardSystem.Repositories.Messaging.BusinessRequestProducer.ReassignSupplements(db, c.ProjectId,
-                    task.Id, next, c.Admission.CallerId, Reason(action), now, token);
-                Emit(c, task, replacement, "REASSIGNED", Reason(action), now, facts: handoverFacts); break;
+                    task.Id, next, c.Admission.CallerId, reason, now, token);
+                Emit(c, task, replacement, "REASSIGNED", reason, now, facts: handoverFacts); break;
             case "start": return await StartAsync(c, task, assignment!, token);
             case "submit": return await SubmitAsync(c, task, assignment!, token);
             case "review": return await ReviewAsync(c, task, token);
@@ -213,7 +229,14 @@ public sealed partial class FieldInspectionWorkflowRepository
     {
         var id = eventId ?? Guid.NewGuid(); db.Set<FieldInspectionTaskEvent>().Add(FieldInspectionTaskEvent.Create(id, c.ProjectId, task.Id, assignment?.Id, c.Admission.OriginalActorId, kind, reason, now, JsonSerializer.Serialize(facts ?? new { }, Json), impactId, impactDecisionId));
         db.AuditLogs.Add(AuditLog.Create(Guid.NewGuid(), c.Admission.CallerId, now, "field_" + kind.ToLowerInvariant(), "FieldInspectionTask", task.Id, null, null, reason, "h3.field", null));
-        var messageType = kind switch { "ASSIGNED" or "REASSIGNED" => "field.task.assigned.v1", "SUBMITTED" => "field.task.submitted.v1", "SUPPLEMENT" => "field.task.supplement_requested.v1", _ => "field.task.lifecycle.v1" };
+        var messageType = kind switch
+        {
+            "ASSIGNED" or "REASSIGNED" => "field.task.assigned.v1",
+            "ASSIGNMENT_ENDED" => "field.task.assignment_ended.v1",
+            "SUBMITTED" => "field.task.submitted.v1",
+            "SUPPLEMENT" => "field.task.supplement_requested.v1",
+            _ => "field.task.lifecycle.v1"
+        };
         db.OutboxMessages.Add(OutboxMessage.Create(id, messageType, now, null, JsonSerializer.Serialize(new
         {
             schemaVersion = 1,
@@ -225,7 +248,7 @@ public sealed partial class FieldInspectionWorkflowRepository
             originEventId = id,
             occurredAtUtc = now,
             sourceRevisionId = revision,
-            responsibleUserId = kind is "ASSIGNED" or "REASSIGNED" or "SUPPLEMENT" ? assignment?.AssignedToUserId : null
+            responsibleUserId = kind is "ASSIGNED" or "REASSIGNED" or "ASSIGNMENT_ENDED" or "SUPPLEMENT" ? assignment?.AssignedToUserId : null
         }, Json)));
     }
     private async Task<FieldWorkflowResultFact> FinalizeResultAsync(FieldWorkflowCommand c, FieldWorkflowResultFact result, CancellationToken token)

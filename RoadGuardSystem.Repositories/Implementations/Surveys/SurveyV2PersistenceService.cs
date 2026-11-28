@@ -31,8 +31,17 @@ public sealed partial class SurveyV2PersistenceService : ISurveyV2Repository
             var outcome = await _idempotency.ExecuteAsync(request.ActorUserId, request.ProjectId, "SurveyPlanV2Created", request.IdempotencyKey, request.RequestFingerprint, async token =>
             {
                 var scope = await ResolveScopeAsync(request.ProjectId, request.RouteVersionId, request.Scope, token);
-                var plan = SurveyPlan.Create(Guid.NewGuid(), request.ProjectId, scope.RoadSectionId, request.PlannedAt, request.PlannedAt.AddHours(1), request.SurveyType, SurveyPlanStatus.Planned, request.ScopeJson, scope.Items[0].RouteVersionId);
+                var end = ScheduledEnd(request.PlannedAt, TimeSpan.FromHours(1), "plannedAt");
+                var warranty = await ValidateBandScheduleAsync(request.ProjectId, scope.Items.Select(item => item.RoadSectionId), request.WarrantyId, request.PlannedAt, end, token);
+                var slots = request.RecurrenceFrequency is null ? [] :
+                    SurveyWarrantyCalendar.Generate(warranty, request.PlannedAt, end, request.RecurrenceFrequency);
+                if (request.RecurrenceFrequency is not null && slots.Count == 0)
+                    throw new SurveyScheduleException(new("survey_recurrence_empty", "recurrence",
+                        warranty.Id, warranty.StartDate, warranty.EndDate, request.PlannedAt, end));
+
+                var plan = SurveyPlan.Create(Guid.NewGuid(), request.ProjectId, scope.RoadSectionId, request.PlannedAt, end, request.SurveyType, SurveyPlanStatus.Planned, request.ScopeJson, scope.Items[0].RouteVersionId);
                 plan.SetBandScope();
+                plan.SetWarranty(warranty.Id);
                 _context.SurveyPlans.Add(plan);
                 _context.SurveyPlanScopes.AddRange(scope.Items.Select(item => SurveyPlanScope.Create(
                     Guid.NewGuid(),
@@ -41,15 +50,22 @@ public sealed partial class SurveyV2PersistenceService : ISurveyV2Repository
                     item.SegmentSetId,
                     item.SegmentIdsJson,
                     item.TargetBand)));
+                var occurrences = slots.Select((slot, index) => SurveyPlanOccurrence.Create(plan.Id, slot, index == 0 ? plan.Id : null)).ToArray();
+                _context.SurveyPlanOccurrences.AddRange(occurrences);
                 _context.AuditLogs.Add(AuditLog.Create(Guid.NewGuid(), request.ActorUserId, DateTimeOffset.UtcNow, "survey_plan_created", "SurveyPlan", plan.Id, null, "{}", "V2 survey plan created", "p2-54", request.CorrelationId, ["projectId", "routeVersionId", "surveyType"]));
                 await _context.SaveChangesAsync(token);
-                var view = ToPlanView(plan);
+                var view = ToPlanView(plan) with
+                {
+                    Occurrences = occurrences.Length == 0 ? null : occurrences.Select(occurrence =>
+                        ToOccurrenceView(occurrence, occurrence.SurveyPlanId is null ? null : plan.Status)).ToArray()
+                };
                 return (Guid.NewGuid(), JsonSerializer.Serialize(view));
             }, cancellationToken);
             return MapPlanOutcome(outcome);
         }
         catch (ScopeNotFoundException) { return new(SurveyV2PersistenceStatus.NotFound); }
         catch (ScopeConflictException) { return new(SurveyV2PersistenceStatus.SourceScopeConflict); }
+        catch (SurveyScheduleException exception) { return new(SurveyV2PersistenceStatus.InvalidInput, ScheduleError: exception.Error); }
         catch (ArgumentException) { return new(SurveyV2PersistenceStatus.InvalidInput); }
         catch (DbUpdateException exception) when (IsActivePlanUniqueViolation(exception))
         {
@@ -77,13 +93,32 @@ public sealed partial class SurveyV2PersistenceService : ISurveyV2Repository
                 _context.Entry(plan).Property(value => value.RowVersion).OriginalValue = expectedRowVersion;
 
                 var now = DateTimeOffset.UtcNow;
-                plan.Postpone(null);
+                if (request.PlannedAt is { } start)
+                {
+                    var end = ScheduledEnd(start, plan.PlannedEndAt - plan.PlannedStartAt, "plannedAt");
+                    var occurrence = await _context.SurveyPlanOccurrences.SingleOrDefaultAsync(row => row.SurveyPlanId == plan.Id, token);
+                    if (occurrence is not null && request.WarrantyId is { } requestedWarranty && requestedWarranty != plan.WarrantyId)
+                        throw new SurveyScheduleException(new("survey_recurrence_invalid", "warrantyId"));
+
+                    var roads = await (from scope in _context.SurveyPlanScopes
+                                       join version in _context.RoadSectionVersions on scope.RouteSectionVersionId equals version.Id
+                                       where scope.SurveyPlanId == plan.Id
+                                       select version.RoadSectionId).Distinct().ToArrayAsync(token);
+                    var warranty = await ValidateBandScheduleAsync(plan.ProjectId, roads.Length > 0 ? roads : [plan.RoadSectionId],
+                        request.WarrantyId ?? plan.WarrantyId, start, end, token);
+                    plan.Reschedule(start, end, warranty.Id);
+                    occurrence?.Reschedule(start, end);
+                }
+                else
+                {
+                    plan.Postpone(null);
+                }
                 var postponement = SurveyPlanPostponement.Create(
                     Guid.NewGuid(),
                     plan.Id,
                     now,
                     request.Reason,
-                    null);
+                    request.PlannedAt);
                 _context.SurveyPlanPostponements.Add(postponement);
                 _context.AuditLogs.Add(AuditLog.Create(
                     Guid.NewGuid(),
@@ -99,15 +134,21 @@ public sealed partial class SurveyV2PersistenceService : ISurveyV2Repository
                     request.CorrelationId,
                     ["planId", "status", "reasonHash"]));
                 await _context.SaveChangesAsync(token);
-                var view = ToPlanView(plan);
+                var view = ToPlanView(plan) with { Occurrences = await ReadOccurrencesAsync(plan.Id, token) };
                 return (Guid.NewGuid(), JsonSerializer.Serialize(new StoredPlanOutcome(SurveyV2PersistenceStatus.Success, view)));
             }, cancellationToken);
-            var stored = JsonSerializer.Deserialize<StoredPlanOutcome>(outcome.OutcomeJson) ?? throw new InvalidOperationException("Invalid survey plan outcome.");
             if (outcome.Status == IdempotencyOperationStatus.Conflict) return new(SurveyV2PersistenceStatus.IdempotentConflict);
+            var stored = JsonSerializer.Deserialize<StoredPlanOutcome>(outcome.OutcomeJson) ?? throw new InvalidOperationException("Invalid survey plan outcome.");
             return new(outcome.Status == IdempotencyOperationStatus.Replayed && stored.Status == SurveyV2PersistenceStatus.Success ? SurveyV2PersistenceStatus.Replayed : stored.Status, stored.Plan);
         }
         catch (ScopeNotFoundException) { return new(SurveyV2PersistenceStatus.NotFound); }
+        catch (SurveyScheduleException exception) { return new(SurveyV2PersistenceStatus.InvalidInput, ScheduleError: exception.Error); }
         catch (DbUpdateConcurrencyException) { _context.ChangeTracker.Clear(); return new(SurveyV2PersistenceStatus.ConcurrencyConflict); }
+        catch (DbUpdateException exception) when (IsUniqueConstraintViolation(exception))
+        {
+            _context.ChangeTracker.Clear();
+            return new(SurveyV2PersistenceStatus.Conflict, ScheduleError: new("survey_schedule_conflict", "plannedAt"));
+        }
         catch (InvalidOperationException) { return new(SurveyV2PersistenceStatus.Conflict); }
     }
 
@@ -127,15 +168,24 @@ public sealed partial class SurveyV2PersistenceService : ISurveyV2Repository
                 var accessPoint = request.AccessPointJson is null ? (JsonElement?)null : JsonSerializer.Deserialize<JsonElement>(request.AccessPointJson);
                 var payload = JsonSerializer.Serialize(new { scope = JsonSerializer.Deserialize<JsonElement>(request.ScopeJson), accessPoint });
                 var now = DateTimeOffset.UtcNow;
+                var selectedPlanId = request.PlanId;
                 if (request.PlanId is { } planId)
                 {
                     var plan = await _context.SurveyPlans.SingleOrDefaultAsync(p => p.Id == planId && p.ProjectId == request.ProjectId, token) ?? throw new ScopeNotFoundException();
                     if (plan.ScopeFormatVersion != "BAND_V1" || plan.SurveyType != request.SurveyType ||
                         !await ScopeContainsAsync(plan.OutputRequirements, request.ScopeJson)) throw new PlanMismatchException();
+                    if (request.OccurrenceId is { } occurrenceId)
+                        plan = await ResolveOccurrencePlanAsync(plan, occurrenceId, token);
                     if (plan.Status != SurveyPlanStatus.Planned) throw new PlanStateException();
+                    await ValidateBandScheduleAsync(plan.ProjectId, scope.Items.Select(item => item.RoadSectionId),
+                        plan.WarrantyId, plan.PlannedStartAt, plan.PlannedEndAt, token);
+                    if (request.DueAt is DateTimeOffset due && plan.WarrantyId is Guid warrantyId)
+                        await ValidateBandScheduleAsync(plan.ProjectId, scope.Items.Select(item => item.RoadSectionId),
+                            warrantyId, due, ScheduledEnd(due, TimeSpan.FromTicks(1), "dueAt"), token, "dueAt");
                     plan.MarkTaskCreated();
+                    selectedPlanId = plan.Id;
                 }
-                var task = SurveyRequest.Create(Guid.NewGuid(), request.ProjectId, scope.RoadSectionId, request.PlanId, request.ActorUserId, request.SurveyType, SurveyRequestStatus.NewAssigned, now, request.DueAt, payload, scope.Items[0].RouteVersionId);
+                var task = SurveyRequest.Create(Guid.NewGuid(), request.ProjectId, scope.RoadSectionId, selectedPlanId, request.ActorUserId, request.SurveyType, SurveyRequestStatus.NewAssigned, now, request.DueAt, payload, scope.Items[0].RouteVersionId);
                 task.SetBandScope();
                 var assignment = SurveyAssignment.Create(Guid.NewGuid(), task.Id, request.OperatorId, request.ActorUserId, now, null, null, null, null, null);
                 _context.SurveyRequests.Add(task);
@@ -159,10 +209,21 @@ public sealed partial class SurveyV2PersistenceService : ISurveyV2Repository
         }
         catch (ScopeNotFoundException) { return new(SurveyV2PersistenceStatus.NotFound); }
         catch (ScopeConflictException) { return new(SurveyV2PersistenceStatus.SourceScopeConflict); }
+        catch (SurveyScheduleException exception) { return new(SurveyV2PersistenceStatus.InvalidInput, ScheduleError: exception.Error); }
         catch (PlanMismatchException) { return new(SurveyV2PersistenceStatus.TaskPlanMismatch); }
         catch (PlanStateException) { return new(SurveyV2PersistenceStatus.PlanStateConflict); }
         catch (OperatorNotFoundException) { return new(SurveyV2PersistenceStatus.OperatorNotFound); }
         catch (ArgumentException) { return new(SurveyV2PersistenceStatus.InvalidInput); }
+        catch (DbUpdateConcurrencyException) when (request.OccurrenceId is not null)
+        {
+            _context.ChangeTracker.Clear();
+            return new(SurveyV2PersistenceStatus.Conflict, ScheduleError: new("survey_schedule_conflict", "occurrenceId"));
+        }
+        catch (DbUpdateException exception) when (request.OccurrenceId is not null && IsUniqueConstraintViolation(exception))
+        {
+            _context.ChangeTracker.Clear();
+            return new(SurveyV2PersistenceStatus.Conflict, ScheduleError: new("survey_schedule_conflict", "occurrenceId"));
+        }
         catch (DbUpdateException exception) when (IsUniqueConstraintViolation(exception)) { return new(SurveyV2PersistenceStatus.Conflict); }
     }
 
@@ -348,6 +409,8 @@ public sealed partial class SurveyV2PersistenceService : ISurveyV2Repository
                         if (request.OperatorId is null || string.IsNullOrWhiteSpace(request.Reason)) return (Guid.NewGuid(), JsonSerializer.Serialize(new StoredTaskOutcome(SurveyV2PersistenceStatus.InvalidInput, null)));
                         var eligible = await _context.Users.AsNoTracking().AnyAsync(user => user.Id == request.OperatorId.Value && user.RoleCode == UserRoleCode.DroneOperator && user.Status == UserStatus.Active, token);
                         if (!eligible || !await HasMembershipAsync(request.OperatorId.Value, task.ProjectId, token)) return (Guid.NewGuid(), JsonSerializer.Serialize(new StoredTaskOutcome(SurveyV2PersistenceStatus.OperatorNotFound, null)));
+                        if (request.DueAt is DateTimeOffset updatedDueAt)
+                            await ValidatePinnedTaskInstantAsync(task, updatedDueAt, "dueAt", token);
                         if (assignment.EndedAt is null) assignment.EndForReassignment(now, request.Reason);
                         var replacement = SurveyAssignment.Create(Guid.NewGuid(), task.Id, request.OperatorId.Value, request.ActorUserId, now, null, null, null, null, null);
                         _context.SurveyAssignments.Add(replacement);
@@ -392,6 +455,7 @@ public sealed partial class SurveyV2PersistenceService : ISurveyV2Repository
             return new(outcome.Status == IdempotencyOperationStatus.Replayed && stored.Status == SurveyV2PersistenceStatus.Success ? SurveyV2PersistenceStatus.Replayed : stored.Status, stored.Task);
         }
         catch (JsonException) when (request.Operation == "complete") { return new(SurveyV2PersistenceStatus.Conflict); }
+        catch (SurveyScheduleException exception) { return new(SurveyV2PersistenceStatus.InvalidInput, ScheduleError: exception.Error); }
         catch (UnauthorizedAccessException) { return new(SurveyV2PersistenceStatus.Forbidden); }
         catch (ScopeNotFoundException) { return new(SurveyV2PersistenceStatus.NotFound); }
         catch (DbUpdateConcurrencyException) { _context.ChangeTracker.Clear(); return new(SurveyV2PersistenceStatus.ConcurrencyConflict); }
@@ -408,7 +472,11 @@ public sealed partial class SurveyV2PersistenceService : ISurveyV2Repository
         var plan = await _context.SurveyPlans.AsNoTracking().SingleOrDefaultAsync(p => p.Id == id && p.ScopeFormatVersion == "BAND_V1", token);
         if (plan is null) return null;
         var basis = await _context.AuditLogs.AsNoTracking().Where(x => x.EntityId == id && x.EntityType == "SurveyPlan" && x.EventType == "survey_plan_completed").Select(x => x.AfterSnapshot).SingleOrDefaultAsync(token);
-        return ToPlanView(plan) with { Completion = basis is null ? null : JsonSerializer.Deserialize<SurveyPlanCompletionRecord>(basis, DatasetScopeJsonOptions) };
+        return ToPlanView(plan) with
+        {
+            Completion = basis is null ? null : JsonSerializer.Deserialize<SurveyPlanCompletionRecord>(basis, DatasetScopeJsonOptions),
+            Occurrences = await ReadOccurrencesAsync(plan.Id, token)
+        };
     }
 
     private async Task<ScopeResolution> ResolveScopeAsync(Guid projectId, Guid routeVersionId, IReadOnlyList<SurveyV2ScopeRequest>? requestedScope, CancellationToken cancellationToken)
@@ -486,7 +554,7 @@ public sealed partial class SurveyV2PersistenceService : ISurveyV2Repository
     }
 
     private static SurveyV2PlanPersistenceView ToPlanView(SurveyPlan plan)
-        => new(plan.Id, plan.ProjectId, plan.OutputRequirements, plan.PlannedStartAt, plan.Status.ToString(), Version(plan), SurveyTypeWire.Code(plan.SurveyType));
+        => new(plan.Id, plan.ProjectId, plan.OutputRequirements, plan.PlannedStartAt, plan.Status.ToString(), Version(plan), SurveyTypeWire.Code(plan.SurveyType), WarrantyId: plan.WarrantyId);
 
     private static SurveyV2TaskPersistenceView ToTaskView(SurveyRequest task, Guid operatorId)
         => ToTaskView(task, operatorId, task.OutputRequirements);

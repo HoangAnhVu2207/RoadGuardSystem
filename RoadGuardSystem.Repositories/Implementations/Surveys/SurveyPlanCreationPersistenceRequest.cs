@@ -12,4 +12,5 @@ public sealed record SurveyPlanCreationPersistenceRequest(
     string IdempotencyKey,
     string RequestFingerprint,
     Guid OperationId,
-    Guid? CorrelationId);
+    Guid? CorrelationId,
+    Guid? WarrantyId = null);

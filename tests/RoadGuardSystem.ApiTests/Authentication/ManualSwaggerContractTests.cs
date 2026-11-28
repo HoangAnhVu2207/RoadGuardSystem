@@ -26,6 +26,12 @@ public sealed class ManualSwaggerContractTests
             Assert.True(schemas.GetProperty(name).GetProperty("properties").TryGetProperty("surveyType", out _), name);
         Assert.True(schemas.GetProperty("SurveyTaskSummary").GetProperty("properties").TryGetProperty("parentTaskId", out _));
         Assert.True(schemas.GetProperty("SurveyPlanV2ResponseDto").GetProperty("properties").TryGetProperty("completion", out _));
+        var recurrence = schemas.GetProperty("SurveyRecurrenceDto").GetProperty("properties").GetProperty("frequency");
+        Assert.Equal(new[] { "NONE", "WEEKLY", "MONTHLY" },
+            recurrence.GetProperty("enum").EnumerateArray().Select(value => value.GetString()));
+        var plan = schemas.GetProperty("SurveyPlanV2ResponseDto").GetProperty("properties");
+        foreach (var field in new[] { "warrantyId", "occurrences", "occurrenceCount", "firstPlannedAt", "lastPlannedAt" })
+            Assert.True(plan.TryGetProperty(field, out _), field);
         var source = schemas.GetProperty("SurveyPlanCompletionSource").GetProperty("properties");
         Assert.Equal(new[] { "assessmentId", "datasetId", "taskId" }, source.EnumerateObject().Select(x => x.Name).OrderBy(x => x).ToArray());
     }

@@ -33,12 +33,14 @@ public static class ApiErrorCodes
     public const string ProjectCodeConflict = "project_code_conflict";
     public const string ProjectConcurrencyConflict = "concurrency_conflict";
     public const string ProjectClosed = "project_closed";
+    public const string ProjectDatesInvalid = "project_dates_invalid";
     public const string RoadSectionCodeConflict = "road_section_code_conflict";
     public const string RoadSectionNotFound = "road_section_not_found";
     public const string RoadSectionConcurrencyConflict = "road_section_concurrency_conflict";
     public const string WarrantyRoadSectionNotFound = "warranty_road_section_not_found";
     public const string WarrantyHandoverDocumentNotFound = "warranty_handover_document_not_found";
     public const string WarrantySourceDocumentNotFound = "warranty_source_document_not_found";
+    public const string WarrantyDatesInvalid = "warranty_dates_invalid";
     public const string IdentityUserNotFound = "identity_user_not_found";
     public const string IdentityUserInactive = "identity_user_inactive";
     public const string SurveyPlanNotFound = "survey_plan_not_found";

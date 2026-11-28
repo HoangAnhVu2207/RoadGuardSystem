@@ -17,7 +17,8 @@ public enum ProjectUpdatePersistenceStatus
     ActorNotAuthorized,
     NotFound,
     StaleConcurrency,
-    IdempotentConflict
+    IdempotentConflict,
+    ProjectDatesInvalid
 }
 
 public sealed record ProjectUpdatePersistenceRequest(
@@ -118,6 +119,10 @@ public sealed class ProjectUpdatePersistenceService : IProjectUpdateRepository
             return existing is null
                 ? new(ProjectUpdatePersistenceStatus.StaleConcurrency)
                 : MapExisting(existing, fingerprint);
+        }
+        catch (ArgumentException exception) when (exception.ParamName == "endDate")
+        {
+            return new(ProjectUpdatePersistenceStatus.ProjectDatesInvalid);
         }
         catch (ArgumentException)
         {

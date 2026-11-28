@@ -79,6 +79,8 @@ public sealed partial class SurveyV2PersistenceService
                         return (Guid.NewGuid(), JsonSerializer.Serialize(new StoredDatasetOutcome(SurveyDatasetPersistenceStatus.InvalidInput, null)));
                     }
 
+                    await ValidatePinnedTaskInstantAsync(task, request.RecordedAt, "recordedAt", token, historical: true);
+
                     var allFileIds = request.VideoFileIds.Concat(request.TelemetryFileIds).Distinct().ToArray();
                     DatasetPair[] pairs;
                     try { pairs = JsonSerializer.Deserialize<DatasetPair[]>(request.PairsJson ?? "[]", DatasetScopeJsonOptions) ?? []; }
@@ -163,6 +165,7 @@ public sealed partial class SurveyV2PersistenceService
                 : stored.Status, stored.Dataset);
         }
         catch (ScopeNotFoundException) { return new(SurveyDatasetPersistenceStatus.NotFound); }
+        catch (SurveyScheduleException exception) { return new(SurveyDatasetPersistenceStatus.InvalidInput, ScheduleError: exception.Error); }
         catch (DbUpdateConcurrencyException) { _context.ChangeTracker.Clear(); return new(SurveyDatasetPersistenceStatus.ConcurrencyConflict); }
         catch (ArgumentException) { return new(SurveyDatasetPersistenceStatus.InvalidInput); }
         catch (InvalidOperationException) { return new(SurveyDatasetPersistenceStatus.Conflict); }

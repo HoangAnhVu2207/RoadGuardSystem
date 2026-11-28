@@ -9,4 +9,5 @@ public sealed record CreateSurveyPlanRequestDto(
     Guid RoadSectionVersionId,
     SurveyType SurveyType,
     [Required] string OutputRequirements,
-    Guid OperationId);
+    Guid OperationId,
+    Guid? WarrantyId = null);

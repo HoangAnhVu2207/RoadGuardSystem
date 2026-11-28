@@ -14,7 +14,8 @@ public enum WarrantyCreationStatus
     RoadSectionNotFound,
     HandoverDocumentNotFound,
     SourceDocumentNotFound,
-    IdempotentConflict
+    IdempotentConflict,
+    WarrantyDatesInvalid
 }
 
 public sealed record CreateWarrantyCommand(

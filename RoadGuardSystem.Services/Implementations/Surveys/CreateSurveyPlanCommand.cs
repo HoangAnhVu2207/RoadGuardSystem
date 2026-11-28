@@ -11,4 +11,5 @@ public sealed record CreateSurveyPlanCommand(
     SurveyType SurveyType,
     string OutputRequirements,
     Guid OperationId,
-    Guid? CorrelationId);
+    Guid? CorrelationId,
+    Guid? WarrantyId = null);

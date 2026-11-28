@@ -393,9 +393,6 @@ namespace RoadGuardSystem.cRepositories.Migrations
                     b.Property<DateTimeOffset>("At")
                         .HasColumnType("datetimeoffset");
 
-                    b.Property<string>("SourceSnapshotJson")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<Guid>("CaseId")
                         .HasColumnType("uniqueidentifier");
 
@@ -435,6 +432,9 @@ namespace RoadGuardSystem.cRepositories.Migrations
 
                     b.Property<int>("Sequence")
                         .HasColumnType("int");
+
+                    b.Property<string>("SourceSnapshotJson")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<Guid?>("SupersedesId")
                         .HasColumnType("uniqueidentifier");
@@ -10527,11 +10527,16 @@ namespace RoadGuardSystem.cRepositories.Migrations
                     b.Property<byte>("SurveyType")
                         .HasColumnType("tinyint");
 
+                    b.Property<Guid?>("WarrantyId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.HasKey("Id");
 
                     b.HasIndex("RoadSectionId");
 
                     b.HasIndex("RoadSectionVersionId");
+
+                    b.HasIndex("WarrantyId");
 
                     b.HasIndex("ProjectId", "RoadSectionId", "PlannedStartAt")
                         .HasDatabaseName("IX_SurveyPlans_ProjectRoadStart");
@@ -10555,6 +10560,44 @@ namespace RoadGuardSystem.cRepositories.Migrations
                         });
 
                     b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Surveys.SurveyPlanOccurrence", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("PlannedEndAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("PlannedStartAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<Guid>("SeriesPlanId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("SurveyPlanId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SurveyPlanId")
+                        .IsUnique()
+                        .HasFilter("[SurveyPlanId] IS NOT NULL");
+
+                    b.HasIndex("SeriesPlanId", "PlannedStartAt")
+                        .IsUnique();
+
+                    b.ToTable("SurveyPlanOccurrences", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_SurveyPlanOccurrences_DateRange", "[PlannedEndAt] > [PlannedStartAt]");
+                        });
                 });
 
             modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Surveys.SurveyPlanPostponement", b =>
@@ -16300,6 +16343,25 @@ namespace RoadGuardSystem.cRepositories.Migrations
                     b.HasOne("RoadGuardSystem.BusinessObjects.Projects.RoadSectionVersion", null)
                         .WithMany()
                         .HasForeignKey("RoadSectionVersionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Warranties.Warranty", null)
+                        .WithMany()
+                        .HasForeignKey("WarrantyId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("RoadGuardSystem.BusinessObjects.Surveys.SurveyPlanOccurrence", b =>
+                {
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Surveys.SurveyPlan", null)
+                        .WithMany()
+                        .HasForeignKey("SeriesPlanId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RoadGuardSystem.BusinessObjects.Surveys.SurveyPlan", null)
+                        .WithMany()
+                        .HasForeignKey("SurveyPlanId")
                         .OnDelete(DeleteBehavior.Restrict);
                 });
 

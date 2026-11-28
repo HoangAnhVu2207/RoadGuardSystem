@@ -24,7 +24,9 @@ public enum ProjectCreationPersistenceStatus
     HandoverFileNotReady,
     HandoverVersionConflict,
     ProjectCodeConflict,
-    IdempotentConflict
+    IdempotentConflict,
+    ProjectDatesInvalid,
+    WarrantyDatesInvalid
 }
 
 public sealed record ProjectCreationPersistenceRequest(
@@ -168,6 +170,10 @@ public sealed class ProjectCreationPersistenceService : IProjectCreationReposito
             _context.ChangeTracker.Clear();
             return new(error.Status);
         }
+        catch (ArgumentException exception) when (exception.ParamName == "endDate")
+        {
+            return new(ProjectCreationPersistenceStatus.ProjectDatesInvalid);
+        }
         catch (ArgumentException)
         {
             return new(ProjectCreationPersistenceStatus.InvalidInput);
@@ -189,6 +195,8 @@ public sealed class ProjectCreationPersistenceService : IProjectCreationReposito
             row.ActorUserId == request.ActorUserId && row.ProjectId == null &&
             row.Operation == Operation && row.IdempotencyKey == receiptKey, cancellationToken))
             throw new ExistingProjectReceipt();
+        if (request.WarrantyEndDate < request.HandoverDate)
+            throw new ProjectCreationDenied(ProjectCreationPersistenceStatus.WarrantyDatesInvalid);
         if (!await _context.Users.AnyAsync(user => user.Id == request.PrimaryProjectManagerUserId &&
             user.Status == UserStatus.Active && user.RoleCode == UserRoleCode.ProjectManager, cancellationToken))
             throw new ProjectCreationDenied(ProjectCreationPersistenceStatus.ProjectManagerNotFound);

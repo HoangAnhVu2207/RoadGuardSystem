@@ -81,6 +81,7 @@ public sealed class P122SurveyPlanningServiceTests
 
         repository.Requests.Should().HaveCount(2);
         repository.Requests[0].RequestFingerprint.Should().Be(repository.Requests[1].RequestFingerprint);
+        repository.Requests.Should().OnlyContain(request => !request.HasExplicitDueAt);
 
         var changedOutputCommand = command with { OutputRequirements = "{\"formats\":[\"srt\"]}" };
         await service.CreateRequestAsync(Guid.NewGuid(), UserRoleCode.ProjectManager, changedOutputCommand);

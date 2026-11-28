@@ -6,4 +6,5 @@ public sealed record PostponeSurveyPlanCommand(
     DateTimeOffset? NewPlannedStartAt,
     string Reason,
     Guid OperationId,
-    Guid? CorrelationId);
+    Guid? CorrelationId,
+    Guid? WarrantyId = null);

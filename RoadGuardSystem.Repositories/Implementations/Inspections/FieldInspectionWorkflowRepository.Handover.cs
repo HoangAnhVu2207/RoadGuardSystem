@@ -9,12 +9,13 @@ namespace RoadGuardSystem.Repositories.Implementations.Inspections;
 
 public sealed partial class FieldInspectionWorkflowRepository
 {
-    private async Task<object> HandoverFactsAsync(FieldInspectionTask task, FieldTaskActionInputFact? action, CancellationToken token)
+    private async Task<object> HandoverFactsAsync(FieldInspectionTask task, FieldTaskActionInputFact? action, CancellationToken token, bool optional = false)
     {
         if (action is null) throw new ArgumentException("Structured action required.");
         var start = await db.Set<FieldTaskStartOrigin>().AsNoTracking().SingleOrDefaultAsync(x => x.TaskId == task.Id, token);
         if (start is null) return new { performedPortionState = "NOT_STARTED", firstStartOriginId = (Guid?)null };
         var facts = action.Handover;
+        if (facts is null && optional) return new { handoverSupplied = false, firstStartOriginId = start.Id };
         if (facts is null || facts.StartOriginId != start.Id || facts.PerformedPortionState is not ("NONE" or "PARTIAL" or "CAPTURED_INTAKE" or "UNKNOWN") ||
             string.IsNullOrWhiteSpace(facts.Summary) || facts.Summary.Trim().Length > 2000 || facts.SubmissionIds is null || facts.SubmissionIds.Length > 100 ||
             facts.SubmissionIds.Any(x => x == Guid.Empty) || facts.SubmissionIds.Distinct().Count() != facts.SubmissionIds.Length ||

@@ -7,7 +7,7 @@ public static class NotificationRegisteredTypes
     {
         "survey.dataset.assessed.v1",
         "survey.task.assigned.v1", "survey.task.submitted.v1", "survey.task.supplement_requested.v1",
-        "field.task.assigned.v1", "field.task.submitted.v1", "field.task.supplement_requested.v1", "field.task.lifecycle.v1",
+        "field.task.assigned.v1", "field.task.assignment_ended.v1", "field.task.submitted.v1", "field.task.supplement_requested.v1", "field.task.lifecycle.v1",
         "repair.work.assigned.v1", "repair.work.submitted.v1", "repair.work.rework_requested.v1", "repair.work.fast_track_confirmed.v1",
         "repair.decision.corrected.v1", "review.supervisor_required.v1", "deadline.breached.v1", "safety.warning.v1",
         "safety.measure_assigned.v1",

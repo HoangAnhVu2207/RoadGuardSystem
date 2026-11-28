@@ -86,6 +86,7 @@ public sealed class ProjectUpdateService : IProjectUpdateService
         ProjectUpdatePersistenceStatus.NotFound => ProjectUpdateStatus.NotFound,
         ProjectUpdatePersistenceStatus.StaleConcurrency => ProjectUpdateStatus.StaleConcurrency,
         ProjectUpdatePersistenceStatus.IdempotentConflict => ProjectUpdateStatus.IdempotentConflict,
+        ProjectUpdatePersistenceStatus.ProjectDatesInvalid => ProjectUpdateStatus.ProjectDatesInvalid,
         _ => ProjectUpdateStatus.InvalidInput
     };
 }

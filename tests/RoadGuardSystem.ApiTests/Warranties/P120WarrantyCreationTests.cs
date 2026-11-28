@@ -147,7 +147,8 @@ public sealed class P120WarrantyCreationTests
             WarrantyStartDate = new DateOnly(2028, 1, 2),
             WarrantyEndDate = new DateOnly(2028, 1, 1)
         };
-        await AssertProblemAsync(setup, invalidDates, HttpStatusCode.BadRequest, "validation_error");
+        await AssertProblemAsync(setup, invalidDates, HttpStatusCode.UnprocessableEntity,
+            "warranty_dates_invalid", "warrantyEndDate");
 
         var retainedValueOverflow = ValidRequest(setup.HandoverDocumentId) with
         {
@@ -187,17 +188,20 @@ public sealed class P120WarrantyCreationTests
             HttpStatusCode.NotFound,
             "warranty_source_document_not_found");
 
-        var accepted = ValidRequest(setup.HandoverDocumentId);
+        var accepted = ValidRequest(setup.HandoverDocumentId) with { OperationId = invalidDates.OperationId };
         (await setup.Client.PostAsJsonAsync(
             $"/api/v1/projects/{setup.ProjectId}/warranties",
             accepted)).StatusCode.Should().Be(HttpStatusCode.Created);
         var changed = accepted with { Terms = "Changed terms" };
         await AssertProblemAsync(setup, changed, HttpStatusCode.Conflict, "duplicate_request");
+        await AssertProblemAsync(setup, invalidDates, HttpStatusCode.Conflict, "duplicate_request");
 
         var roadScoped = ValidRequest(setup.HandoverDocumentId) with
         {
             Scope = "ROAD_SECTION",
-            RoadSectionId = currentRoadSectionId
+            RoadSectionId = currentRoadSectionId,
+            WarrantyStartDate = new DateOnly(2026, 8, 1),
+            WarrantyEndDate = new DateOnly(2026, 8, 15)
         };
         var roadScopedResponse = await setup.Client.PostAsJsonAsync(
             $"/api/v1/projects/{setup.ProjectId}/warranties",
@@ -215,13 +219,22 @@ public sealed class P120WarrantyCreationTests
         WarrantySetup setup,
         CreateWarrantyRequest request,
         HttpStatusCode expectedStatus,
-        string expectedCode)
+        string expectedCode,
+        string? field = null)
     {
         var response = await setup.Client.PostAsJsonAsync(
             $"/api/v1/projects/{setup.ProjectId}/warranties",
             request);
         response.StatusCode.Should().Be(expectedStatus);
-        (await ProblemCodeAsync(response)).Should().Be(expectedCode);
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        body.GetProperty("code").GetString().Should().Be(expectedCode);
+        if (field is not null)
+        {
+            response.Content.Headers.ContentType!.MediaType.Should().Be("application/problem+json");
+            body.GetProperty("status").GetInt32().Should().Be((int)expectedStatus);
+            body.GetProperty("field").GetString().Should().Be(field);
+            body.GetProperty("correlationId").GetString().Should().NotBeNullOrWhiteSpace();
+        }
     }
 
     private async Task<WarrantySetup> CreateProjectSetupAsync()

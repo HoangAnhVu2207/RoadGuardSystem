@@ -9,7 +9,9 @@ using Microsoft.AspNetCore.DataProtection;
 using System.Security.Cryptography;
 using RoadGuardSystem.DTOs.Collections;
 using RoadGuardSystem.API.Constants;
+using RoadGuardSystem.API.Extensions;
 using RoadGuardSystem.API.Middlewares;
+using RoadGuardSystem.BusinessObjects.Surveys;
 using RoadGuardSystem.DTOs.Surveys;
 using RoadGuardSystem.Services.Surveys;
 using RoadGuardSystem.aBusinessObjects.Commons;
@@ -34,6 +36,7 @@ public sealed class SurveyV2Controller : ControllerBase
         if (!TryGetActor(out var actor, out var role)) return ProblemResponse(401, ApiErrorCodes.Unauthorized, "Unauthorized");
         if (string.IsNullOrWhiteSpace(idempotencyKey)) return ProblemResponse(428, ApiErrorCodes.ValidationError, "Idempotency-Key is required");
         var result = await _service.CreatePlanAsync(actor, role, projectId, request, idempotencyKey, CorrelationId(), cancellationToken);
+        if (result.ScheduleError is { } scheduleError) return ScheduleProblem(scheduleError);
         if (result.Plan is not null) Response.Headers.ETag = $"\"{result.Plan.Version}\"";
         return result.Status switch
         {
@@ -56,6 +59,7 @@ public sealed class SurveyV2Controller : ControllerBase
         if (!TryGetActor(out var actor, out var role)) return ProblemResponse(401, ApiErrorCodes.Unauthorized, "Unauthorized");
         if (string.IsNullOrWhiteSpace(idempotencyKey) || string.IsNullOrWhiteSpace(ifMatch)) return ProblemResponse(428, ApiErrorCodes.ValidationError, "Required precondition headers are missing");
         var result = await _service.PostponePlanAsync(actor, role, planId, request, idempotencyKey, ifMatch, CorrelationId(), cancellationToken);
+        if (result.ScheduleError is { } scheduleError) return ScheduleProblem(scheduleError);
         if (result.Plan is not null) Response.Headers.ETag = $"\"{result.Plan.Version}\"";
         return result.Status switch
         {
@@ -78,6 +82,7 @@ public sealed class SurveyV2Controller : ControllerBase
         if (!TryGetActor(out var actor, out var role)) return ProblemResponse(401, ApiErrorCodes.Unauthorized, "Unauthorized");
         if (string.IsNullOrWhiteSpace(idempotencyKey)) return ProblemResponse(428, ApiErrorCodes.ValidationError, "Idempotency-Key is required");
         var result = await _service.CreateTaskAsync(actor, role, projectId, request, idempotencyKey, CorrelationId(), cancellationToken);
+        if (result.ScheduleError is { } scheduleError) return ScheduleProblem(scheduleError);
         if (result.Task is not null) Response.Headers.ETag = $"\"{result.Task.Version}\"";
         return result.Status switch
         {
@@ -245,6 +250,7 @@ public sealed class SurveyV2Controller : ControllerBase
         if (!TryGetActor(out var actor, out var role)) return ProblemResponse(401, ApiErrorCodes.Unauthorized, "Unauthorized");
         if (string.IsNullOrWhiteSpace(idempotencyKey) || string.IsNullOrWhiteSpace(ifMatch)) return ProblemResponse(428, ApiErrorCodes.ValidationError, "Required precondition headers are missing");
         var result = await _service.SubmitDatasetAsync(actor, role, taskId, request, idempotencyKey, ifMatch, CorrelationId(), cancellationToken);
+        if (result.ScheduleError is { } scheduleError) return ScheduleProblem(scheduleError);
         if (result.Dataset is not null) Response.Headers.ETag = $"\"{result.Dataset.Version}\"";
         return result.Status switch
         {
@@ -386,6 +392,7 @@ public sealed class SurveyV2Controller : ControllerBase
 
     private ObjectResult MapTaskMutation(SurveyV2ServiceResult result)
     {
+        if (result.ScheduleError is { } scheduleError) return ScheduleProblem(scheduleError);
         if (result.Task is not null) Response.Headers.ETag = $"\"{result.Task.Version}\"";
         return result.Status switch
         {
@@ -410,6 +417,22 @@ public sealed class SurveyV2Controller : ControllerBase
     }
 
     private Guid? CorrelationId() => Guid.TryParse(HttpContext.Items[CorrelationIdMiddleware.CorrelationIdItemKey]?.ToString(), out var value) ? value : null;
+    private ObjectResult ScheduleProblem(SurveyScheduleError error)
+    {
+        var (status, title) = error.Code switch
+        {
+            "survey_schedule_conflict" => (409, "Survey schedule conflicts with an existing plan"),
+            "survey_warranty_required" => (422, "An applicable warranty is required"),
+            "survey_warranty_selection_required" => (422, "Select an applicable warranty"),
+            "survey_outside_warranty" => (422, "Survey time falls outside the warranty"),
+            "survey_time_range_invalid" => (422, "Survey time range is invalid"),
+            _ => (422, "Survey recurrence is invalid")
+        };
+        var result = ProblemResponse(status, error.Code, title);
+        ((ProblemDetails)result.Value!).AddSurveyScheduleDetails(error);
+        return result;
+    }
+
     private ObjectResult ProblemResponse(int status, string code, string title)
     {
         var problem = new ProblemDetails { Status = status, Title = title, Detail = "The survey request could not be completed.", Instance = Request.Path };

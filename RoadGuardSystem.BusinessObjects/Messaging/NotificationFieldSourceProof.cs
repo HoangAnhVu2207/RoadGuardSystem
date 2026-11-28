@@ -1,3 +1,4 @@
+using RoadGuardSystem.aBusinessObjects.Commons;
 using RoadGuardSystem.BusinessObjects.Inspections;
 
 namespace RoadGuardSystem.BusinessObjects.Messaging;
@@ -23,13 +24,17 @@ public static class NotificationFieldSourceProof
         if (sourceEvent.AssignmentId is Guid assignmentId &&
             (assignment is null || assignment.Id != assignmentId || assignment.FieldInspectionTaskId != task.Id)) return false;
         if (sourceEvent.AssignmentId is null && assignment is not null) return false;
-        if (claim.Action is "ASSIGNED" or "REASSIGNED" or "SUPPLEMENT")
+        if (claim.Action is "ASSIGNED" or "REASSIGNED" or "ASSIGNMENT_ENDED" or "SUPPLEMENT")
         {
             if (assignment is null || claim.ResponsibleUserId != assignment.AssignedToUserId) return false;
         }
         else if (claim.ResponsibleUserId is not null) return false;
         if (claim.Action is "ASSIGNED" or "REASSIGNED")
             return claim.RevisionId is null && assignment is not null && assignment.AssignedAt == sourceEvent.OccurredAt;
+        if (claim.Action == "ASSIGNMENT_ENDED")
+            return task.TaskMode == "MEASURE_ONLY" && claim.RevisionId is null &&
+                assignment is { Status: FieldInspectionAssignmentStatus.Ended } &&
+                assignment.EndedAt == sourceEvent.OccurredAt;
         if (claim.Action is "SUBMITTED" or "SUPPLEMENT" or "REVIEWED")
         {
             if (submission is null || claim.RevisionId != submission.Id || submission.TaskId != task.Id || submission.ProjectId != task.ProjectId)

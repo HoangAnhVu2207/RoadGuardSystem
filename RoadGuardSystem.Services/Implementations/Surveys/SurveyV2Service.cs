@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using RoadGuardSystem.BusinessObjects.Surveys;
 using RoadGuardSystem.DTOs.Surveys;
 using RoadGuardSystem.Repositories.Surveys;
 using RoadGuardSystem.Services.Authorization;
@@ -34,15 +35,33 @@ public sealed class SurveyV2Service : ISurveyV2Service
     public async Task<SurveyV2ServiceResult> CreatePlanAsync(Guid actorUserId, UserRoleCode role, Guid projectId, CreateSurveyPlanV2RequestDto request, string idempotencyKey, Guid? correlationId, CancellationToken cancellationToken = default)
     {
         if (actorUserId == Guid.Empty || role != UserRoleCode.ProjectManager) return new(SurveyV2ServiceStatus.Forbidden);
-        if (projectId == Guid.Empty || request.Scope is null || request.Scope.Count == 0 || string.IsNullOrWhiteSpace(idempotencyKey) || !TryType(request.SurveyType, out var type) || request.PlannedAt == default || !ValidScope(request.Scope)) return new(SurveyV2ServiceStatus.InvalidInput);
+        if (projectId == Guid.Empty || request.Scope is null || request.Scope.Count == 0 || string.IsNullOrWhiteSpace(idempotencyKey) || !TryType(request.SurveyType, out var type) || !ValidScope(request.Scope)) return new(SurveyV2ServiceStatus.InvalidInput);
         if (!await InScope(actorUserId, role, projectId, cancellationToken)) return new(SurveyV2ServiceStatus.Forbidden);
+        var frequency = request.Recurrence?.Frequency?.Trim().ToUpperInvariant();
+        if (request.Recurrence is not null && frequency is not ("NONE" or "WEEKLY" or "MONTHLY"))
+            return new(SurveyV2ServiceStatus.InvalidInput, ScheduleError: new("survey_recurrence_invalid", "recurrence.frequency"));
+        if (frequency is "WEEKLY" or "MONTHLY" && request.Recurrence?.UntilWarrantyEnd != true)
+            return new(SurveyV2ServiceStatus.InvalidInput, ScheduleError: new("survey_recurrence_invalid", "recurrence.untilWarrantyEnd"));
+
         var scope = JsonSerializer.Serialize(request.Scope, ResponseJsonOptions);
         var scopeItems = request.Scope.Select(item => new SurveyV2ScopeRequest(
             item.RouteVersionId,
             item.SegmentSetId,
             JsonSerializer.Serialize(item.SegmentIds),
             item.TargetBand)).ToArray();
-        return MapPlan(await _repository.CreatePlanAsync(new(actorUserId, projectId, request.Scope[0].RouteVersionId, request.PlannedAt, type, scope, idempotencyKey, Fingerprint(new { projectId, scope = request.Scope, plannedAt = request.PlannedAt.ToUniversalTime().ToString("O", System.Globalization.CultureInfo.InvariantCulture), surveyType = request.SurveyType.Trim().ToUpperInvariant() }), correlationId, scopeItems), cancellationToken));
+        var basePayload = new
+        {
+            projectId,
+            scope = request.Scope,
+            plannedAt = request.PlannedAt.ToUniversalTime().ToString("O", System.Globalization.CultureInfo.InvariantCulture),
+            surveyType = request.SurveyType.Trim().ToUpperInvariant()
+        };
+        var fingerprint = request.WarrantyId is null && request.Recurrence is null
+            ? Fingerprint(basePayload)
+            : Fingerprint(new { plan = basePayload, request.WarrantyId, frequency, untilWarrantyEnd = request.Recurrence?.UntilWarrantyEnd });
+        return MapPlan(await _repository.CreatePlanAsync(new(actorUserId, projectId, request.Scope[0].RouteVersionId,
+            request.PlannedAt, type, scope, idempotencyKey, fingerprint, correlationId, scopeItems,
+            request.WarrantyId, frequency == "NONE" ? null : frequency), cancellationToken));
     }
 
     public async Task<SurveyV2ServiceResult> PostponePlanAsync(Guid actorUserId, UserRoleCode role, Guid planId, PostponeSurveyPlanV2RequestDto request, string idempotencyKey, string expectedVersion, Guid? correlationId, CancellationToken cancellationToken = default)
@@ -52,7 +71,16 @@ public sealed class SurveyV2Service : ISurveyV2Service
         var projectId = await _repository.GetPlanProjectIdAsync(planId, cancellationToken);
         if (projectId is null) return new(SurveyV2ServiceStatus.NotFound);
         if (!await InScope(actorUserId, role, projectId.Value, cancellationToken)) return new(SurveyV2ServiceStatus.Forbidden);
-        var result = await _repository.PostponePlanAsync(new(actorUserId, planId, request.Reason, expectedVersion.Trim().Trim('"'), idempotencyKey, Fingerprint(new { planId, reason = request.Reason.Trim(), expectedVersion = expectedVersion.Trim().Trim('"') }), correlationId), cancellationToken);
+        var version = expectedVersion.Trim().Trim('"');
+        var basePayload = new { planId, reason = request.Reason.Trim(), expectedVersion = version };
+        if (request.WarrantyId is not null && request.PlannedAt is null)
+            return new(SurveyV2ServiceStatus.InvalidInput, ScheduleError: new("survey_time_range_invalid", "plannedAt"));
+        var fingerprint = request.PlannedAt is null
+            ? Fingerprint(basePayload)
+            : Fingerprint(new { plan = basePayload, plannedAt = request.PlannedAt?.ToUniversalTime(), request.WarrantyId });
+        var result = await _repository.PostponePlanAsync(new(actorUserId, planId, request.Reason, version, idempotencyKey,
+            fingerprint, correlationId, request.PlannedAt, request.WarrantyId), cancellationToken);
+        if (result.ScheduleError is not null) return new(SurveyV2ServiceStatus.InvalidInput, ScheduleError: result.ScheduleError);
         return result.Status switch { SurveyV2PersistenceStatus.Success => new(SurveyV2ServiceStatus.Success, ToPlan(result.Plan)), SurveyV2PersistenceStatus.Replayed => new(SurveyV2ServiceStatus.Replayed, ToPlan(result.Plan)), SurveyV2PersistenceStatus.NotFound => new(SurveyV2ServiceStatus.NotFound), SurveyV2PersistenceStatus.ConcurrencyConflict => new(SurveyV2ServiceStatus.ConcurrencyConflict), SurveyV2PersistenceStatus.IdempotentConflict => new(SurveyV2ServiceStatus.IdempotentConflict), SurveyV2PersistenceStatus.ScopeIncompatible => new(SurveyV2ServiceStatus.ScopeIncompatible), _ => new(SurveyV2ServiceStatus.Conflict) };
     }
 
@@ -68,7 +96,14 @@ public sealed class SurveyV2Service : ISurveyV2Service
             item.SegmentSetId,
             JsonSerializer.Serialize(item.SegmentIds),
             item.TargetBand)).ToArray();
-        var result = await _repository.CreateTaskAsync(new(actorUserId, projectId, request.Scope[0].RouteVersionId, request.OperatorId, type, request.DueAt, scope, accessPointJson, idempotencyKey, Fingerprint($"{projectId:N}|{scope}|{request.OperatorId:N}|{request.SurveyType}|{request.DueAt:O}|{accessPointJson}|{request.PlanId}"), correlationId, scopeItems, request.PlanId), cancellationToken);
+        if (request.OccurrenceId is not null && request.PlanId is null)
+            return new(SurveyV2ServiceStatus.InvalidInput, ScheduleError: new("survey_recurrence_invalid", "planId"));
+        var payload = $"{projectId:N}|{scope}|{request.OperatorId:N}|{request.SurveyType}|{request.DueAt:O}|{accessPointJson}|{request.PlanId}";
+        var fingerprint = Fingerprint(request.OccurrenceId is null ? payload : $"{payload}|{request.OccurrenceId}");
+        var result = await _repository.CreateTaskAsync(new(actorUserId, projectId, request.Scope[0].RouteVersionId,
+            request.OperatorId, type, request.DueAt, scope, accessPointJson, idempotencyKey, fingerprint,
+            correlationId, scopeItems, request.PlanId, request.OccurrenceId), cancellationToken);
+        if (result.ScheduleError is not null) return new(SurveyV2ServiceStatus.InvalidInput, ScheduleError: result.ScheduleError);
         return result.Status switch { SurveyV2PersistenceStatus.Success => new(SurveyV2ServiceStatus.Success, Task: ToTask(result.Task)), SurveyV2PersistenceStatus.Replayed => new(SurveyV2ServiceStatus.Replayed, Task: ToTask(result.Task)), SurveyV2PersistenceStatus.NotFound => new(SurveyV2ServiceStatus.NotFound), SurveyV2PersistenceStatus.TaskPlanMismatch => new(SurveyV2ServiceStatus.TaskPlanMismatch), SurveyV2PersistenceStatus.PlanStateConflict => new(SurveyV2ServiceStatus.PlanStateConflict), SurveyV2PersistenceStatus.SourceScopeConflict => new(SurveyV2ServiceStatus.SourceScopeConflict), SurveyV2PersistenceStatus.OperatorNotFound => new(SurveyV2ServiceStatus.OperatorNotFound), SurveyV2PersistenceStatus.IdempotentConflict => new(SurveyV2ServiceStatus.IdempotentConflict), _ => new(SurveyV2ServiceStatus.Conflict) };
     }
 
@@ -187,6 +222,7 @@ public sealed class SurveyV2Service : ISurveyV2Service
         var result = await _repository.SubmitDatasetAsync(new SurveyDatasetSubmissionRequest(
             actorUserId, taskId, request.VideoFileIds, request.TelemetryFileIds, request.RecordedAt, deviceId,
             scopeJson, expectedVersion.Trim().Trim('"'), idempotencyKey, fingerprint, correlationId, pairsJson), cancellationToken);
+        if (result.ScheduleError is not null) return new(SurveyV2ServiceStatus.InvalidInput, ScheduleError: result.ScheduleError);
         return result.Status switch
         {
             SurveyDatasetPersistenceStatus.Success => new(SurveyV2ServiceStatus.Success, Dataset: ToDataset(result.Dataset)),
@@ -295,6 +331,7 @@ public sealed class SurveyV2Service : ISurveyV2Service
 
         var fingerprint = Fingerprint($"{operation}|{taskId:N}|{reason}|{operatorId:N}|{dueAt:O}|{scopeJson}|{expectedVersion}");
         var result = await _repository.MutateTaskAsync(new(actorUserId, taskId, operation, reason, operatorId, dueAt, scopeJson, expectedVersion.Trim().Trim('"'), idempotencyKey, fingerprint, correlationId), cancellationToken);
+        if (result.ScheduleError is not null) return new(SurveyV2ServiceStatus.InvalidInput, ScheduleError: result.ScheduleError);
         return result.Status switch
         {
             SurveyV2PersistenceStatus.Success => new(SurveyV2ServiceStatus.Success, Task: ToTask(result.Task)),
@@ -345,13 +382,20 @@ public sealed class SurveyV2Service : ISurveyV2Service
     private async Task<bool> InScope(Guid actor, UserRoleCode role, Guid project, CancellationToken token) => await _scopeGuard.AuthorizeAsync(actor, role, project, token) is not null;
     private static bool IsManager(Guid id, UserRoleCode role) => id != Guid.Empty && role == UserRoleCode.ProjectManager;
     private static bool TryType(string value, out SurveyType type) { type = value?.Trim().ToUpperInvariant() switch { "BASELINE" => SurveyType.Original, "PERIODIC" => SurveyType.Periodic, "AD_HOC" => SurveyType.Supplementary, _ => SurveyType.Unknown }; return type != SurveyType.Unknown; }
-    private static SurveyV2ServiceResult MapPlan(SurveyV2PlanPersistenceResult result) => result.Status switch { SurveyV2PersistenceStatus.Forbidden => new(SurveyV2ServiceStatus.Forbidden), SurveyV2PersistenceStatus.ActivePlanConflict => new(SurveyV2ServiceStatus.ActivePlanConflict, ExistingPlanId: result.ExistingPlanId, ExistingPlanStatus: result.ExistingPlanStatus), SurveyV2PersistenceStatus.SourceScopeConflict => new(SurveyV2ServiceStatus.SourceScopeConflict), SurveyV2PersistenceStatus.Success => new(SurveyV2ServiceStatus.Success, ToPlan(result.Plan)), SurveyV2PersistenceStatus.Replayed => new(SurveyV2ServiceStatus.Replayed, ToPlan(result.Plan)), SurveyV2PersistenceStatus.NotFound => new(SurveyV2ServiceStatus.NotFound), SurveyV2PersistenceStatus.IdempotentConflict => new(SurveyV2ServiceStatus.IdempotentConflict), SurveyV2PersistenceStatus.Conflict => new(SurveyV2ServiceStatus.Conflict), _ => new(SurveyV2ServiceStatus.InvalidInput) };
+    private static SurveyV2ServiceResult MapPlan(SurveyV2PlanPersistenceResult result) => result.Status switch { SurveyV2PersistenceStatus.Forbidden => new(SurveyV2ServiceStatus.Forbidden), SurveyV2PersistenceStatus.ActivePlanConflict => new(SurveyV2ServiceStatus.ActivePlanConflict, ExistingPlanId: result.ExistingPlanId, ExistingPlanStatus: result.ExistingPlanStatus), SurveyV2PersistenceStatus.SourceScopeConflict => new(SurveyV2ServiceStatus.SourceScopeConflict), SurveyV2PersistenceStatus.Success => new(SurveyV2ServiceStatus.Success, ToPlan(result.Plan)), SurveyV2PersistenceStatus.Replayed => new(SurveyV2ServiceStatus.Replayed, ToPlan(result.Plan)), SurveyV2PersistenceStatus.NotFound => new(SurveyV2ServiceStatus.NotFound), SurveyV2PersistenceStatus.IdempotentConflict => new(SurveyV2ServiceStatus.IdempotentConflict), SurveyV2PersistenceStatus.Conflict => new(SurveyV2ServiceStatus.Conflict), _ => new(SurveyV2ServiceStatus.InvalidInput, ScheduleError: result.ScheduleError) };
     private static SurveyPlanV2ResponseDto? ToPlan(SurveyV2PlanPersistenceView? value)
     {
         if (value is null) return null;
         try
         {
-            return new(value.Id, value.ProjectId, JsonSerializer.Deserialize<IReadOnlyList<BandScopeDto>>(value.ScopeJson, ResponseJsonOptions) ?? [], value.PlannedAt, ToApiStatus(value.Status), value.Version, value.SurveyType, value.Completion is null ? null : new(value.Completion.Id, value.Completion.At, value.Completion.ActorId, value.Completion.Reason, value.Completion.Sources.Select(x => new SurveyPlanCompletionSource(x.TaskId, x.DatasetId, x.AssessmentId)).ToArray()));
+            var occurrences = value.Occurrences?.Select(item => new SurveyPlanOccurrenceDto(
+                item.Id, item.Start, item.End, ToApiStatus(item.Status), item.SurveyPlanId)).ToArray();
+            return new(value.Id, value.ProjectId, JsonSerializer.Deserialize<IReadOnlyList<BandScopeDto>>(value.ScopeJson, ResponseJsonOptions) ?? [],
+                value.PlannedAt, ToApiStatus(value.Status), value.Version, value.SurveyType,
+                value.Completion is null ? null : new(value.Completion.Id, value.Completion.At, value.Completion.ActorId,
+                    value.Completion.Reason, value.Completion.Sources.Select(x => new SurveyPlanCompletionSource(x.TaskId, x.DatasetId, x.AssessmentId)).ToArray()),
+                value.WarrantyId, occurrences?.Length, occurrences?.FirstOrDefault()?.PlannedStartAt,
+                occurrences?.LastOrDefault()?.PlannedStartAt, occurrences);
         }
         catch (JsonException) { return null; }
     }

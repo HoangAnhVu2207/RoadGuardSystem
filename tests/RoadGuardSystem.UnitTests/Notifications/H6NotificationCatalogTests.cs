@@ -26,6 +26,7 @@ public sealed class H6NotificationCatalogTests
     [Theory]
     [InlineData("field.task.assigned.v1", "ASSIGNED", NotificationEventKind.FieldAssigned)]
     [InlineData("field.task.assigned.v1", "REASSIGNED", NotificationEventKind.FieldAssigned)]
+    [InlineData("field.task.assignment_ended.v1", "ASSIGNMENT_ENDED", NotificationEventKind.FieldAssignmentEnded)]
     [InlineData("field.task.submitted.v1", "SUBMITTED", NotificationEventKind.FieldSubmitted)]
     [InlineData("field.task.supplement_requested.v1", "SUPPLEMENT", NotificationEventKind.FieldSupplementRequested)]
     public void ActualFieldProducerShapeMapsToFiniteNotificationKind(string type, string action, NotificationEventKind expected)
@@ -33,6 +34,17 @@ public sealed class H6NotificationCatalogTests
         var value = Event(action); var result = Parse(type, value);
         Assert.Equal(expected, result.Envelope!.Kind); Assert.False(result.AuditOnly);
         Assert.Equal(value.SourceId, result.Envelope.SourceId); Assert.Equal(value.OriginEventId, result.Envelope.OriginEventId);
+    }
+    [Fact]
+    public void AssignmentEndUsesTheFormerCrewAsExplicitRecipient()
+    {
+        var value = Event("ASSIGNMENT_ENDED");
+        var result = Parse("field.task.assignment_ended.v1", value);
+        Assert.Equal(NotificationRecipientStrategy.ExplicitResponsibleActors, result.Envelope!.RecipientStrategy);
+        Assert.Equal(value.ResponsibleUserId, result.Envelope.ResponsibleUserId);
+        Assert.DoesNotContain("Open", result.Body, StringComparison.OrdinalIgnoreCase);
+        Assert.Throws<H6NotificationProtocolException>(() =>
+            Parse("field.task.assignment_ended.v1", value with { ResponsibleUserId = null }));
     }
     [Theory]
     [InlineData("ACCEPTED")]

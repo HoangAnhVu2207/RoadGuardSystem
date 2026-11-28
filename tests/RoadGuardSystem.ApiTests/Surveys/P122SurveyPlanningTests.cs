@@ -45,6 +45,84 @@ public sealed class P122SurveyPlanningTests
     }
 
     [Fact]
+    public async Task PlanningCommands_RejectDatesOutsideTheWarranty_WithProblemDetails()
+    {
+        var supervisor = await _sql.CreateUserAsync($"p122_supervisor_{Guid.NewGuid():N}", "Current1!", UserRoleCode.Supervisor);
+        var projectManager = await _sql.CreateUserAsync($"p122_pm_{Guid.NewGuid():N}", "Current1!", UserRoleCode.ProjectManager);
+        await using var factory = new AuthenticationWebApplicationFactory(_sql.ConnectionString);
+        using var client = factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
+        {
+            BaseAddress = new Uri("https://localhost")
+        });
+
+        await AuthenticateAsync(client, supervisor.UserName!, "Current1!");
+        var projectId = await CreateProjectAsync(client, projectManager.Id);
+        var roadSection = await CreateRoadSectionAsync(client, projectId);
+        await AuthenticateAsync(client, projectManager.UserName!, "Current1!");
+
+        var url = $"/api/v1/projects/{projectId}/road-sections/{roadSection.RoadSectionId}/survey-plans";
+        var request = new
+        {
+            plannedStartAt = "2027-08-31T22:00:00+07:00",
+            plannedEndAt = "2027-09-01T00:01:00+07:00",
+            roadSectionVersionId = roadSection.VersionId,
+            surveyType = 2,
+            outputRequirements = "{\"formats\":[\"video\"]}",
+            operationId = Guid.NewGuid()
+        };
+        using var rejectedPlan = await client.PostAsJsonAsync(url, request);
+        rejectedPlan.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
+        rejectedPlan.Content.Headers.ContentType!.MediaType.Should().Be("application/problem+json");
+        var problem = await rejectedPlan.Content.ReadFromJsonAsync<JsonElement>();
+        problem.GetProperty("code").GetString().Should().Be("survey_outside_warranty");
+        problem.GetProperty("field").GetString().Should().Be("plannedEndAt");
+        problem.GetProperty("warrantyEndDate").GetString().Should().Be("2027-08-31");
+        problem.GetProperty("correlationId").GetString().Should().NotBeNullOrEmpty();
+
+        using var zeroDuration = await client.PostAsJsonAsync(url, request with
+        {
+            plannedEndAt = request.plannedStartAt,
+            operationId = Guid.NewGuid()
+        });
+        zeroDuration.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
+        (await zeroDuration.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("code").GetString().Should().Be("survey_time_range_invalid");
+
+        using var acceptedPlan = await client.PostAsJsonAsync(url, request with { plannedEndAt = "2027-09-01T00:00:00+07:00" });
+        acceptedPlan.StatusCode.Should().Be(HttpStatusCode.Created);
+        var planId = (await acceptedPlan.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("planId").GetGuid();
+
+        var taskUrl = $"/api/v1/projects/{projectId}/road-sections/{roadSection.RoadSectionId}/survey-requests";
+        var taskRequest = new
+        {
+            surveyPlanId = planId,
+            roadSectionVersionId = roadSection.VersionId,
+            surveyType = request.surveyType,
+            dueAt = (string?)"2027-09-01T00:01:00+07:00",
+            outputRequirements = request.outputRequirements,
+            operationId = Guid.NewGuid()
+        };
+        using var rejectedTask = await client.PostAsJsonAsync(taskUrl, taskRequest);
+        rejectedTask.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
+        var taskProblem = await rejectedTask.Content.ReadFromJsonAsync<JsonElement>();
+        taskProblem.GetProperty("code").GetString().Should().Be("survey_outside_warranty");
+        taskProblem.GetProperty("field").GetString().Should().Be("dueAt");
+
+        using var implicitDeadlineTask = await client.PostAsJsonAsync(taskUrl, taskRequest with { dueAt = null });
+        implicitDeadlineTask.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        using var rejectedPostponement = await client.PostAsJsonAsync($"/api/v1/projects/{projectId}/survey-plans/{planId}/postpone", new
+        {
+            newPlannedStartAt = "2026-08-30T16:59:59Z",
+            reason = "Weather delay",
+            operationId = Guid.NewGuid()
+        });
+        rejectedPostponement.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
+        var postponeProblem = await rejectedPostponement.Content.ReadFromJsonAsync<JsonElement>();
+        postponeProblem.GetProperty("code").GetString().Should().Be("survey_outside_warranty");
+        postponeProblem.GetProperty("field").GetString().Should().Be("newPlannedStartAt");
+    }
+
+    [Fact]
     public async Task PlanningCommands_CreateRequestAndPostpone_WithReplaySafeResponses()
     {
         var supervisor = await _sql.CreateUserAsync($"p122_supervisor_{Guid.NewGuid():N}", "Current1!", UserRoleCode.Supervisor);
@@ -139,7 +217,7 @@ public sealed class P122SurveyPlanningTests
             name = "P1-22 planning project",
             engineeringUtmSrid = 32648,
             startDate = "2026-09-01",
-            endDate = "2027-09-01",
+            endDate = "2027-08-31",
             primaryProjectManagerUserId = projectManagerId,
             handover = new { documentNo = $"HD-{Guid.NewGuid():N}", handoverDate = "2026-08-31" },
             operationId = Guid.NewGuid()

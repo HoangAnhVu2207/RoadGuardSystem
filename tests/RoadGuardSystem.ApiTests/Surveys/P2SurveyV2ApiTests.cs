@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using RoadGuardSystem.ApiTests.Infrastructure;
 using RoadGuardSystem.BusinessObjects.Projects;
+using RoadGuardSystem.BusinessObjects.Warranties;
 using RoadGuardSystem.aBusinessObjects.Commons;
 using Xunit;
 
@@ -20,6 +21,139 @@ public sealed class P2SurveyV2ApiTests
     private readonly AuthenticationSqlServerFixture _sql;
 
     public P2SurveyV2ApiTests(AuthenticationSqlServerFixture sql) => _sql = sql;
+
+    [Theory]
+    [InlineData("WEEKLY", 53, "2027-08-30")]
+    [InlineData("MONTHLY", 13, "2027-08-31")]
+    public async Task RecurringPlanIsBoundedByWarrantyAndOnlyAssignsOneOccurrenceAtATime(
+        string frequency, int expectedCount, string expectedLastDate)
+    {
+        var supervisor = await _sql.CreateUserAsync($"survey-series-s-{Guid.NewGuid():N}", "Current1!", UserRoleCode.Supervisor);
+        var manager = await _sql.CreateUserAsync($"survey-series-pm-{Guid.NewGuid():N}", "Current1!", UserRoleCode.ProjectManager);
+        var droneOperator = await _sql.CreateUserAsync($"survey-series-op-{Guid.NewGuid():N}", "Current1!", UserRoleCode.DroneOperator);
+        var replacement = await _sql.CreateUserAsync($"survey-series-next-op-{Guid.NewGuid():N}", "Current1!", UserRoleCode.DroneOperator);
+        await using var factory = new AuthenticationWebApplicationFactory(_sql.ConnectionString);
+        using var client = factory.CreateClient(new() { BaseAddress = new Uri("https://localhost") });
+        await AuthenticateAsync(client, supervisor.UserName!);
+        var projectId = await CreateProjectAsync(client, manager.Id);
+        var routeVersionId = await CreateRoadSectionAsync(client, projectId);
+        await AuthenticateAsync(client, manager.UserName!);
+        var segmentSetId = Guid.NewGuid();
+        var segmentId = Guid.NewGuid();
+        Guid warrantyId;
+        await using (var db = _sql.CreateDbContext())
+        {
+            var road = await db.RoadSectionVersions.Where(row => row.Id == routeVersionId).Select(row => row.RoadSectionId).SingleAsync();
+            db.ProjectMembers.AddRange(new[] { droneOperator.Id, replacement.Id }.Select(userId => new ProjectMember
+            {
+                Id = Guid.NewGuid(),
+                ProjectId = projectId,
+                UserId = userId,
+                RoleCode = UserRoleCode.DroneOperator,
+                ValidFrom = new DateOnly(2026, 1, 1),
+                Status = ProjectMemberStatus.Active
+            }));
+            db.RoadSegmentSets.Add(RoadSegmentSet.Create(segmentSetId, routeVersionId));
+            db.RoadSegments.Add(RoadSegment.Create(segmentId, segmentSetId, routeVersionId, 1));
+            warrantyId = await db.Warranties.Where(row => row.ProjectId == projectId).Select(row => row.Id).SingleAsync();
+            db.Warranties.Add(Warranty.Create(Guid.NewGuid(), projectId, road, null, new(2026, 8, 31),
+                new(2026, 9, 1), new(2027, 7, 31), null, WarrantyScope.RoadSection, null, null, WarrantyStatus.Active));
+            await db.SaveChangesAsync();
+        }
+
+        var scope = new[] { new { routeVersionId, segmentSetId, segmentIds = new[] { segmentId }, targetBand = "SURFACE" } };
+        var planPath = $"/api/v1/projects/{projectId}/survey-plans";
+        var recurrence = new { frequency, untilWarrantyEnd = true };
+        var planInput = new { scope, plannedAt = "2026-08-31T08:00:00+07:00", surveyType = "PERIODIC", warrantyId, recurrence };
+        using var ambiguous = await Post(planPath, new { scope, planInput.plannedAt, planInput.surveyType, recurrence });
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, ambiguous.StatusCode);
+        Assert.Equal("survey_warranty_selection_required", (await ambiguous.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("code").GetString());
+        using var outside = await Post(planPath, planInput with { plannedAt = "2027-08-31T23:01:00+07:00" });
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, outside.StatusCode);
+        Assert.Equal("application/problem+json", outside.Content.Headers.ContentType!.MediaType);
+        var problem = await outside.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("survey_outside_warranty", problem.GetProperty("code").GetString());
+        Assert.Equal("plannedAt", problem.GetProperty("field").GetString());
+        Assert.Equal(warrantyId, problem.GetProperty("warrantyId").GetGuid());
+        Assert.Equal("2027-08-31", problem.GetProperty("warrantyEndDate").GetString());
+        Assert.True(Guid.TryParse(problem.GetProperty("correlationId").GetString(), out _));
+
+        var key = Guid.NewGuid().ToString();
+        using var create = await Post(planPath, planInput, key);
+        Assert.Equal(HttpStatusCode.Created, create.StatusCode);
+        var result = await create.Content.ReadFromJsonAsync<JsonElement>();
+        var planId = result.GetProperty("id").GetGuid();
+        var slots = result.GetProperty("occurrences").EnumerateArray().ToArray();
+        Assert.Equal(expectedCount, slots.Length);
+        Assert.Equal(expectedCount, result.GetProperty("occurrenceCount").GetInt32());
+        Assert.Equal(expectedLastDate, result.GetProperty("lastPlannedAt").GetDateTimeOffset().ToOffset(TimeSpan.FromHours(7)).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture));
+        var conflictDate = slots[1].GetProperty("plannedStartAt").GetDateTimeOffset();
+        using var reschedule = await Post($"/api/v1/survey-plans/{planId}/postpone",
+            new { reason = "New launch window", plannedAt = conflictDate }, version: create.Headers.ETag!.Tag);
+        Assert.Equal(HttpStatusCode.Conflict, reschedule.StatusCode);
+        Assert.Equal("survey_schedule_conflict", (await reschedule.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("code").GetString());
+
+        using var replay = await Post(planPath, planInput, key);
+        Assert.Equal(HttpStatusCode.Created, replay.StatusCode);
+        Assert.Equal(result.GetRawText(), (await replay.Content.ReadFromJsonAsync<JsonElement>()).GetRawText());
+        using var changed = await Post(planPath, planInput with { plannedAt = "2026-09-01T08:00:00+07:00" }, key);
+        Assert.Equal(HttpStatusCode.Conflict, changed.StatusCode);
+
+        var taskPath = $"/api/v1/projects/{projectId}/survey-tasks";
+        var taskInput = new { scope, planInput.surveyType, planId, operatorId = droneOperator.Id, occurrenceId = slots[1].GetProperty("id").GetGuid() };
+        using var busy = await Post(taskPath, taskInput);
+        Assert.Equal(HttpStatusCode.Conflict, busy.StatusCode);
+        Assert.Equal("survey_schedule_conflict", (await busy.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("code").GetString());
+        await using (var db = _sql.CreateDbContext())
+        {
+            var first = await db.SurveyPlans.SingleAsync(row => row.Id == planId);
+            first.MarkTaskCreated();
+            first.Complete();
+            await db.SaveChangesAsync();
+        }
+        var taskKey = Guid.NewGuid().ToString();
+        using var invalidDue = await Post(taskPath, new
+        {
+            scope,
+            planInput.surveyType,
+            planId,
+            taskInput.operatorId,
+            taskInput.occurrenceId,
+            dueAt = "2027-09-01T00:00:00+07:00"
+        }, taskKey);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, invalidDue.StatusCode);
+        Assert.Equal("dueAt", (await invalidDue.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("field").GetString());
+        using var assign = await Post(taskPath, taskInput, taskKey);
+        Assert.Equal(HttpStatusCode.Created, assign.StatusCode);
+        using var assignReplay = await Post(taskPath, taskInput, taskKey);
+        Assert.Equal(HttpStatusCode.Created, assignReplay.StatusCode);
+        Assert.Equal(await assign.Content.ReadAsStringAsync(), await assignReplay.Content.ReadAsStringAsync());
+        var task = await assign.Content.ReadFromJsonAsync<JsonElement>();
+        var reassignPath = $"/api/v1/survey-tasks/{task.GetProperty("id").GetGuid()}/reassign";
+        var change = new { operatorId = replacement.Id, reason = "Replace unavailable Operator", dueAt = "2027-09-01T00:00:00+07:00" };
+        var changeKey = Guid.NewGuid().ToString();
+        using var rejectReassignment = await Post(reassignPath, change, changeKey, assign.Headers.ETag!.Tag);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, rejectReassignment.StatusCode);
+        var rejectedChange = await rejectReassignment.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("survey_outside_warranty", rejectedChange.GetProperty("code").GetString());
+        Assert.Equal("dueAt", rejectedChange.GetProperty("field").GetString());
+        using var reassign = await Post(reassignPath, change with { dueAt = "2027-08-31T23:59:00+07:00" }, changeKey, assign.Headers.ETag!.Tag);
+        Assert.Equal(HttpStatusCode.OK, reassign.StatusCode);
+        var read = await client.GetFromJsonAsync<JsonElement>($"/api/v1/survey-plans/{planId}");
+        Assert.Equal("IN_PROGRESS", read.GetProperty("occurrences")[1].GetProperty("status").GetString());
+        await using var verify = _sql.CreateDbContext();
+        Assert.Equal(2, await verify.SurveyPlans.CountAsync(row => row.ProjectId == projectId));
+        Assert.Equal(expectedCount, await verify.SurveyPlanOccurrences.CountAsync(row => row.SeriesPlanId == planId));
+        Assert.Single(await verify.SurveyRequests.Where(row => row.ProjectId == projectId).ToArrayAsync());
+
+        async Task<HttpResponseMessage> Post(string path, object payload, string? idempotencyKey = null, string? version = null)
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Post, path) { Content = JsonContent.Create(payload) };
+            request.Headers.Add("Idempotency-Key", idempotencyKey ?? Guid.NewGuid().ToString());
+            if (version is not null) request.Headers.Add("If-Match", version);
+            return await client.SendAsync(request);
+        }
+    }
 
     [Fact]
     public async Task SurveyV2Endpoints_CreateReplayPostponeWithConcurrencyAndReadScope()
@@ -321,9 +455,10 @@ public sealed class P2SurveyV2ApiTests
             name = "P2 V2 API project",
             engineeringUtmSrid = 32648,
             startDate = "2026-09-01",
-            endDate = "2027-09-01",
+            endDate = "2027-08-31",
             primaryProjectManagerUserId = managerId,
             handover = new { documentNo = $"HD-{Guid.NewGuid():N}", handoverDate = "2026-08-31" },
+            warrantyEndDate = "2027-08-31",
             operationId = Guid.NewGuid()
         });
         response.StatusCode.Should().Be(HttpStatusCode.Created);

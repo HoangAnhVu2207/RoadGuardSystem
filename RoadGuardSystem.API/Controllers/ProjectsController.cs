@@ -126,6 +126,7 @@ public sealed class ProjectsController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden, "application/problem+json")]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound, "application/problem+json")]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict, "application/problem+json")]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status422UnprocessableEntity, "application/problem+json")]
     public async Task<IActionResult> Update(
         Guid projectId,
         UpdateProjectRequestDto request,
@@ -164,6 +165,8 @@ public sealed class ProjectsController : ControllerBase
                 StatusCodes.Status409Conflict, ApiErrorCodes.ProjectConcurrencyConflict, "Conflict"),
             ProjectUpdateStatus.IdempotentConflict => ProblemResponse(
                 StatusCodes.Status409Conflict, ApiErrorCodes.DuplicateRequest, "Duplicate request"),
+            ProjectUpdateStatus.ProjectDatesInvalid => ProblemResponse(
+                StatusCodes.Status422UnprocessableEntity, ApiErrorCodes.ProjectDatesInvalid, "Invalid project dates", "endDate"),
             _ => ProblemResponse(StatusCodes.Status400BadRequest, ApiErrorCodes.ValidationError, "Bad Request")
         };
     }
@@ -177,6 +180,7 @@ public sealed class ProjectsController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden, "application/problem+json")]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound, "application/problem+json")]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict, "application/problem+json")]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status422UnprocessableEntity, "application/problem+json")]
     public async Task<IActionResult> Create(
         CreateProjectRequestDto request,
         [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
@@ -254,6 +258,11 @@ public sealed class ProjectsController : ControllerBase
                 StatusCodes.Status409Conflict, ApiErrorCodes.ProjectCodeConflict, "Conflict"),
             ProjectCreationStatus.IdempotentConflict => ProblemResponse(
                 StatusCodes.Status409Conflict, ApiErrorCodes.DuplicateRequest, "Duplicate request"),
+            ProjectCreationStatus.ProjectDatesInvalid => ProblemResponse(
+                StatusCodes.Status422UnprocessableEntity, ApiErrorCodes.ProjectDatesInvalid, "Invalid project dates", "endDate"),
+            ProjectCreationStatus.WarrantyDatesInvalid => ProblemResponse(
+                StatusCodes.Status422UnprocessableEntity, ApiErrorCodes.WarrantyDatesInvalid, "Invalid warranty dates",
+                canonical ? "warrantyEndDate" : "endDate"),
             _ => ProblemResponse(StatusCodes.Status400BadRequest, ApiErrorCodes.ValidationError, "Bad Request")
         };
     }
@@ -311,7 +320,7 @@ public sealed class ProjectsController : ControllerBase
         project.Status,
         project.RowVersion);
 
-    private ObjectResult ProblemResponse(int status, string code, string title)
+    private ObjectResult ProblemResponse(int status, string code, string title, string? field = null)
     {
         var problem = new ProblemDetails
         {
@@ -326,10 +335,15 @@ public sealed class ProjectsController : ControllerBase
                 StatusCodes.Status403Forbidden => "https://tools.ietf.org/html/rfc9110#section-15.5.4",
                 StatusCodes.Status404NotFound => "https://tools.ietf.org/html/rfc9110#section-15.5.5",
                 StatusCodes.Status409Conflict => "https://tools.ietf.org/html/rfc9110#section-15.5.10",
+                StatusCodes.Status422UnprocessableEntity => "https://tools.ietf.org/html/rfc9110#section-15.5.21",
                 _ => "about:blank"
             }
         };
         problem.Extensions["code"] = code;
+        if (field is not null)
+        {
+            problem.Extensions["field"] = field;
+        }
         problem.Extensions["correlationId"] =
             HttpContext.Items[CorrelationIdMiddleware.CorrelationIdItemKey]?.ToString() ?? Guid.NewGuid().ToString();
         return new ObjectResult(problem)

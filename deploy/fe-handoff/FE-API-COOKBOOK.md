@@ -2,6 +2,8 @@
 
 # FE API cookbook — preparation snapshot
 
+See the current [warranty scheduling and Crew reassignment contract](FE-WARRANTY-SCHEDULE-VALIDATION.md) for request fields and error codes.
+
 Overall status: NOT_VERIFIED. Current candidate1 bounded examples and scope are recorded below; R1/R2/R3 and F01–F10 are not closed. This is navigation over the frozen OpenAPI, not a competing contract or a verified release.
 
 Current preview supplements: [scope and exact missing predicates](review-evidence/fe-preview-closeout/FE-PREVIEW-OPERATION-SCOPE.json), [candidate-tested Postman/C1 instructions](FE-INTEGRATION-QUICKSTART.md#current-candidate1-postman-execution--2026-10-24). API-031 is BACKEND_INTERNAL and requires the service callback contract, never an FE credential/example. Per-operation historical NOT_VERIFIED labels below remain unchanged unless a bounded preview record explicitly attributes evidence.

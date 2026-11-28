@@ -1,6 +1,12 @@
 {
   "properties": [
     {
+      "dto": "RoadGuardSystem.DTOs.Surveys.SurveyRecurrenceDto",
+      "property": "frequency",
+      "enum": ["NONE", "WEEKLY", "MONTHLY"],
+      "description": "WEEKLY and MONTHLY use the Vietnam calendar and require untilWarrantyEnd."
+    },
+    {
       "dto": "RoadGuardSystem.DTOs.Surveys.SurveyPlanV2ResponseDto",
       "property": "surveyType",
       "enum": [

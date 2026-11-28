@@ -110,6 +110,7 @@ public sealed class WarrantyCreationService : IWarrantyCreationService
         WarrantyCreationPersistenceStatus.HandoverDocumentNotFound => WarrantyCreationStatus.HandoverDocumentNotFound,
         WarrantyCreationPersistenceStatus.SourceDocumentNotFound => WarrantyCreationStatus.SourceDocumentNotFound,
         WarrantyCreationPersistenceStatus.IdempotentConflict => WarrantyCreationStatus.IdempotentConflict,
+        WarrantyCreationPersistenceStatus.WarrantyDatesInvalid => WarrantyCreationStatus.WarrantyDatesInvalid,
         _ => WarrantyCreationStatus.InvalidInput
     };
 

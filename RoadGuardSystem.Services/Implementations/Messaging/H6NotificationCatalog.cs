@@ -21,6 +21,7 @@ public static class H6NotificationCatalog
             ["survey.task.submitted.v1"] = (NotificationEventKind.SurveySubmitted, "SUBMITTED"),
             ["survey.task.supplement_requested.v1"] = (NotificationEventKind.SurveySupplementRequested, "SUPPLEMENT"),
             ["field.task.assigned.v1"] = (NotificationEventKind.FieldAssigned, "ASSIGNED"),
+            ["field.task.assignment_ended.v1"] = (NotificationEventKind.FieldAssignmentEnded, "ASSIGNMENT_ENDED"),
             ["field.task.submitted.v1"] = (NotificationEventKind.FieldSubmitted, "SUBMITTED"),
             ["field.task.supplement_requested.v1"] = (NotificationEventKind.FieldSupplementRequested, "SUPPLEMENT"),
             ["repair.work.assigned.v1"] = (NotificationEventKind.RepairAssigned, "ASSIGNED"),

@@ -32,6 +32,7 @@ public sealed class ProjectWarrantiesController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden, "application/problem+json")]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound, "application/problem+json")]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict, "application/problem+json")]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status422UnprocessableEntity, "application/problem+json")]
     public async Task<IActionResult> Create(
         Guid projectId,
         CreateWarrantyRequestDto request,
@@ -80,6 +81,8 @@ public sealed class ProjectWarrantiesController : ControllerBase
                 StatusCodes.Status409Conflict, ApiErrorCodes.ProjectClosed, "Conflict"),
             WarrantyCreationStatus.IdempotentConflict => ProblemResponse(
                 StatusCodes.Status409Conflict, ApiErrorCodes.DuplicateRequest, "Duplicate request"),
+            WarrantyCreationStatus.WarrantyDatesInvalid => ProblemResponse(
+                StatusCodes.Status422UnprocessableEntity, ApiErrorCodes.WarrantyDatesInvalid, "Invalid warranty dates", "warrantyEndDate"),
             _ => ProblemResponse(StatusCodes.Status400BadRequest, ApiErrorCodes.ValidationError, "Bad Request")
         };
     }
@@ -98,7 +101,7 @@ public sealed class ProjectWarrantiesController : ControllerBase
         warranty.SourceDocumentId,
         warranty.Status);
 
-    private ObjectResult ProblemResponse(int status, string code, string title)
+    private ObjectResult ProblemResponse(int status, string code, string title, string? field = null)
     {
         var problem = new ProblemDetails
         {
@@ -112,10 +115,15 @@ public sealed class ProjectWarrantiesController : ControllerBase
                 StatusCodes.Status401Unauthorized => "https://tools.ietf.org/html/rfc9110#section-15.5.2",
                 StatusCodes.Status403Forbidden => "https://tools.ietf.org/html/rfc9110#section-15.5.4",
                 StatusCodes.Status404NotFound => "https://tools.ietf.org/html/rfc9110#section-15.5.5",
+                StatusCodes.Status422UnprocessableEntity => "https://tools.ietf.org/html/rfc9110#section-15.5.21",
                 _ => "https://tools.ietf.org/html/rfc9110#section-15.5.10"
             }
         };
         problem.Extensions["code"] = code;
+        if (field is not null)
+        {
+            problem.Extensions["field"] = field;
+        }
         problem.Extensions["correlationId"] = HttpContext.Items[CorrelationIdMiddleware.CorrelationIdItemKey]
             ?? HttpContext.TraceIdentifier;
         return new ObjectResult(problem)

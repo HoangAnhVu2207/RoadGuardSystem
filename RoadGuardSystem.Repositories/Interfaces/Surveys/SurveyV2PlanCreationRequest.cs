@@ -11,4 +11,6 @@ public sealed record SurveyV2PlanCreationRequest(
     string IdempotencyKey,
     string RequestFingerprint,
     Guid? CorrelationId,
-    IReadOnlyList<SurveyV2ScopeRequest>? Scope = null);
+    IReadOnlyList<SurveyV2ScopeRequest>? Scope = null,
+    Guid? WarrantyId = null,
+    string? RecurrenceFrequency = null);

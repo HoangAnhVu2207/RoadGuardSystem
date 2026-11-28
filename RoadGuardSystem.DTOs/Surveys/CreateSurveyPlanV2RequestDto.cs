@@ -5,4 +5,8 @@ namespace RoadGuardSystem.DTOs.Surveys;
 public sealed record CreateSurveyPlanV2RequestDto(
     [Required, MinLength(1)] IReadOnlyList<BandScopeDto> Scope,
     DateTimeOffset PlannedAt,
-    [Required] string SurveyType);
+    [Required] string SurveyType,
+    Guid? WarrantyId = null,
+    SurveyRecurrenceDto? Recurrence = null);
+
+public sealed record SurveyRecurrenceDto(string? Frequency, bool UntilWarrantyEnd);

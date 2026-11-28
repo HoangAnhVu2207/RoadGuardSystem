@@ -16,8 +16,22 @@ public sealed class SurveyPlan
     public Guid RoadSectionId { get; private set; }
 
     public Guid? RoadSectionVersionId { get; private set; }
+    public Guid? WarrantyId { get; private set; }
     public string? ScopeFormatVersion { get; private set; }
     public void SetBandScope() => ScopeFormatVersion = "BAND_V1";
+    public void SetWarranty(Guid warrantyId) => WarrantyId = warrantyId;
+
+    public void Reschedule(DateTimeOffset start, DateTimeOffset end, Guid warrantyId)
+    {
+        if (Status is not (SurveyPlanStatus.Planned or SurveyPlanStatus.Postponed))
+            throw new InvalidOperationException("Only unassigned survey plans can be rescheduled.");
+
+        PlannedStartAt = start.ToUniversalTime();
+        PlannedEndAt = end.ToUniversalTime();
+        WarrantyId = warrantyId;
+        Status = SurveyPlanStatus.Planned;
+    }
+
     public void MarkTaskCreated()
     {
         if (Status != SurveyPlanStatus.Planned) throw new InvalidOperationException("Only planned survey plans can create a task.");

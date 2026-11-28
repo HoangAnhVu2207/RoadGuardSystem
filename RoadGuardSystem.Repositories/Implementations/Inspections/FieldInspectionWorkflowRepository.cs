@@ -156,7 +156,16 @@ public sealed partial class FieldInspectionWorkflowRepository(RoadGuardDbContext
                 if (!await db.FieldInspectionAssignments.AnyAsync(x => x.Id == admitted.AssignmentId && x.FieldInspectionTaskId == taskId &&
                     x.AssignedToUserId == admitted.OriginalActorId && x.Status == FieldInspectionAssignmentStatus.Active && x.EndedAt == null, token)) Deny(409, "stale_snapshot");
             }
-            else if (a.CallerRole == UserRoleCode.RepairCrew && !await db.FieldInspectionAssignments.AnyAsync(x => x.FieldInspectionTaskId == taskId && x.AssignedToUserId == a.CallerId && x.Status == FieldInspectionAssignmentStatus.Active && x.EndedAt == null, token)) Deny(403, "access_forbidden");
+            else if (a.CallerRole == UserRoleCode.RepairCrew && !await db.FieldInspectionAssignments.AnyAsync(x => x.FieldInspectionTaskId == taskId && x.AssignedToUserId == a.CallerId && x.Status == FieldInspectionAssignmentStatus.Active && x.EndedAt == null, token))
+            {
+                if (c.Action == "get" && await db.FieldInspectionTaskEvents.AnyAsync(e =>
+                    e.ProjectId == c.ProjectId && e.TaskId == taskId && e.Kind == "ASSIGNMENT_ENDED" &&
+                    db.FieldInspectionAssignments.Any(x => x.Id == e.AssignmentId && x.FieldInspectionTaskId == taskId &&
+                        x.AssignedToUserId == a.CallerId && x.Status == FieldInspectionAssignmentStatus.Ended &&
+                        x.EndedAt == e.OccurredAt), token))
+                    Deny(403, "field_assignment_reassigned");
+                Deny(403, "access_forbidden");
+            }
             if (c.Input is FieldLocationImpactActionInputFact impact) await ImpactAsync(c, task, impact, token);
             if (c.Input is FieldReviewInputFact review && !await db.Set<FieldInspectionSubmission>().AnyAsync(x => x.Id == review.SubmissionId && x.TaskId == taskId, token)) Deny(404, "not_found");
             if (c.Action == "review" && await db.Set<DeadlineClock>().AnyAsync(x => x.ProjectId == c.ProjectId &&

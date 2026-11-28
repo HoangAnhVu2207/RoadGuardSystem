@@ -295,6 +295,7 @@ public sealed partial class FieldInspectionWorkflowRepository(RoadGuardDbContext
         var payload = Decode<FieldSubmissionInputFact>(row.PayloadJson);
         var root = await db.Set<FieldInspectionSubmission>().AsNoTracking().SingleAsync(x => x.Id == row.RootId, token);
         return new(row.Id, row.TaskId, row.RootId, row.ParentId, row.Revision, row.ServerReceivedAt, root.ServerReceivedAt.AddHours(24), row.Readiness,
-            Decode<string[]>(row.MissingReasonsJson), row.ContentHash, payload.Measurements ?? [], payload.Evidence ?? [], payload.CaptureType, payload.Repaired, payload.UnrepairedReason);
+            Decode<string[]>(row.MissingReasonsJson), row.ContentHash, payload.Measurements ?? [], payload.Evidence ?? [], payload.CaptureType, payload.Repaired, payload.UnrepairedReason,
+            await SubmissionProofAsync(row, payload, token), await EvidenceReferencesAsync(row, payload, token));
     }
 }

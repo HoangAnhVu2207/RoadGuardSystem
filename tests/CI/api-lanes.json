@@ -954,7 +954,8 @@
         "RoadGuardSystem.ApiTests.Projects.WebPmCoordinationHttpTests.RuntimeOpenApiDescribesWebRangesBatchAndScopedExport",
         "RoadGuardSystem.ApiTests.Projects.WebPmCoordinationHttpTests.ScopedRepairExportPersistsOnlySelectedItemAndRendersPdfAndZipToRealStorage",
         "RoadGuardSystem.ApiTests.Projects.WebPmCoordinationHttpTests.SurveySummaryBatchesStoredScopeCurrentNamesHistoryAndDatasetCounts",
-        "RoadGuardSystem.ApiTests.Projects.WebPmCoordinationHttpTests.UpgradeFromPreviousMigrationPreservesRowsAndExportsSchemaEvidence"
+        "RoadGuardSystem.ApiTests.Projects.WebPmCoordinationHttpTests.UpgradeFromPreviousMigrationPreservesRowsAndExportsSchemaEvidence",
+        "RoadGuardSystem.ApiTests.Authentication.ManualSwaggerContractTests.FieldCaptureGpsAndSubmissionProofExposeTypedIndependentReadback"
       ]
     },
     {
@@ -2026,7 +2027,8 @@
         "RoadGuardSystem.ApiTests.Reports.SurveyAiCaseDefectReportingSqlTests",
         "RoadGuardSystem.ApiTests.Sandbox.SandboxMailpitTests",
         "RoadGuardSystem.ApiTests.Sandbox.SandboxNotificationBoundaryTests",
-        "RoadGuardSystem.ApiTests.Sandbox.SandboxRouteAdmissionTests"
+        "RoadGuardSystem.ApiTests.Sandbox.SandboxRouteAdmissionTests",
+        "RoadGuardSystem.ApiTests.Inspections.FieldEvidenceLocationHttpTests"
       ],
       "expectedNames": [
         "RoadGuardSystem.ApiTests.Exports.Anh02ExportHttpTests.Actual_reporting_admission_protected_artifact_replay_expiry_and_revocation",
@@ -2105,7 +2107,9 @@
         "RoadGuardSystem.ApiTests.Sandbox.SandboxRouteAdmissionTests.W07RejectsAnonymousAndInvalidBearer",
         "RoadGuardSystem.ApiTests.Sandbox.SandboxRouteAdmissionTests.W08RejectsAnonymousAndInvalidBearer",
         "RoadGuardSystem.ApiTests.Sandbox.SandboxRouteAdmissionTests.W09RejectsAnonymousAndInvalidBearer",
-        "RoadGuardSystem.ApiTests.Sandbox.SandboxRouteAdmissionTests.W10RejectsAnonymousAndInvalidBearer"
+        "RoadGuardSystem.ApiTests.Sandbox.SandboxRouteAdmissionTests.W10RejectsAnonymousAndInvalidBearer",
+        "RoadGuardSystem.ApiTests.Inspections.FieldEvidenceLocationHttpTests.IndependentCaptureGpsSurvivesRealUploadReadbackReplayAndValidation",
+        "RoadGuardSystem.ApiTests.Inspections.FieldEvidenceLocationHttpTests.SubmissionReadbackPreservesDeclaredProofForExactRevision"
       ]
     }
   ]

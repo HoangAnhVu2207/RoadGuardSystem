@@ -7188,6 +7188,7 @@
         "codes": [
           "concurrency_conflict",
           "evidence_version_mismatch",
+          "field_submission_snapshot_inconsistent",
           "first_start_required",
           "idempotency_key_reused",
           "invalid_state_transition",
@@ -7196,7 +7197,7 @@
           "project_not_active",
           "submission_lineage_conflict"
         ],
-        "description": "Current source-reachable HTTP error; concurrency_conflict, evidence_version_mismatch, first_start_required, idempotency_key_reused, invalid_state_transition, legacy_task_read_only, origin_content_conflict, project_not_active, submission_lineage_conflict."
+        "description": "Current source-reachable HTTP error; concurrency_conflict, evidence_version_mismatch, first_start_required, idempotency_key_reused, invalid_state_transition, legacy_task_read_only, origin_content_conflict, project_not_active, submission_lineage_conflict. field_submission_snapshot_inconsistent."
       },
       {
         "status": 415,
@@ -7224,7 +7225,8 @@
       "Caller scope: Assigned Crew.",
       "Prerequisite producers from stable inventory: SWG-006, SWG-088, SWG-135, SWG-033, SWG-040, SWG-046, SWG-051. Obtain IDs/current source pins through legitimate producer responses; preserve existing evidence acceptance.",
       "Current task rowversion ETag from task GET, including submissions/reviews/start. Do not substitute submission contentHash. Exactly one quoted value.",
-      "Repository serializes receipt Value and controller derives ETag only when serialized object has version/contentHash; fresh/replay may emit different resource versions only as shown by actual value shape."
+      "Repository serializes receipt Value and controller derives ETag only when serialized object has version/contentHash; fresh/replay may emit different resource versions only as shown by actual value shape.",
+      "Read locationProof for the requested submission revision and evidence[].coordinates per capture; do not substitute task target/current GPS. See FIELD-EVIDENCE-GPS-READBACK.md."
     ],
     "conditionalInputs": [
       "Crew actions require current assigned actor; start offline proof/position/time, submission capture and evidence declarations follow current business guards."
@@ -7314,6 +7316,13 @@
         "description": "Current source-reachable HTTP error; not_found."
       },
       {
+        "status": 409,
+        "codes": [
+          "field_submission_snapshot_inconsistent"
+        ],
+        "description": "Immutable payload/projection disagreement; no repair or backfill is attempted. field_submission_snapshot_inconsistent."
+      },
+      {
         "status": 500,
         "codes": [
           "internal_error"
@@ -7323,7 +7332,8 @@
     ],
     "instructions": [
       "Caller scope: PM / Supervisor / assigned Crew.",
-      "Prerequisite producers from stable inventory: SWG-006, SWG-088, SWG-135, SWG-033, SWG-040, SWG-046, SWG-052. Obtain IDs/current source pins through legitimate producer responses; preserve existing evidence acceptance."
+      "Prerequisite producers from stable inventory: SWG-006, SWG-088, SWG-135, SWG-033, SWG-040, SWG-046, SWG-052. Obtain IDs/current source pins through legitimate producer responses; preserve existing evidence acceptance.",
+      "Read locationProof for the requested submission revision and evidence[].coordinates per capture; do not substitute task target/current GPS. See FIELD-EVIDENCE-GPS-READBACK.md."
     ],
     "conditionalInputs": [
       "Crew actions require current assigned actor; start offline proof/position/time, submission capture and evidence declarations follow current business guards."

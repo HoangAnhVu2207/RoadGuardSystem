@@ -4,7 +4,16 @@ namespace RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections;
 // Materialized persistence commands and snapshots, independent of public transport contracts.
 public sealed record FieldEvidenceDeclarationFact(Guid CaptureOriginId, Guid? FileId, string Purpose,
     string ChecksumSha256, string MediaType, DateTimeOffset? CapturedAt, string? AttemptChecklist,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] long? SizeBytes = null);
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] long? SizeBytes = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] FieldCaptureCoordinatesFact? Coordinates = null);
+
+// Device-declared WGS84 metadata, never independent location verification.
+public sealed record FieldCaptureCoordinatesFact(double? Longitude, double? Latitude,
+    double? AccuracyMeters = null, string? Source = null, DateTimeOffset? AcquiredAt = null);
+
+public sealed record FieldEvidenceReferenceFact(Guid EvidenceLinkId, Guid CaptureOriginId, Guid? FileId,
+    string? FileVersion, string ChecksumSha256, Guid OriginalActorId, Guid? SourceDeviceId,
+    Guid? ActualUploaderId, Guid? OfflineAdmissionId, Guid? GrantId);
 
 public sealed record FieldEvidenceReuseInputFact(Guid FileId, Guid SourceEvidenceId, string SourceKind, string ExpectedChecksum, string Reason);
 
@@ -32,7 +41,8 @@ public sealed record FieldSubmissionInputFact(Guid OriginId, Guid StartOriginId,
 public sealed record FieldSubmissionViewFact(Guid Id, Guid TaskId, Guid RootId, Guid? ParentId, int Revision,
     DateTimeOffset ServerReceivedAt, DateTimeOffset OriginalReviewDueAt, string Readiness,
     string[] MissingReasons, string ContentHash, FieldMeasurementInputFact[] Measurements,
-    FieldEvidenceDeclarationFact[] Evidence, string CaptureType, bool? Repaired, string? UnrepairedReason);
+    FieldEvidenceDeclarationFact[] Evidence, string CaptureType, bool? Repaired, string? UnrepairedReason,
+    FieldPositionProofInputFact? LocationProof = null, FieldEvidenceReferenceFact[]? EvidenceReferences = null);
 
 public sealed record FieldTaskActionInputFact(string Reason, Guid? AssignedToUserId = null, FieldHandoverInputFact? Handover = null);
 

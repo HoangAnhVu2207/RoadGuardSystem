@@ -19,13 +19,17 @@ public sealed class H5OfflineRepairSelectorTests
         var origin = Guid.NewGuid(); var device = Guid.NewGuid(); var item = Guid.NewGuid();
         var start = new RepairExecutionStartInput(origin, Guid.NewGuid(), DateTimeOffset.UtcNow, Guid.NewGuid(), device);
         var finish = new RepairExecutionFinishInput(origin, Guid.NewGuid(), DateTimeOffset.UtcNow, device);
-        var assessment = new RepairMeasurementAssessmentInput(origin, Guid.NewGuid(), null, null, null, device);
+        var assessment = new RepairMeasurementAssessmentInput(origin, Guid.NewGuid(), null,
+            [new(Guid.NewGuid(), null, "MEASUREMENT", new string('a', 64), "image/png", null, null, Coordinates: new(106.25, 10.75, 1.5))], null, device);
         var payload = new OfflineRepairPayload(item, action, Start: kind == "REPAIR_EXECUTION_START" ? start : null,
             Finish: kind == "REPAIR_EXECUTION_FINISH" ? finish : null,
             Assessment: kind == "REPAIR_ASSESSMENT" ? assessment : null);
         var operation = new OfflineOperationInput(1, origin, origin, kind, Guid.NewGuid(), device, Guid.NewGuid(),
             Guid.NewGuid(), Guid.NewGuid(), Convert.ToBase64String(new byte[8]), new string('a', 64), [], null, Repair: payload);
         Assert.Equal(item, OfflineWorkflowEngine.Describe(operation).RepairResourceId);
+        var mapped = OfflineContractMapping.ToData(operation);
+        Assert.Equal(JsonSerializer.Serialize(operation, Json), JsonSerializer.Serialize(mapped, Json));
+        Assert.Equal(JsonSerializer.Serialize(operation, Json), JsonSerializer.Serialize(OfflineContractMapping.ToWire(mapped), Json));
         Assert.Throws<ArgumentException>(() => OfflineWorkflowEngine.Describe(operation with
         { Repair = payload with { Action = "cancel" } }));
         Assert.Throws<ArgumentException>(() => OfflineWorkflowEngine.Describe(operation with

@@ -11,7 +11,7 @@ internal static class RepairContractMapping
         value.ChecksumSha256,
         value.MediaType,
         value.CapturedAt,
-        value.AttemptChecklist, value.SizeBytes);
+        value.AttemptChecklist, value.SizeBytes, value.Coordinates);
     public static RepairFieldMeasurementData ToData(FieldMeasurementInput value) => new(value.SampleId,
         value.Type,
         value.Value,

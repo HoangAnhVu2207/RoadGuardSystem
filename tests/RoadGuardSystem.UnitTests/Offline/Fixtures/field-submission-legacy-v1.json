@@ -1,0 +1,47 @@
+{
+  "evidence": "Synthetic pre-GPS FIELD_SUBMISSION property order; absent optional GPS and sizeBytes must not alter legacy UTF8/hash. No production credentials or geometry.",
+  "operation": {
+    "schemaVersion": 1,
+    "originId": "44444444-4444-4444-4444-444444444444",
+    "effectId": "44444444-4444-4444-4444-444444444444",
+    "kind": "FIELD_SUBMISSION",
+    "originalActorId": "22222222-2222-2222-2222-222222222222",
+    "sourceDeviceId": "33333333-3333-3333-3333-333333333333",
+    "snapshotId": "55555555-5555-5555-5555-555555555555",
+    "taskId": "11111111-1111-1111-1111-111111111111",
+    "assignmentId": "66666666-6666-6666-6666-666666666666",
+    "taskVersion": "AAAAAAAAAAA=",
+    "corePayloadHash": "55446db6d641d278c7e9331fe6bf26d3579bbe9580b34c2f11a6909ae0a096b8",
+    "dependencies": [],
+    "claimedFinishedAt": null,
+    "fieldStart": null,
+    "fieldSubmission": {
+      "originId": "44444444-4444-4444-4444-444444444444",
+      "startOriginId": "88888888-8888-8888-8888-888888888888",
+      "parentSubmissionId": null,
+      "measurements": [],
+      "evidence": [
+        {
+          "captureOriginId": "77777777-7777-7777-7777-777777777777",
+          "fileId": null,
+          "purpose": "MEASUREMENT",
+          "checksumSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "mediaType": "image/png",
+          "capturedAt": null,
+          "attemptChecklist": null
+        }
+      ],
+      "locationProof": null,
+      "captureType": "MEASUREMENT",
+      "repaired": null,
+      "unrepairedReason": null,
+      "deviceId": "33333333-3333-3333-3333-333333333333"
+    },
+    "repair": null,
+    "fieldAction": null
+  },
+  "coreCanonicalUtf8": "{\"id\":\"11111111-1111-1111-1111-111111111111\",\"input\":{\"originId\":\"44444444-4444-4444-4444-444444444444\",\"startOriginId\":\"88888888-8888-8888-8888-888888888888\",\"parentSubmissionId\":null,\"measurements\":[],\"evidence\":[{\"captureOriginId\":\"77777777-7777-7777-7777-777777777777\",\"fileId\":null,\"purpose\":\"MEASUREMENT\",\"checksumSha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"mediaType\":\"image/png\",\"capturedAt\":null,\"attemptChecklist\":null}],\"locationProof\":null,\"captureType\":\"MEASUREMENT\",\"repaired\":null,\"unrepairedReason\":null,\"deviceId\":\"33333333-3333-3333-3333-333333333333\"},\"originalActorId\":\"22222222-2222-2222-2222-222222222222\"}",
+  "coreSha256": "55446db6d641d278c7e9331fe6bf26d3579bbe9580b34c2f11a6909ae0a096b8",
+  "envelopeCanonicalUtf8": "{\"schemaVersion\":1,\"originId\":\"44444444-4444-4444-4444-444444444444\",\"effectId\":\"44444444-4444-4444-4444-444444444444\",\"kind\":\"FIELD_SUBMISSION\",\"originalActorId\":\"22222222-2222-2222-2222-222222222222\",\"sourceDeviceId\":\"33333333-3333-3333-3333-333333333333\",\"snapshotId\":\"55555555-5555-5555-5555-555555555555\",\"taskId\":\"11111111-1111-1111-1111-111111111111\",\"assignmentId\":\"66666666-6666-6666-6666-666666666666\",\"taskVersion\":\"AAAAAAAAAAA=\",\"corePayloadHash\":\"55446db6d641d278c7e9331fe6bf26d3579bbe9580b34c2f11a6909ae0a096b8\",\"dependencies\":[],\"claimedFinishedAt\":null,\"fieldStart\":null,\"fieldSubmission\":{\"originId\":\"44444444-4444-4444-4444-444444444444\",\"startOriginId\":\"88888888-8888-8888-8888-888888888888\",\"parentSubmissionId\":null,\"measurements\":[],\"evidence\":[{\"captureOriginId\":\"77777777-7777-7777-7777-777777777777\",\"fileId\":null,\"purpose\":\"MEASUREMENT\",\"checksumSha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"mediaType\":\"image/png\",\"capturedAt\":null,\"attemptChecklist\":null}],\"locationProof\":null,\"captureType\":\"MEASUREMENT\",\"repaired\":null,\"unrepairedReason\":null,\"deviceId\":\"33333333-3333-3333-3333-333333333333\"},\"repair\":null,\"fieldAction\":null}",
+  "envelopeSha256": "889dea6dae3354c5ccf4b2180802d58ecc4bdfd1b279789f47b9b0acc1555439"
+}

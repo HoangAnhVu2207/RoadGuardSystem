@@ -11,6 +11,31 @@ namespace RoadGuardSystem.ApiTests.Authentication;
 public sealed class ManualSwaggerContractTests
 {
     [Fact]
+    public async Task FieldCaptureGpsAndSubmissionProofExposeTypedIndependentReadback()
+    {
+        using var document = await Document();
+        if (Environment.GetEnvironmentVariable("RG_FIELD_GPS_SWAGGER") is { } output)
+            await File.WriteAllTextAsync(output, document.RootElement.GetRawText());
+        var schemas = document.RootElement.GetProperty("components").GetProperty("schemas");
+        foreach (var name in new[] { "FieldCaptureCoordinates", "FieldCaptureCoordinatesFact" })
+        {
+            var schema = schemas.GetProperty(name);
+            Assert.Contains(schema.GetProperty("required").EnumerateArray(), x => x.GetString() == "longitude");
+            Assert.Contains(schema.GetProperty("required").EnumerateArray(), x => x.GetString() == "latitude");
+            var point = schema.GetProperty("properties");
+            Assert.Equal(-180, point.GetProperty("longitude").GetProperty("minimum").GetDouble());
+            Assert.Equal(90, point.GetProperty("latitude").GetProperty("maximum").GetDouble());
+            Assert.True(point.GetProperty("accuracyMeters").GetProperty("nullable").GetBoolean());
+        }
+        var submission = schemas.GetProperty("FieldSubmissionViewFact").GetProperty("properties");
+        Assert.True(submission.GetProperty("locationProof").GetProperty("nullable").GetBoolean());
+        Assert.True(submission.TryGetProperty("evidenceReferences", out _));
+        Assert.True(schemas.GetProperty("FieldEvidenceDeclarationFact").GetProperty("properties").GetProperty("coordinates").GetProperty("nullable").GetBoolean());
+        var operation = document.RootElement.GetProperty("paths").GetProperty("/api/v1/projects/{projectId}/field-inspection-tasks/{taskId}/submissions/{submissionId}").GetProperty("get");
+        Assert.Contains("field_submission_snapshot_inconsistent", operation.GetProperty("responses").GetProperty("409").GetProperty("description").GetString());
+    }
+
+    [Fact]
     public async Task SurveyPlanClosureAndReadbacksDocumentTypedSourcesAndWebSecurity()
     {
         using var document = await Document();

@@ -1,5 +1,7 @@
 # FIELD measurements and invitation preview
 
+Cập nhật 2026-11-28: GPS riêng từng ảnh và proof theo revision được mô tả tại [FIELD-EVIDENCE-GPS-READBACK.md](FIELD-EVIDENCE-GPS-READBACK.md). GPS optional nằm trong evidence declaration đã ký; absent/null không đổi canonical payload legacy. Không thay readiness hoặc quyền tải file.
+
 ## FIELD measurements
 
 POST /api/v1/projects/{projectId}/field-inspection-tasks/{taskId}/submissions keeps the existing measurements array. Each item uses its own sampleId, type, value, state, dimension, unit, instrument, method and location metadata. GET /api/v1/projects/{projectId}/field-inspection-tasks/{taskId}/submissions/{submissionId} returns the same typed measurements from the immutable submission snapshot.

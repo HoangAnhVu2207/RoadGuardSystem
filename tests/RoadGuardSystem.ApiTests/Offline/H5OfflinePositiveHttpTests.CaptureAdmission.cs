@@ -47,7 +47,7 @@ public sealed partial class H5OfflinePositiveHttpTests
         var hash = Convert.ToHexString(SHA256.HashData(photo)).ToLowerInvariant();
         var capture = Guid.NewGuid(); var origin = Guid.NewGuid();
         var submission = new FieldSubmissionInput(origin, start.EffectId, null, [],
-            [new(capture, null, "MEASUREMENT", hash, "image/png", DateTimeOffset.UtcNow, null, photo.Length)],
+            [new(capture, null, "MEASUREMENT", hash, "image/png", DateTimeOffset.UtcNow, null, photo.Length, new(106.25, 10.75, 2.5, "CAPTURE", DateTimeOffset.UtcNow))],
             new("POSITION_CHECKLIST", "observed", null, null, ObservedRouteVersionId: scope.Route,
                 ObservedChainageMeters: 10), "MEASUREMENT", null, null, device);
         var operation = new OfflineOperationInput(1, origin, origin, "FIELD_SUBMISSION", crew.Id, device,
@@ -198,6 +198,18 @@ public sealed partial class H5OfflinePositiveHttpTests
         var transport = await db.Set<OfflineEvidenceCaptureReference>().SingleAsync(e => e.FileId == fileId);
         Assert.Equal(crew.Id, transport.OriginalActorId);
         Assert.Equal(handover ? pm.Id : crew.Id, transport.ActualUploaderId);
+        await LoginAsync(client, crew.UserName!);
+        var savedSubmission = await db.Set<FieldInspectionSubmission>().SingleAsync(s => s.TaskId == task.TaskId);
+        var readback = await Body(await client.GetAsync(field + $"/{task.TaskId}/submissions/{savedSubmission.Id}"), 200);
+        Assert.Equal(106.25, readback.GetProperty("evidence")[0].GetProperty("coordinates").GetProperty("longitude").GetDouble());
+        Assert.Equal(10, readback.GetProperty("locationProof").GetProperty("observedChainageMeters").GetDouble());
+        var reference = readback.GetProperty("evidenceReferences")[0];
+        Assert.Equal(crew.Id, reference.GetProperty("originalActorId").GetGuid());
+        Assert.Equal(device, reference.GetProperty("sourceDeviceId").GetGuid());
+        Assert.Equal(handover ? pm.Id : crew.Id, reference.GetProperty("actualUploaderId").GetGuid());
+        Assert.Equal(fileId, reference.GetProperty("fileId").GetGuid());
+        Assert.Equal(admissionId, reference.GetProperty("offlineAdmissionId").GetGuid());
+        await LoginAsync(client, currentUser);
         var expiredAssignment = await db.FieldInspectionAssignments.SingleAsync(a => a.Id == task.AssignmentId);
         expiredAssignment.End(DateTimeOffset.UtcNow, "Revoked after commit"); await db.SaveChangesAsync();
         Assert.Equal(HttpStatusCode.Conflict, (await client.GetAsync(offline + $"/batches/{serverBatch}")).StatusCode);

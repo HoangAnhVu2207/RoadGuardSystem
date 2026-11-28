@@ -1433,7 +1433,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Unique key for this command; after trimming ASCII spaces: 1–150 visible ASCII characters. Reuse only for an intentional replay of the same request.",
+            "description": "Unique key for this command; after trimming ASCII spaces: 1â€“150 visible ASCII characters. Reuse only for an intentional replay of the same request.",
             "schema": {
               "type": "string"
             },
@@ -1579,7 +1579,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Unique key for this command; after trimming ASCII spaces: 1–150 visible ASCII characters. Reuse only for an intentional replay of the same request.",
+            "description": "Unique key for this command; after trimming ASCII spaces: 1â€“150 visible ASCII characters. Reuse only for an intentional replay of the same request.",
             "schema": {
               "type": "string"
             },
@@ -3551,7 +3551,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Unique key for this command; after trimming ASCII spaces: 1–200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
+            "description": "Unique key for this command; after trimming ASCII spaces: 1â€“200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
             "required": true,
             "schema": {
               "minLength": 1,
@@ -4675,7 +4675,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Unique key for this command; after trimming ASCII spaces: 1–200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
+            "description": "Unique key for this command; after trimming ASCII spaces: 1â€“200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
             "required": true,
             "schema": {
               "minLength": 1,
@@ -4968,7 +4968,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Unique key for this command; after trimming ASCII spaces: 1–200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
+            "description": "Unique key for this command; after trimming ASCII spaces: 1â€“200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
             "required": true,
             "schema": {
               "minLength": 1,
@@ -5261,7 +5261,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Unique key for this command; after trimming ASCII spaces: 1–200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
+            "description": "Unique key for this command; after trimming ASCII spaces: 1â€“200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
             "required": true,
             "schema": {
               "minLength": 1,
@@ -5561,7 +5561,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Unique key for this command; after trimming ASCII spaces: 1–200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
+            "description": "Unique key for this command; after trimming ASCII spaces: 1â€“200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
             "required": true,
             "schema": {
               "minLength": 1,
@@ -5822,12 +5822,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-026",
@@ -5853,7 +5853,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Unique key for this command; after trimming ASCII spaces: 1–200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
+            "description": "Unique key for this command; after trimming ASCII spaces: 1â€“200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
             "required": true,
             "schema": {
               "minLength": 1,
@@ -7947,7 +7947,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Unique key for this command; after trimming ASCII spaces: 1–200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
+            "description": "Unique key for this command; after trimming ASCII spaces: 1â€“200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
             "required": true,
             "schema": {
               "minLength": 1,
@@ -8230,7 +8230,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Unique key for this command; after trimming ASCII spaces: 1–200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
+            "description": "Unique key for this command; after trimming ASCII spaces: 1â€“200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
             "required": true,
             "schema": {
               "minLength": 1,
@@ -10282,10 +10282,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ]
       },
@@ -10565,12 +10565,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-036",
@@ -13402,10 +13402,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-037",
@@ -13563,10 +13563,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-038",
@@ -13800,10 +13800,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-039",
@@ -14722,10 +14722,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-043",
@@ -17582,7 +17582,7 @@
             }
           },
           "409": {
-            "description": "Error codes: concurrency_conflict, evidence_version_mismatch, first_start_required, idempotency_key_reused, invalid_state_transition, legacy_task_read_only, origin_content_conflict, project_not_active, submission_lineage_conflict.",
+            "description": "Error codes: concurrency_conflict, evidence_version_mismatch, field_submission_snapshot_inconsistent, first_start_required, idempotency_key_reused, invalid_state_transition, legacy_task_read_only, origin_content_conflict, project_not_active, submission_lineage_conflict.",
             "headers": {
               "X-Correlation-ID": {
                 "description": "Request correlation UUID, emitted by middleware on all responses.",
@@ -17811,6 +17811,25 @@
           },
           "404": {
             "description": "Error codes: not_found.",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "Request correlation UUID, emitted by middleware on all responses.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error codes: field_submission_snapshot_inconsistent.",
             "headers": {
               "X-Correlation-ID": {
                 "description": "Request correlation UUID, emitted by middleware on all responses.",
@@ -26142,7 +26161,7 @@
         "tags": [
           "H6NotificationOperations"
         ],
-        "description": "Authenticated Bearer or Web session. Project reads require current PM membership or Supervisor authority. Web writes require X-CSRF-TOKEN from GET /api/v1/auth/web/csrf and browser credentials. Locality/organization writes require Supervisor; planning writes require current project PM. Repair policy discovery remains PM-only. Null means metadata was not stored; names are current account names. Batch limit 1–100. First call captures a database rowversion snapshot. Repeat subsequent batches with the returned snapshotVersion and the same through cutoff, using a new key per batch. Newly inserted notifications, including backdated events, are outside this snapshot. Entire batch commits atomically; no partial success.",
+        "description": "Authenticated Bearer or Web session. Project reads require current PM membership or Supervisor authority. Web writes require X-CSRF-TOKEN from GET /api/v1/auth/web/csrf and browser credentials. Locality/organization writes require Supervisor; planning writes require current project PM. Repair policy discovery remains PM-only. Null means metadata was not stored; names are current account names. Batch limit 1â€“100. First call captures a database rowversion snapshot. Repeat subsequent batches with the returned snapshotVersion and the same through cutoff, using a new key per batch. Newly inserted notifications, including backdated events, are outside this snapshot. Entire batch commits atomically; no partial success.",
         "parameters": [
           {
             "name": "Idempotency-Key",
@@ -31812,12 +31831,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-098",
@@ -33629,12 +33648,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-105",
@@ -33813,10 +33832,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-106",
@@ -33995,10 +34014,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-107",
@@ -47268,10 +47287,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-164",
@@ -47418,10 +47437,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-165",
@@ -48044,7 +48063,7 @@
         "tags": [
           "RepairSafety"
         ],
-        "description": "Crew see assigned unresolved measures. PM/Supervisor discover this item’s measures under current safety responsibility. Read each measure for checks, warnings, ACK and history. This does not grant writes or change the separate unresolved selection.",
+        "description": "Crew see assigned unresolved measures. PM/Supervisor discover this itemâ€™s measures under current safety responsibility. Read each measure for checks, warnings, ACK and history. This does not grant writes or change the separate unresolved selection.",
         "parameters": [
           {
             "name": "projectId",
@@ -48138,10 +48157,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ]
       },
@@ -50310,7 +50329,7 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-170",
@@ -52637,7 +52656,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Unique key for this command; after trimming ASCII spaces: 1–200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
+            "description": "Unique key for this command; after trimming ASCII spaces: 1â€“200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
             "required": true,
             "schema": {
               "minLength": 1,
@@ -53078,7 +53097,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Unique key for this command; after trimming ASCII spaces: 1–200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
+            "description": "Unique key for this command; after trimming ASCII spaces: 1â€“200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
             "required": true,
             "schema": {
               "minLength": 1,
@@ -55440,12 +55459,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ]
       },
@@ -55569,10 +55588,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ]
       }
@@ -56391,7 +56410,7 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           }
         ]
       }
@@ -56428,7 +56447,7 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           }
         ]
       }
@@ -56499,7 +56518,7 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           }
         ]
       }
@@ -61415,7 +61434,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Unique key for this command; after trimming ASCII spaces: 1–200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
+            "description": "Unique key for this command; after trimming ASCII spaces: 1â€“200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
             "required": true,
             "schema": {
               "minLength": 1,
@@ -61995,7 +62014,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Unique key for this command; after trimming ASCII spaces: 1–200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
+            "description": "Unique key for this command; after trimming ASCII spaces: 1â€“200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
             "required": true,
             "schema": {
               "minLength": 1,
@@ -62276,7 +62295,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Unique key for this command; after trimming ASCII spaces: 1–200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
+            "description": "Unique key for this command; after trimming ASCII spaces: 1â€“200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
             "required": true,
             "schema": {
               "minLength": 1,
@@ -63509,12 +63528,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ],
         "x-roadguard-api-id": "SWG-226",
@@ -65913,7 +65932,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Unique key for this command; after trimming ASCII spaces: 1–200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
+            "description": "Unique key for this command; after trimming ASCII spaces: 1â€“200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
             "required": true,
             "schema": {
               "minLength": 1,
@@ -67285,10 +67304,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ]
       }
@@ -67359,10 +67378,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ]
       }
@@ -67450,10 +67469,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ]
       }
@@ -67550,10 +67569,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ]
       }
@@ -67650,10 +67669,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ]
       }
@@ -67762,10 +67781,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ]
       }
@@ -67835,10 +67854,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ]
       },
@@ -67945,12 +67964,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ]
       }
@@ -68098,12 +68117,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ]
       }
@@ -68283,10 +68302,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ]
       }
@@ -68472,10 +68491,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ]
       }
@@ -68625,10 +68644,10 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": []
+            "WebSession": [ ]
           }
         ]
       },
@@ -68843,12 +68862,12 @@
         },
         "security": [
           {
-            "Bearer": []
+            "Bearer": [ ]
           },
           {
-            "WebSession": [],
-            "CsrfToken": [],
-            "AntiforgeryCookie": []
+            "WebSession": [ ],
+            "CsrfToken": [ ],
+            "AntiforgeryCookie": [ ]
           }
         ]
       }
@@ -73695,6 +73714,15 @@
             "description": "Optional signed original byte length. Positive and exact when present; omitted when null to preserve legacy canonical signatures.",
             "format": "int64",
             "nullable": true
+          },
+          "coordinates": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FieldCaptureCoordinates"
+              }
+            ],
+            "description": "Optional per-capture device declaration; omitted when absent, including legacy canonical signed bytes. Not independently verified. Never copied from submission locationProof.",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -73735,6 +73763,15 @@
           "sizeBytes": {
             "type": "integer",
             "format": "int64",
+            "nullable": true
+          },
+          "coordinates": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FieldCaptureCoordinatesFact"
+              }
+            ],
+            "description": "Optional per-capture device declaration; omitted when absent, including legacy canonical signed bytes. Not independently verified. Never copied from submission locationProof.",
             "nullable": true
           }
         },
@@ -74205,6 +74242,22 @@
           "unrepairedReason": {
             "type": "string",
             "nullable": true
+          },
+          "locationProof": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FieldPositionProofInputFact"
+              }
+            ],
+            "description": "Exact immutable submission declaration. Null when not declared; explicit UNKNOWN remains an object. Chainage is metres. Inconsistent persistence returns 409 field_submission_snapshot_inconsistent.",
+            "nullable": true
+          },
+          "evidenceReferences": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FieldEvidenceReferenceFact"
+            },
+            "description": "Immutable evidence link/file-version/hash lineage matched by captureOriginId. Server IDs are not inserted into a signed declaration; unavailable legacy provenance stays null."
           }
         },
         "additionalProperties": false
@@ -84933,6 +84986,22 @@
           "unrepairedReason": {
             "type": "string",
             "nullable": true
+          },
+          "locationProof": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FieldPositionProofInput"
+              }
+            ],
+            "description": "Exact immutable submission declaration. Null when not declared; explicit UNKNOWN remains an object. Chainage is metres. Inconsistent persistence returns 409 field_submission_snapshot_inconsistent.",
+            "nullable": true
+          },
+          "evidenceReferences": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FieldEvidenceReference"
+            },
+            "description": "Immutable evidence link/file-version/hash lineage matched by captureOriginId. Server IDs are not inserted into a signed declaration; unavailable legacy provenance stays null."
           }
         },
         "additionalProperties": false
@@ -85047,7 +85116,7 @@
             "type": "string",
             "format": "date-time"
           },
-          "provenance": {}
+          "provenance": { }
         },
         "additionalProperties": false
       },
@@ -85327,12 +85396,12 @@
         "properties": {
           "assignments": {
             "type": "array",
-            "items": {},
+            "items": { },
             "nullable": true
           },
           "events": {
             "type": "array",
-            "items": {},
+            "items": { },
             "nullable": true
           },
           "details": {
@@ -86598,6 +86667,231 @@
           },
           "reason": {
             "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "FieldCaptureCoordinates": {
+        "required": [
+          "latitude",
+          "longitude"
+        ],
+        "type": "object",
+        "properties": {
+          "longitude": {
+            "maximum": 180,
+            "minimum": -180,
+            "type": "number",
+            "description": "Device-declared WGS84 capture only; finite longitude/latitude pair required when coordinates is present. Accuracy is metres, nullable, never inferred as zero.",
+            "format": "double"
+          },
+          "latitude": {
+            "maximum": 90,
+            "minimum": -90,
+            "type": "number",
+            "description": "Device-declared WGS84 capture only; finite longitude/latitude pair required when coordinates is present. Accuracy is metres, nullable, never inferred as zero.",
+            "format": "double"
+          },
+          "accuracyMeters": {
+            "minimum": 0,
+            "type": "number",
+            "description": "Device-declared WGS84 capture only; finite longitude/latitude pair required when coordinates is present. Accuracy is metres, nullable, never inferred as zero.",
+            "format": "double",
+            "nullable": true
+          },
+          "source": {
+            "type": "string",
+            "nullable": true
+          },
+          "acquiredAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "FieldCaptureCoordinatesFact": {
+        "required": [
+          "latitude",
+          "longitude"
+        ],
+        "type": "object",
+        "properties": {
+          "longitude": {
+            "maximum": 180,
+            "minimum": -180,
+            "type": "number",
+            "description": "Device-declared WGS84 capture only; finite longitude/latitude pair required when coordinates is present. Accuracy is metres, nullable, never inferred as zero.",
+            "format": "double"
+          },
+          "latitude": {
+            "maximum": 90,
+            "minimum": -90,
+            "type": "number",
+            "description": "Device-declared WGS84 capture only; finite longitude/latitude pair required when coordinates is present. Accuracy is metres, nullable, never inferred as zero.",
+            "format": "double"
+          },
+          "accuracyMeters": {
+            "minimum": 0,
+            "type": "number",
+            "description": "Device-declared WGS84 capture only; finite longitude/latitude pair required when coordinates is present. Accuracy is metres, nullable, never inferred as zero.",
+            "format": "double",
+            "nullable": true
+          },
+          "source": {
+            "type": "string",
+            "nullable": true
+          },
+          "acquiredAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "FieldEvidenceReference": {
+        "type": "object",
+        "properties": {
+          "evidenceLinkId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "captureOriginId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fileId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "fileVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "checksumSha256": {
+            "type": "string",
+            "nullable": true
+          },
+          "originalActorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sourceDeviceId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "actualUploaderId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "offlineAdmissionId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "grantId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "FieldEvidenceReferenceFact": {
+        "type": "object",
+        "properties": {
+          "evidenceLinkId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "captureOriginId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fileId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "fileVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "checksumSha256": {
+            "type": "string",
+            "nullable": true
+          },
+          "originalActorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sourceDeviceId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "actualUploaderId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "offlineAdmissionId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "grantId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "FieldPositionProofInputFact": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "nullable": true
+          },
+          "checklist": {
+            "type": "string",
+            "nullable": true
+          },
+          "longitude": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "latitude": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "observedSlabId": {
+            "type": "string",
+            "nullable": true
+          },
+          "observedSegmentId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "observedRouteVersionId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "observedChainageMeters": {
+            "type": "number",
+            "format": "double",
             "nullable": true
           }
         },

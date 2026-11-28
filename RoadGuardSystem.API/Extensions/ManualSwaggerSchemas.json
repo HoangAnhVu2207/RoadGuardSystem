@@ -3,7 +3,11 @@
     {
       "dto": "RoadGuardSystem.DTOs.Surveys.SurveyRecurrenceDto",
       "property": "frequency",
-      "enum": ["NONE", "WEEKLY", "MONTHLY"],
+      "enum": [
+        "NONE",
+        "WEEKLY",
+        "MONTHLY"
+      ],
       "description": "WEEKLY and MONTHLY use the Vietnam calendar and require untilWarrantyEnd."
     },
     {
@@ -6559,6 +6563,100 @@
       "property": "reason",
       "nullable": true,
       "description": "Stored reason of the current SUPPLEMENT review matching this attempt and effective submission; null for other decisions or absent legacy reason. Never taken from notifications or final decisions."
+    },
+    {
+      "dto": "RoadGuardSystem.DTOs.Inspections.FieldCaptureCoordinates",
+      "property": "longitude",
+      "clrProperty": "Longitude",
+      "nullable": false,
+      "required": true,
+      "description": "Device-declared WGS84 capture only; finite longitude/latitude pair required when coordinates is present. Accuracy is metres, nullable, never inferred as zero.",
+      "minimum": -180,
+      "maximum": 180
+    },
+    {
+      "dto": "RoadGuardSystem.DTOs.Inspections.FieldCaptureCoordinates",
+      "property": "latitude",
+      "clrProperty": "Latitude",
+      "nullable": false,
+      "required": true,
+      "description": "Device-declared WGS84 capture only; finite longitude/latitude pair required when coordinates is present. Accuracy is metres, nullable, never inferred as zero.",
+      "minimum": -90,
+      "maximum": 90
+    },
+    {
+      "dto": "RoadGuardSystem.DTOs.Inspections.FieldCaptureCoordinates",
+      "property": "accuracyMeters",
+      "clrProperty": "AccuracyMeters",
+      "nullable": true,
+      "required": false,
+      "description": "Device-declared WGS84 capture only; finite longitude/latitude pair required when coordinates is present. Accuracy is metres, nullable, never inferred as zero.",
+      "minimum": 0
+    },
+    {
+      "dto": "RoadGuardSystem.DTOs.Inspections.FieldEvidenceDeclaration",
+      "property": "coordinates",
+      "nullable": true,
+      "description": "Optional per-capture device declaration; omitted when absent, including legacy canonical signed bytes. Not independently verified. Never copied from submission locationProof."
+    },
+    {
+      "dto": "RoadGuardSystem.DTOs.Inspections.FieldSubmissionView",
+      "property": "locationProof",
+      "nullable": true,
+      "description": "Exact immutable submission declaration. Null when not declared; explicit UNKNOWN remains an object. Chainage is metres. Inconsistent persistence returns 409 field_submission_snapshot_inconsistent."
+    },
+    {
+      "dto": "RoadGuardSystem.DTOs.Inspections.FieldSubmissionView",
+      "property": "evidenceReferences",
+      "nullable": false,
+      "description": "Immutable evidence link/file-version/hash lineage matched by captureOriginId. Server IDs are not inserted into a signed declaration; unavailable legacy provenance stays null."
+    },
+    {
+      "dto": "RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldCaptureCoordinatesFact",
+      "property": "longitude",
+      "clrProperty": "Longitude",
+      "nullable": false,
+      "required": true,
+      "description": "Device-declared WGS84 capture only; finite longitude/latitude pair required when coordinates is present. Accuracy is metres, nullable, never inferred as zero.",
+      "minimum": -180,
+      "maximum": 180
+    },
+    {
+      "dto": "RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldCaptureCoordinatesFact",
+      "property": "latitude",
+      "clrProperty": "Latitude",
+      "nullable": false,
+      "required": true,
+      "description": "Device-declared WGS84 capture only; finite longitude/latitude pair required when coordinates is present. Accuracy is metres, nullable, never inferred as zero.",
+      "minimum": -90,
+      "maximum": 90
+    },
+    {
+      "dto": "RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldCaptureCoordinatesFact",
+      "property": "accuracyMeters",
+      "clrProperty": "AccuracyMeters",
+      "nullable": true,
+      "required": false,
+      "description": "Device-declared WGS84 capture only; finite longitude/latitude pair required when coordinates is present. Accuracy is metres, nullable, never inferred as zero.",
+      "minimum": 0
+    },
+    {
+      "dto": "RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldEvidenceDeclarationFact",
+      "property": "coordinates",
+      "nullable": true,
+      "description": "Optional per-capture device declaration; omitted when absent, including legacy canonical signed bytes. Not independently verified. Never copied from submission locationProof."
+    },
+    {
+      "dto": "RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldSubmissionViewFact",
+      "property": "locationProof",
+      "nullable": true,
+      "description": "Exact immutable submission declaration. Null when not declared; explicit UNKNOWN remains an object. Chainage is metres. Inconsistent persistence returns 409 field_submission_snapshot_inconsistent."
+    },
+    {
+      "dto": "RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldSubmissionViewFact",
+      "property": "evidenceReferences",
+      "nullable": false,
+      "description": "Immutable evidence link/file-version/hash lineage matched by captureOriginId. Server IDs are not inserted into a signed declaration; unavailable legacy provenance stays null."
     }
   ],
   "queryParameters": [
@@ -6911,6 +7009,54 @@
             ],
             "additionalProperties": false
           }
+        }
+      }
+    },
+    "RoadGuardSystem.DTOs.Inspections.FieldEvidenceDeclaration": {
+      "properties": {
+        "coordinates": {
+          "allOf": [
+            {
+              "clrType": "RoadGuardSystem.DTOs.Inspections.FieldCaptureCoordinates"
+            }
+          ],
+          "nullable": true
+        }
+      }
+    },
+    "RoadGuardSystem.DTOs.Inspections.FieldSubmissionView": {
+      "properties": {
+        "locationProof": {
+          "allOf": [
+            {
+              "clrType": "RoadGuardSystem.DTOs.Inspections.FieldPositionProofInput"
+            }
+          ],
+          "nullable": true
+        }
+      }
+    },
+    "RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldEvidenceDeclarationFact": {
+      "properties": {
+        "coordinates": {
+          "allOf": [
+            {
+              "clrType": "RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldCaptureCoordinatesFact"
+            }
+          ],
+          "nullable": true
+        }
+      }
+    },
+    "RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldSubmissionViewFact": {
+      "properties": {
+        "locationProof": {
+          "allOf": [
+            {
+              "clrType": "RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldPositionProofInputFact"
+            }
+          ],
+          "nullable": true
         }
       }
     }

@@ -66,6 +66,21 @@ public sealed class H5OfflineCanonicalRegistrySqlTests(IdentitySqlServerFixture 
         var file = await db.Files.AsNoTracking().SingleAsync(row => row.Id == source.FileId);
         var privateScope = await db.FileScopes.AsNoTracking().SingleAsync(row => row.FileId == file.Id);
         Assert.Null(privateScope.ProjectId); Assert.NotEqual(source.Scope.Crew, privateScope.OwnerUserId);
+        var reuse = await db.Set<FieldInspectionEvidenceReuseDecision>().AsNoTracking().SingleAsync(x => x.TaskId == source.TaskId);
+        using var provenance = JsonDocument.Parse(reuse.ProvenanceJson);
+        var sourceGps = provenance.RootElement.GetProperty("source").GetProperty("captureMetadata");
+        Assert.Equal(105.75m, sourceGps.GetProperty("longitude").GetDecimal());
+        Assert.Equal(10.5m, sourceGps.GetProperty("latitude").GetDecimal());
+        Assert.Null(declaration.Coordinates);
+        if (!endSource)
+        {
+            var retainedInput = JsonSerializer.Deserialize<OfflineOperationInput>(binding.EnvelopeJson, Json)!.FieldSubmission!;
+            var replacementGps = retainedInput with { OriginId = Guid.NewGuid(), Evidence = [declaration with { Coordinates = new(110, 12) }] };
+            var denied = await Command(db, source.Scope, source.Scope.Crew, UserRoleCode.RepairCrew, source.TaskId, "submit", replacementGps);
+            Assert.Equal(400, denied.Status); Assert.Equal("validation_error", denied.Code);
+            Assert.Equal(reuse.ProvenanceJson, await db.Set<FieldInspectionEvidenceReuseDecision>().Where(x => x.Id == reuse.Id).Select(x => x.ProvenanceJson).SingleAsync());
+        }
+
         await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
         var validator = new OfflineAdmissionValidator(db, TimeProvider.System);
         if (endSource)
@@ -390,7 +405,7 @@ public sealed class H5OfflineCanonicalRegistrySqlTests(IdentitySqlServerFixture 
                     evidenceId = Guid.NewGuid();
                     var report = await db.Reports.SingleAsync(row => row.Id == reportId);
                     report.AddSupplement(Guid.NewGuid(), "controlled supplement for approved BEFORE reuse",
-                        [VerifiedEvidenceReference.Create(evidenceId, file.Id, evidence.FileVersion, evidence.OwnerUserId)], now);
+                        [VerifiedEvidenceReference.Create(evidenceId, file.Id, evidence.FileVersion, evidence.OwnerUserId, evidence.CaptureMetadata)], now);
                     await db.SaveChangesAsync(); db.ChangeTracker.Clear();
                 }
                 Assert.Equal(201, (await Command(db, scope, scope.Pm, UserRoleCode.ProjectManager, taskId, "reuse",
@@ -410,7 +425,7 @@ public sealed class H5OfflineCanonicalRegistrySqlTests(IdentitySqlServerFixture 
             var body = new FieldSubmissionInput(origin, firstStart!.Value, null,
                 [new("zero", "Length", 0, "KNOWN", null, "LENGTH", "mm", null, null, "GPS unavailable", "gauge", "measurement")],
                 [new(captureOrigin.Value, unboundCapture ? null : file.Id, reuseBefore ? "BEFORE" : "MEASUREMENT",
-                    file.Checksum, file.MimeType, now, null)],
+                    file.Checksum, file.MimeType, now, null, Coordinates: reuseBefore ? null : new(106.25, 10.75, null, "CAPTURE", now))],
                 null, "MEASUREMENT", null, null, deviceId);
             operation = new(1, origin, origin, "FIELD_SUBMISSION", scope.Crew, deviceId, snapshot.Id, taskId, assignment.Id,
                 snapshot.TaskVersion, new string('0', 64), [], null, FieldSubmission: body);
@@ -1056,7 +1071,7 @@ public sealed class H5OfflineCanonicalRegistrySqlTests(IdentitySqlServerFixture 
         db.Add(upload); await db.SaveChangesAsync(); upload.StartVerification(Convert.ToBase64String(upload.RowVersion), now);
         await db.SaveChangesAsync(); upload.MarkVerified(); await db.SaveChangesAsync();
         var report = Report.Create(Guid.NewGuid(), reporter.Id, "genuine Reporter without Survey", now,
-            [VerifiedEvidenceReference.Create(Guid.NewGuid(), file.Id, Convert.ToBase64String(upload.RowVersion), reporter.Id)]);
+            [VerifiedEvidenceReference.Create(Guid.NewGuid(), file.Id, Convert.ToBase64String(upload.RowVersion), reporter.Id, EvidenceCaptureMetadata.Create(now, EvidenceLocationSource.Capture, 10.5m, 105.75m, 3m))]);
         var incident = IncidentCase.CreateUnassigned(Guid.NewGuid(), report.Id, now);
         incident.Triage(project.Id, CaseVerificationMethod.ExistingEvidence, "actual retained source", now);
         db.AddRange(report, incident); db.Set<HuyCaseReportLink>().Add(new()

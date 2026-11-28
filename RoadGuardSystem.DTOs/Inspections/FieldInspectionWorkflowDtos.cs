@@ -73,14 +73,39 @@ public sealed record FieldMeasurementInput(string SampleId, string Type, decimal
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record FieldEvidenceDeclaration(Guid CaptureOriginId, Guid? FileId, string Purpose,
     string ChecksumSha256, string MediaType, DateTimeOffset? CapturedAt, string? AttemptChecklist,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] long? SizeBytes = null)
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] long? SizeBytes = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] FieldCaptureCoordinates? Coordinates = null)
 {
     [return: System.Diagnostics.CodeAnalysis.NotNullIfNotNull(nameof(value))]
     public static implicit operator global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldEvidenceDeclarationFact?(FieldEvidenceDeclaration? value)
-        => value is null ? null! : new(value.CaptureOriginId, value.FileId, value.Purpose, value.ChecksumSha256, value.MediaType, value.CapturedAt, value.AttemptChecklist, value.SizeBytes);
+        => value is null ? null! : new(value.CaptureOriginId, value.FileId, value.Purpose, value.ChecksumSha256, value.MediaType, value.CapturedAt, value.AttemptChecklist, value.SizeBytes, value.Coordinates);
     [return: System.Diagnostics.CodeAnalysis.NotNullIfNotNull(nameof(value))]
     public static implicit operator FieldEvidenceDeclaration?(global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldEvidenceDeclarationFact? value)
-        => value is null ? null! : new(value.CaptureOriginId, value.FileId, value.Purpose, value.ChecksumSha256, value.MediaType, value.CapturedAt, value.AttemptChecklist, value.SizeBytes);
+        => value is null ? null! : new(value.CaptureOriginId, value.FileId, value.Purpose, value.ChecksumSha256, value.MediaType, value.CapturedAt, value.AttemptChecklist, value.SizeBytes, value.Coordinates);
+}
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+public sealed record FieldCaptureCoordinates(double? Longitude, double? Latitude,
+    double? AccuracyMeters = null, string? Source = null, DateTimeOffset? AcquiredAt = null)
+{
+    [return: System.Diagnostics.CodeAnalysis.NotNullIfNotNull(nameof(value))]
+    public static implicit operator global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldCaptureCoordinatesFact?(FieldCaptureCoordinates? value)
+        => value is null ? null : new(value.Longitude, value.Latitude, value.AccuracyMeters, value.Source, value.AcquiredAt);
+    [return: System.Diagnostics.CodeAnalysis.NotNullIfNotNull(nameof(value))]
+    public static implicit operator FieldCaptureCoordinates?(global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldCaptureCoordinatesFact? value)
+        => value is null ? null : new(value.Longitude, value.Latitude, value.AccuracyMeters, value.Source, value.AcquiredAt);
+}
+public sealed record FieldEvidenceReference(Guid EvidenceLinkId, Guid CaptureOriginId, Guid? FileId,
+    string? FileVersion, string ChecksumSha256, Guid OriginalActorId, Guid? SourceDeviceId,
+    Guid? ActualUploaderId, Guid? OfflineAdmissionId, Guid? GrantId)
+{
+    [return: System.Diagnostics.CodeAnalysis.NotNullIfNotNull(nameof(value))]
+    public static implicit operator global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldEvidenceReferenceFact?(FieldEvidenceReference? value)
+        => value is null ? null : new(value.EvidenceLinkId, value.CaptureOriginId, value.FileId, value.FileVersion,
+            value.ChecksumSha256, value.OriginalActorId, value.SourceDeviceId, value.ActualUploaderId, value.OfflineAdmissionId, value.GrantId);
+    [return: System.Diagnostics.CodeAnalysis.NotNullIfNotNull(nameof(value))]
+    public static implicit operator FieldEvidenceReference?(global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldEvidenceReferenceFact? value)
+        => value is null ? null : new(value.EvidenceLinkId, value.CaptureOriginId, value.FileId, value.FileVersion,
+            value.ChecksumSha256, value.OriginalActorId, value.SourceDeviceId, value.ActualUploaderId, value.OfflineAdmissionId, value.GrantId);
 }
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record FieldPositionProofInput(string Kind, string? Checklist, double? Longitude, double? Latitude, string? ObservedSlabId = null, Guid? ObservedSegmentId = null, Guid? ObservedRouteVersionId = null, double? ObservedChainageMeters = null)
@@ -166,14 +191,15 @@ public sealed record CrewRepairReview(Guid ReviewId, string Decision, string? Re
 public sealed record FieldSubmissionView(Guid Id, Guid TaskId, Guid RootId, Guid? ParentId, int Revision,
     DateTimeOffset ServerReceivedAt, DateTimeOffset OriginalReviewDueAt, string Readiness,
     string[] MissingReasons, string ContentHash, FieldMeasurementInput[] Measurements,
-    FieldEvidenceDeclaration[] Evidence, string CaptureType, bool? Repaired, string? UnrepairedReason)
+    FieldEvidenceDeclaration[] Evidence, string CaptureType, bool? Repaired, string? UnrepairedReason,
+    FieldPositionProofInput? LocationProof = null, FieldEvidenceReference[]? EvidenceReferences = null)
 {
     [return: System.Diagnostics.CodeAnalysis.NotNullIfNotNull(nameof(value))]
     public static implicit operator global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldSubmissionViewFact?(FieldSubmissionView? value)
-        => value is null ? null! : new(value.Id, value.TaskId, value.RootId, value.ParentId, value.Revision, value.ServerReceivedAt, value.OriginalReviewDueAt, value.Readiness, value.MissingReasons, value.ContentHash, value.Measurements?.Select(item => (global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldMeasurementInputFact)item).ToArray()!, value.Evidence?.Select(item => (global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldEvidenceDeclarationFact)item).ToArray()!, value.CaptureType, value.Repaired, value.UnrepairedReason);
+        => value is null ? null! : new(value.Id, value.TaskId, value.RootId, value.ParentId, value.Revision, value.ServerReceivedAt, value.OriginalReviewDueAt, value.Readiness, value.MissingReasons, value.ContentHash, value.Measurements?.Select(item => (global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldMeasurementInputFact)item).ToArray()!, value.Evidence?.Select(item => (global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldEvidenceDeclarationFact)item).ToArray()!, value.CaptureType, value.Repaired, value.UnrepairedReason, value.LocationProof, value.EvidenceReferences?.Select(item => (global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldEvidenceReferenceFact)item).ToArray());
     [return: System.Diagnostics.CodeAnalysis.NotNullIfNotNull(nameof(value))]
     public static implicit operator FieldSubmissionView?(global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldSubmissionViewFact? value)
-        => value is null ? null! : new(value.Id, value.TaskId, value.RootId, value.ParentId, value.Revision, value.ServerReceivedAt, value.OriginalReviewDueAt, value.Readiness, value.MissingReasons, value.ContentHash, value.Measurements?.Select(item => (global::RoadGuardSystem.DTOs.Inspections.FieldMeasurementInput)item).ToArray()!, value.Evidence?.Select(item => (global::RoadGuardSystem.DTOs.Inspections.FieldEvidenceDeclaration)item).ToArray()!, value.CaptureType, value.Repaired, value.UnrepairedReason);
+        => value is null ? null! : new(value.Id, value.TaskId, value.RootId, value.ParentId, value.Revision, value.ServerReceivedAt, value.OriginalReviewDueAt, value.Readiness, value.MissingReasons, value.ContentHash, value.Measurements?.Select(item => (global::RoadGuardSystem.DTOs.Inspections.FieldMeasurementInput)item).ToArray()!, value.Evidence?.Select(item => (global::RoadGuardSystem.DTOs.Inspections.FieldEvidenceDeclaration)item).ToArray()!, value.CaptureType, value.Repaired, value.UnrepairedReason, value.LocationProof, value.EvidenceReferences?.Select(item => (global::RoadGuardSystem.DTOs.Inspections.FieldEvidenceReference)item).ToArray());
 }
 public sealed record FieldReviewView(Guid Id, Guid TaskId, Guid SubmissionId, string Decision, string ReceiptActivation)
 {

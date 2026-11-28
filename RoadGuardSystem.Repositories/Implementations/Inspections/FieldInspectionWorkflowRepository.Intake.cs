@@ -28,7 +28,7 @@ public sealed partial class FieldInspectionWorkflowRepository
         CancellationToken token) => CaptureEvidenceFactsAsync(task, LegacyRepairEvidence(declaration), token);
     private static FieldEvidenceDeclarationFact LegacyRepairEvidence(RepairFieldEvidenceData value)
         => new(value.CaptureOriginId, value.FileId, value.Purpose, value.ChecksumSha256,
-            value.MediaType, value.CapturedAt, value.AttemptChecklist, value.SizeBytes);
+            value.MediaType, value.CapturedAt, value.AttemptChecklist, value.SizeBytes, value.Coordinates);
     private static FieldSubmissionInputFact LegacyRepairSubmission(RepairFieldSubmissionData value)
         => new(value.OriginId, value.StartOriginId, value.ParentSubmissionId,
             value.Measurements?.Select(row => row is null ? null! : new FieldMeasurementInputFact(row.SampleId,
@@ -61,7 +61,7 @@ public sealed partial class FieldInspectionWorkflowRepository
                 var facts = await evidenceAdmission.ResolveDeclaredEvidenceAsync(c.ProjectId, task.Id, admitted.AdmissionId,
                     c.Admission.OriginalActorId, new RepairFieldEvidenceData(declaration.CaptureOriginId, declaration.FileId,
                         declaration.Purpose, declaration.ChecksumSha256, declaration.MediaType, declaration.CapturedAt,
-                        declaration.AttemptChecklist, declaration.SizeBytes), token);
+                        declaration.AttemptChecklist, declaration.SizeBytes, declaration.Coordinates), token);
                 if (facts is not null)
                 {
                     if (facts.AdmissionId != admitted.AdmissionId || facts.OriginalActorId != c.Admission.OriginalActorId ||
@@ -119,10 +119,13 @@ public sealed partial class FieldInspectionWorkflowRepository
         }
         var captures = new HashSet<Guid>();
         foreach (var item in input.Evidence ?? [])
+        {
+            ValidateCaptureCoordinates(item?.Coordinates);
             if (item is null || !captures.Add(item.CaptureOriginId) || item.CaptureOriginId == Guid.Empty || item.FileId == Guid.Empty ||
                 item.Purpose is not ("BEFORE" or "AFTER" or "MEASUREMENT") || item.Purpose == "AFTER" && task.Purpose != FieldInspectionPurpose.PostRepair || string.IsNullOrEmpty(item.ChecksumSha256) || item.ChecksumSha256.Length != 64 ||
                 item.ChecksumSha256.Any(x => !Uri.IsHexDigit(x)) || string.IsNullOrWhiteSpace(item.MediaType) || item.MediaType.Length > 120 || item.AttemptChecklist?.Length > 500)
                 throw new ArgumentException("Malformed evidence declaration.");
+        }
         return rows.ToArray();
     }
     private async Task<List<string>> ReadinessAsync(FieldInspectionTask task, FieldSubmissionInputFact input, FieldTaskStartOrigin start, CancellationToken token, Guid? expectedOwner = null,
@@ -208,6 +211,9 @@ public sealed partial class FieldInspectionWorkflowRepository
         var reuse = declaration.Purpose == "BEFORE" && await db.Set<FieldInspectionEvidenceReuseDecision>().AnyAsync(x => x.TaskId == task.Id && x.FileId == id && x.FileChecksum == normalizedChecksum, token);
         if (reuse)
         {
+            // A reuse is not a new device capture. Preserve the source snapshot and refuse
+            // the reuser's current GPS rather than attaching it to somebody else's image.
+            if (declaration.Coordinates is not null) throw new ArgumentException("Reused evidence cannot declare new capture GPS.");
             var decision = await db.Set<FieldInspectionEvidenceReuseDecision>().AsNoTracking().Where(x => x.TaskId == task.Id && x.FileId == id && x.FileChecksum == normalizedChecksum).OrderByDescending(x => x.OccurredAt).FirstAsync(token);
             await ValidateHistoricalReuseAsync(task, decision, file, token);
         }
@@ -220,7 +226,8 @@ public sealed partial class FieldInspectionWorkflowRepository
     {
         if (declaration.FileId is null) return JsonSerializer.Serialize(new { declared = declaration, state = "UPLOAD_NOT_CREATED" }, Json);
         var file = await EvidenceFileAsync(task, declaration, token);
-        return JsonSerializer.Serialize(new { declared = declaration, stateAtIntake = file.State, file.FileVersion, file.OwnerId, file.Purpose, file.UploadedAt }, Json);
+        var uploader = await db.Files.Where(x => x.Id == declaration.FileId).Select(x => x.UploadedByUserId).SingleAsync(token);
+        return JsonSerializer.Serialize(new { declared = declaration, stateAtIntake = file.State, file.FileVersion, file.OwnerId, file.Purpose, file.UploadedAt, actualUploaderId = uploader }, Json);
     }
     private async Task<string> CaptureResolvedEvidenceFactsAsync(FieldInspectionTask task, FieldEvidenceDeclarationFact declaration,
         OfflineEvidenceAdmissionFacts admitted, CancellationToken cancellationToken)
@@ -235,6 +242,7 @@ public sealed partial class FieldInspectionWorkflowRepository
             file.Purpose,
             file.UploadedAt,
             actualFileId = admitted.FileId,
+            actualUploaderId = admitted.ActualUploaderId,
             offlineAdmission = admitted
         }, Json);
     }

@@ -1,5 +1,7 @@
 # Offline admission → upload → exact replay — Tùng
 
+Cập nhật 2026-11-28: GPS riêng từng ảnh và proof theo revision được mô tả tại [FIELD-EVIDENCE-GPS-READBACK.md](FIELD-EVIDENCE-GPS-READBACK.md). GPS optional nằm trong evidence declaration đã ký; absent/null không đổi canonical payload legacy. Không thay readiness hoặc quyền tải file.
+
 Base `fbde7c4`, đối chiếu phản ánh từ `b891e88`. Source đã có admission/binding/capture persistence và guard upload, nhưng thiếu mapping admission trong readback và có thể lưu FIELD submission incomplete trước ảnh VERIFIED. Bản này bổ sung discovery **per operation**, staging chờ ảnh và tiếp tục nguyên hồ sơ đã ký. Không cần SQL/admin hoặc chèn server ID vào signed core.
 
 ## Thứ tự gọi

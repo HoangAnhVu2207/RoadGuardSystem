@@ -108,7 +108,7 @@ public sealed partial class RoutingMapRepository
             "INCOMPLETE", ["SPATIAL_DISTANCE_IS_NOT_RESPONSIBILITY"], project is null ? "ORGANIZATION_ALL_VERSIONS" : "CURRENT_CASE_PROJECT_ALL_VERSIONS");
     }, token);
 
+    // Case version changes when a decision is saved; the source/link/report pins remain stable for replays and readback.
     private static string Evaluation(RoutingEvidencePin source, string registry, Guid? project)
-        // Case version changes when a decision is saved; the source/link/report pins remain stable for replays and readback.
         => Hash(new { source = source with { CaseVersion = "" }, registry, project, Algorithm });
 }

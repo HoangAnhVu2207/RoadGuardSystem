@@ -133,8 +133,8 @@ public sealed class ApprovedTrainingExportHttpTests(AuthenticationSqlServerFixtu
             using var other = factory.CreateClient(); string actorEmail; await using (var db = sql.CreateDbContext()) actorEmail = (await db.Users.SingleAsync(u => u.Id == actor)).Email!;
             var signed = await other.PostAsJsonAsync("/api/v1/auth/login", new { email = actorEmail, password = "Current1!" }); signed.EnsureSuccessStatusCode();
             other.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", (await signed.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("accessToken").GetString());
-            // Supervisor also needs current membership, which the genuine fixture supplies; Crew has no export role.
-            foreach (var suffix in new[] { "", "/manifest", "/content" }) Assert.Equal(actor == source.Crew ? HttpStatusCode.Forbidden : suffix == "/content" ? HttpStatusCode.Conflict : HttpStatusCode.OK, (await other.GetAsync(path + suffix)).StatusCode);
+            // Current project membership alone does not grant PM-only TRAINING source authority, even for metadata-only ZIPs.
+            foreach (var suffix in new[] { "", "/manifest", "/content" }) Assert.Equal(actor == source.Crew ? HttpStatusCode.Forbidden : suffix == "" ? HttpStatusCode.OK : suffix == "/manifest" ? HttpStatusCode.Forbidden : HttpStatusCode.Conflict, (await other.GetAsync(path + suffix)).StatusCode);
         }
         Assert.Equal(HttpStatusCode.Conflict, (await client.GetAsync(path + "/content")).StatusCode);
         store.LoseAcknowledgement = loseAcknowledgement;

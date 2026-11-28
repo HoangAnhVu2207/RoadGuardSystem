@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -8,6 +8,7 @@ using Microsoft.Extensions.Hosting;
 using RoadGuardSystem.API.Workers;
 using RoadGuardSystem.ApiTests.Infrastructure;
 using RoadGuardSystem.BusinessObjects.Repairs;
+using RoadGuardSystem.BusinessObjects.Projects;
 using RoadGuardSystem.BusinessObjects.Files;
 using RoadGuardSystem.BusinessObjects.Clocks;
 using RoadGuardSystem.aBusinessObjects.Commons;
@@ -176,6 +177,26 @@ public sealed class CloseoutNormalJourneyHttpTests(AuthenticationSqlServerFixtur
         Assert.True(submission.StatusCode == HttpStatusCode.Created, await submission.Content.ReadAsStringAsync());
         var submissionBody = await submission.Content.ReadFromJsonAsync<JsonElement>();
         var submissionId = submissionBody.GetProperty("id").GetGuid();
+        var sourceReadPath = itemPath + $"/source-tasks/{binding.TaskId}/submissions/";
+        async Task<JsonElement> ReadSubmission(Guid readId)
+        {
+            using var direct = await pm.GetAsync(taskPath + "/submissions/" + readId);
+            using var scoped = await pm.GetAsync(sourceReadPath + readId);
+            Assert.Equal(HttpStatusCode.OK, direct.StatusCode); Assert.Equal(HttpStatusCode.OK, scoped.StatusCode);
+            var a = await direct.Content.ReadAsStringAsync(); var b = await scoped.Content.ReadAsStringAsync();
+            Assert.Equal(a, b);
+            if (Environment.GetEnvironmentVariable("RG_SCOPE_HANDOFF_EVIDENCE") is { } directory)
+            {
+                Directory.CreateDirectory(directory);
+                await File.WriteAllTextAsync(Path.Combine(directory, $"field-{readId}.json"), a);
+            }
+            return JsonDocument.Parse(a).RootElement.Clone();
+        }
+        var atIntake = await ReadSubmission(submissionId);
+        Assert.Contains(atIntake.GetProperty("missingReasons").EnumerateArray(), x => x.GetString() == "AFTER_ATTEMPT_BINDING_UNAVAILABLE");
+        Assert.False(atIntake.GetProperty("currentRepair").GetProperty("isEffectiveSubmission").GetBoolean());
+        Assert.Equal(1, atIntake.GetProperty("locationProof").GetProperty("observedChainageMeters").GetDouble());
+
         var intake = await Send(crew, executionPath + "/attempts", new
         {
             fieldSubmissionId = submissionId,
@@ -218,6 +239,9 @@ public sealed class CloseoutNormalJourneyHttpTests(AuthenticationSqlServerFixtur
             Assert.True(historicReview.GetProperty("current").GetBoolean());
         }
         await RequestSupplement("Bổ sung ảnh xác nhận phạm vi sửa");
+        var supplementReviewRead = await ReadSubmission(submissionId);
+        Assert.Equal("SUPPLEMENT", supplementReviewRead.GetProperty("currentRepair").GetProperty("reviewDecision").GetString());
+
         var otherCrew = await sql.CreateUserAsync("reason-other-" + Guid.NewGuid().ToString("N"), "Current1!", UserRoleCode.RepairCrew);
         using var unauthorizedCrew = await Client(otherCrew.Id);
         Assert.Equal(HttpStatusCode.Forbidden, (await unauthorizedCrew.GetAsync(taskPath)).StatusCode);
@@ -243,6 +267,8 @@ public sealed class CloseoutNormalJourneyHttpTests(AuthenticationSqlServerFixtur
         Assert.Equal(attemptId, updatedAttempt.GetProperty("attemptId").GetGuid());
         Assert.Equal(revisedId, updatedAttempt.GetProperty("effectiveSubmissionId").GetGuid());
         Assert.Equal(JsonValueKind.Null, updatedAttempt.GetProperty("review").ValueKind);
+        var supplementedRead = await ReadSubmission(submissionId);
+        Assert.Equal(JsonValueKind.Null, supplementedRead.GetProperty("currentRepair").GetProperty("reviewId").ValueKind);
         var afterSupplementHistory = await pm.GetFromJsonAsync<JsonElement>(itemPath + "/history");
         Assert.All(afterSupplementHistory.GetProperty("attemptReviews").EnumerateArray(), row => Assert.False(row.GetProperty("current").GetBoolean()));
         var effectiveIntake = Assert.Single(afterSupplementHistory.GetProperty("intakeSubmissions").EnumerateArray().Where(row => row.GetProperty("effective").GetBoolean()));
@@ -288,11 +314,29 @@ public sealed class CloseoutNormalJourneyHttpTests(AuthenticationSqlServerFixtur
         Assert.Equal("ACCEPT", afterReview.GetProperty("attempt").GetProperty("review").GetProperty("decision").GetString());
         Assert.Equal(JsonValueKind.Null, afterReview.GetProperty("attempt").GetProperty("review").GetProperty("reason").ValueKind);
         Assert.Equal(JsonValueKind.Null, afterReview.GetProperty("finalDecision").ValueKind);
+        var acceptedRead = await ReadSubmission(submissionId);
+        Assert.Equal("ACCEPT", acceptedRead.GetProperty("currentRepair").GetProperty("reviewDecision").GetString());
+        Assert.Equal(JsonValueKind.Null, acceptedRead.GetProperty("currentRepair").GetProperty("finalDecisionId").ValueKind);
+        Assert.Equal(atIntake.GetProperty("missingReasons").GetRawText(), acceptedRead.GetProperty("missingReasons").GetRawText());
         var finalKey = Guid.NewGuid().ToString(); var finalVersion = await Version(pm, itemPath);
         Assert.Equal(HttpStatusCode.Forbidden, (await Send(pm, itemPath + "/final-confirmation", new { reason = "wrong role" },
             Guid.NewGuid().ToString(), finalVersion)).StatusCode);
         var final = await Send(supervisor, itemPath + "/final-confirmation", new { reason = "verified Normal final" }, finalKey, finalVersion);
         Assert.True(final.StatusCode == HttpStatusCode.Created, await final.Content.ReadAsStringAsync());
+        var confirmedRead = await ReadSubmission(submissionId);
+        Assert.Equal("CONFIRMED", confirmedRead.GetProperty("currentRepair").GetProperty("finalDecisionResult").GetString());
+        Assert.Empty(confirmedRead.GetProperty("currentRepair").GetProperty("missingReasons").EnumerateArray());
+        Assert.Equal(atIntake.GetProperty("missingReasons").GetRawText(), confirmedRead.GetProperty("missingReasons").GetRawText());
+
+        var completedScopeRead = await pm.GetFromJsonAsync<JsonElement>(root + $"/eligibility?defectId={source.Defect}&scope.physicalRoadId={source.Road}&scope.routeVersionId={source.Route}&scope.segmentSetId={source.Set}&scope.fromMeters=1&scope.toMeters=2&scope.offsetFromMeters=0&scope.offsetToMeters=1");
+        Assert.False(completedScopeRead.GetProperty("eligible").GetBoolean());
+        Assert.Equal("completed_scope_conflict", completedScopeRead.GetProperty("code").GetString());
+        var duplicateScope = new { physicalRoadId = source.Road, routeVersionId = source.Route, segmentSetId = source.Set, fromMeters = 1m, toMeters = 2m, offsetFromMeters = 0m, offsetToMeters = 1m };
+        var defectEtag = '"' + Convert.ToBase64String(await db.Defects.Where(x => x.Id == source.Defect).Select(x => EF.Property<byte[]>(x, "RowVersion")).SingleAsync()) + '"';
+        using var completedDuplicate = await Send(pm, root, new { defectId = source.Defect, defectVersion = defectEtag.Trim('"'), obligations = new[] { new { kind = "FORMAL_REPAIR", mandatory = true, scope = duplicateScope, reason = "must not reserve completed scope again" } }, reason = "completed duplicate" }, Guid.NewGuid().ToString(), defectEtag);
+        Assert.Equal(HttpStatusCode.Conflict, completedDuplicate.StatusCode);
+        Assert.Equal("completed_scope_conflict", (await completedDuplicate.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("code").GetString());
+
         Assert.Equal(HttpStatusCode.OK, (await Send(supervisor, itemPath + "/final-confirmation", new { reason = "verified Normal final" }, finalKey, finalVersion)).StatusCode);
         await using (var persisted = sql.CreateDbContext())
         {
@@ -322,6 +366,9 @@ public sealed class CloseoutNormalJourneyHttpTests(AuthenticationSqlServerFixtur
         Assert.True(correction.StatusCode == HttpStatusCode.Created, await correction.Content.ReadAsStringAsync());
         var afterCorrection = (await crew.GetFromJsonAsync<JsonElement>(taskPath)).GetProperty("repairContext");
         Assert.Equal("UNREPAIRED", afterCorrection.GetProperty("finalDecision").GetProperty("result").GetString());
+        var correctedRead = await ReadSubmission(submissionId);
+        Assert.NotEqual("CONFIRMED", correctedRead.GetProperty("currentRepair").GetProperty("finalDecisionResult").GetString());
+        Assert.Contains(correctedRead.GetProperty("currentRepair").GetProperty("missingReasons").EnumerateArray(), x => x.GetString() == "FINAL_CONFIRMATION_NOT_EFFECTIVE");
         Assert.NotEqual(afterFinal.GetProperty("finalDecision").GetProperty("decisionId").GetGuid(), afterCorrection.GetProperty("finalDecision").GetProperty("decisionId").GetGuid());
         Assert.Equal(originalManifest.GetRawText(), (await ReadManifest(archived)).GetRawText());
         var refreshedId = await CaptureDossier(new { kind = "DOSSIER", format = "PDF", repairPackageIds = new[] { package } });
@@ -334,6 +381,40 @@ public sealed class CloseoutNormalJourneyHttpTests(AuthenticationSqlServerFixtur
             Assert.False(originalPdf.AsSpan().SequenceEqual(revisedPdf));
             Assert.Equal(originalPdf, await pm.GetByteArrayAsync($"{exports}/{archived}/content"));
         }
+        // Accepted responsibility grants exact source reads, not membership in the origin project.
+        var receiverPm = await sql.CreateUserAsync("field-reader-" + Guid.NewGuid().ToString("N"), "Current1!", UserRoleCode.ProjectManager);
+        var receiver = Project.Create(Guid.NewGuid(), Guid.NewGuid().ToString("N"), "Exact FIELD responsibility read", null, 32648, null, null, DateTimeOffset.UtcNow);
+        db.AddRange(receiver, ProjectMember.CreatePrimaryProjectManager(Guid.NewGuid(), receiver.Id, receiverPm.Id, new(2000, 1, 1)));
+        await db.SaveChangesAsync();
+        using var receivingPm = await Client(receiverPm.Id);
+        var obligationId = await db.RepairItems.Where(x => x.Id == item).Select(x => x.ObligationId).SingleAsync();
+        var lifeA = $"/api/v1/projects/{source.Project}/lifecycle"; var lifeB = $"/api/v1/projects/{receiver.Id}/lifecycle";
+        using var beforeOffer = await supervisor.GetAsync(lifeA);
+        var transferScope = (await beforeOffer.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("transferableObligations").EnumerateArray().Single(x => x.GetProperty("id").GetGuid() == obligationId);
+        using var offered = await Send(supervisor, lifeA + "/obligation-transfers", new { reason = "Exact FIELD read transfer", evidenceFileIds = Array.Empty<Guid>(), obligationId, receivingProjectId = receiver.Id, scopeHash = transferScope.GetProperty("scopeHash").GetString() }, Guid.NewGuid().ToString(), beforeOffer.Headers.ETag!.Tag);
+        Assert.True(offered.StatusCode == HttpStatusCode.Created, await offered.Content.ReadAsStringAsync());
+        var offer = (await offered.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("actions").EnumerateArray().Single(x => x.GetProperty("kind").GetString() == "IssueTransfer");
+        using var beforeAccept = await supervisor.GetAsync(lifeB);
+        using var acceptedTransfer = await Send(supervisor, lifeB + "/obligation-transfer-acceptances", new { reason = "Accept exact FIELD source read", evidenceFileIds = Array.Empty<Guid>(), sourceActionId = offer.GetProperty("id").GetGuid(), obligationId, scopeHash = offer.GetProperty("scopeHash").GetString() }, Guid.NewGuid().ToString(), beforeAccept.Headers.ETag!.Tag);
+        Assert.True(acceptedTransfer.StatusCode == HttpStatusCode.Created, await acceptedTransfer.Content.ReadAsStringAsync());
+        var hiddenConflict = await pm.GetFromJsonAsync<JsonElement>(root + $"/eligibility?defectId={source.Defect}&scope.physicalRoadId={source.Road}&scope.routeVersionId={source.Route}&scope.segmentSetId={source.Set}&scope.fromMeters=1&scope.toMeters=2&scope.offsetFromMeters=0&scope.offsetToMeters=1");
+        Assert.False(hiddenConflict.GetProperty("eligible").GetBoolean());
+        Assert.Equal("active_scope_conflict", hiddenConflict.GetProperty("code").GetString());
+        foreach (var name in new[] { "obligationId", "packageId", "itemId", "mode", "status" })
+            Assert.Equal(JsonValueKind.Null, hiddenConflict.GetProperty(name).ValueKind);
+        var receivedPath = $"/api/v1/projects/{receiver.Id}/repair-packages/{package}/items/{item}/source-tasks/{binding.TaskId}/submissions/{submissionId}";
+        using var receivedSubmission = await receivingPm.GetAsync(receivedPath);
+        Assert.Equal(HttpStatusCode.OK, receivedSubmission.StatusCode);
+        Assert.Equal(correctedRead.GetRawText(), (await receivedSubmission.Content.ReadFromJsonAsync<JsonElement>()).GetRawText());
+        Assert.Equal(HttpStatusCode.Forbidden, (await receivingPm.GetAsync(taskPath + "/submissions/" + submissionId)).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await receivingPm.GetAsync(receivedPath.Replace(item.ToString(), Guid.NewGuid().ToString(), StringComparison.Ordinal))).StatusCode);
+        var transferredTimeline = await receivingPm.GetFromJsonAsync<JsonElement>($"/api/v1/projects/{receiver.Id}/reports/timeline?aggregateType=Project&aggregateId={receiver.Id}");
+        foreach (var action in new[] { "repair_execution_start", "repair_execution_finish", "repair_attempt_reviewed", "repair_final_confirmed", "repair_decision_corrected" })
+            Assert.Contains(transferredTimeline.GetProperty("items").EnumerateArray(), x => x.GetProperty("action").GetString() == action);
+        Assert.Contains(transferredTimeline.GetProperty("items").EnumerateArray(), x => x.GetProperty("source").GetProperty("type").GetString() == "RepairItem" && x.GetProperty("source").GetProperty("id").GetGuid() == item);
+        await db.ProjectMembers.Where(x => x.ProjectId == receiver.Id && x.UserId == receiverPm.Id).ExecuteUpdateAsync(x => x.SetProperty(m => m.Status, ProjectMemberStatus.Ended));
+        Assert.Equal(HttpStatusCode.Forbidden, (await receivingPm.GetAsync(receivedPath)).StatusCode);
+
         // Current project admission denies unknown/unauthorized projects before resource lookup.
         Assert.Equal(HttpStatusCode.Forbidden, (await pm.GetAsync(itemPath.Replace(source.Project.ToString(), Guid.NewGuid().ToString()))).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await pm.GetAsync(itemPath.Replace(package.ToString(), Guid.NewGuid().ToString()))).StatusCode);

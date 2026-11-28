@@ -1433,7 +1433,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Unique key for this command; after trimming ASCII spaces: 1â€“150 visible ASCII characters. Reuse only for an intentional replay of the same request.",
+            "description": "Unique key for this command; after trimming ASCII spaces: 1Ã¢â‚¬â€œ150 visible ASCII characters. Reuse only for an intentional replay of the same request.",
             "schema": {
               "type": "string"
             },
@@ -1579,7 +1579,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Unique key for this command; after trimming ASCII spaces: 1â€“150 visible ASCII characters. Reuse only for an intentional replay of the same request.",
+            "description": "Unique key for this command; after trimming ASCII spaces: 1Ã¢â‚¬â€œ150 visible ASCII characters. Reuse only for an intentional replay of the same request.",
             "schema": {
               "type": "string"
             },
@@ -3551,7 +3551,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Unique key for this command; after trimming ASCII spaces: 1â€“200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
+            "description": "Unique key for this command; after trimming ASCII spaces: 1Ã¢â‚¬â€œ200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
             "required": true,
             "schema": {
               "minLength": 1,
@@ -4675,7 +4675,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Unique key for this command; after trimming ASCII spaces: 1â€“200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
+            "description": "Unique key for this command; after trimming ASCII spaces: 1Ã¢â‚¬â€œ200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
             "required": true,
             "schema": {
               "minLength": 1,
@@ -4968,7 +4968,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Unique key for this command; after trimming ASCII spaces: 1â€“200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
+            "description": "Unique key for this command; after trimming ASCII spaces: 1Ã¢â‚¬â€œ200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
             "required": true,
             "schema": {
               "minLength": 1,
@@ -5261,7 +5261,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Unique key for this command; after trimming ASCII spaces: 1â€“200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
+            "description": "Unique key for this command; after trimming ASCII spaces: 1Ã¢â‚¬â€œ200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
             "required": true,
             "schema": {
               "minLength": 1,
@@ -5561,7 +5561,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Unique key for this command; after trimming ASCII spaces: 1â€“200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
+            "description": "Unique key for this command; after trimming ASCII spaces: 1Ã¢â‚¬â€œ200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
             "required": true,
             "schema": {
               "minLength": 1,
@@ -5853,7 +5853,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Unique key for this command; after trimming ASCII spaces: 1â€“200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
+            "description": "Unique key for this command; after trimming ASCII spaces: 1Ã¢â‚¬â€œ200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
             "required": true,
             "schema": {
               "minLength": 1,
@@ -7947,7 +7947,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Unique key for this command; after trimming ASCII spaces: 1â€“200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
+            "description": "Unique key for this command; after trimming ASCII spaces: 1Ã¢â‚¬â€œ200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
             "required": true,
             "schema": {
               "minLength": 1,
@@ -8230,7 +8230,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Unique key for this command; after trimming ASCII spaces: 1â€“200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
+            "description": "Unique key for this command; after trimming ASCII spaces: 1Ã¢â‚¬â€œ200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
             "required": true,
             "schema": {
               "minLength": 1,
@@ -10468,7 +10468,7 @@
             }
           },
           "422": {
-            "description": "Error codes: export_invalid, export_source_unavailable, no_eligible_labels, producer_invalid.",
+            "description": "Error codes: export_invalid, export_source_unavailable, no_eligible_labels, producer_invalid, export_ai_source_not_ready, export_ai_source_mode_unsupported, export_ai_source_version_mismatch, export_ai_segment_scope_unresolved.",
             "headers": {
               "X-Correlation-ID": {
                 "description": "Request correlation UUID, emitted by middleware on all responses.",
@@ -17677,7 +17677,7 @@
         "tags": [
           "FieldInspectionWorkflow"
         ],
-        "description": "Submission field inspection workflow resources. Permissions: PM / Supervisor / assigned Crew.",
+        "description": "Read the immutable submission and separate currentRepair state. Historical intake missingReasons remain unchanged; current review applies only to the effective submission.",
         "parameters": [
           {
             "name": "projectId",
@@ -17731,7 +17731,7 @@
             "description": "Success.",
             "headers": {
               "ETag": {
-                "description": "Current strong quoted content-hash ETag.",
+                "description": "Opaque quoted representation ETag. The body contentHash remains the immutable submission hash.",
                 "schema": {
                   "type": "string"
                 }
@@ -26161,7 +26161,7 @@
         "tags": [
           "H6NotificationOperations"
         ],
-        "description": "Authenticated Bearer or Web session. Project reads require current PM membership or Supervisor authority. Web writes require X-CSRF-TOKEN from GET /api/v1/auth/web/csrf and browser credentials. Locality/organization writes require Supervisor; planning writes require current project PM. Repair policy discovery remains PM-only. Null means metadata was not stored; names are current account names. Batch limit 1â€“100. First call captures a database rowversion snapshot. Repeat subsequent batches with the returned snapshotVersion and the same through cutoff, using a new key per batch. Newly inserted notifications, including backdated events, are outside this snapshot. Entire batch commits atomically; no partial success.",
+        "description": "Authenticated Bearer or Web session. Project reads require current PM membership or Supervisor authority. Web writes require X-CSRF-TOKEN from GET /api/v1/auth/web/csrf and browser credentials. Locality/organization writes require Supervisor; planning writes require current project PM. Repair policy discovery remains PM-only. Null means metadata was not stored; names are current account names. Batch limit 1Ã¢â‚¬â€œ100. First call captures a database rowversion snapshot. Repeat subsequent batches with the returned snapshotVersion and the same through cutoff, using a new key per batch. Newly inserted notifications, including backdated events, are outside this snapshot. Entire batch commits atomically; no partial success.",
         "parameters": [
           {
             "name": "Idempotency-Key",
@@ -48063,7 +48063,7 @@
         "tags": [
           "RepairSafety"
         ],
-        "description": "Crew see assigned unresolved measures. PM/Supervisor discover this itemâ€™s measures under current safety responsibility. Read each measure for checks, warnings, ACK and history. This does not grant writes or change the separate unresolved selection.",
+        "description": "Crew see assigned unresolved measures. PM/Supervisor discover this itemÃ¢â‚¬â„¢s measures under current safety responsibility. Read each measure for checks, warnings, ACK and history. This does not grant writes or change the separate unresolved selection.",
         "parameters": [
           {
             "name": "projectId",
@@ -52262,7 +52262,7 @@
         "tags": [
           "Reporting"
         ],
-        "description": "Timeline reporting resources. Permissions: PM / Supervisor.",
+        "description": "Read scoped timeline metadata. Project combines survey, FIELD, repair and recorded AI events; actor names are current account names. Coverage remains PARTIAL; old cursors return cursor_invalid.",
         "parameters": [
           {
             "name": "projectId",
@@ -52656,7 +52656,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Unique key for this command; after trimming ASCII spaces: 1â€“200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
+            "description": "Unique key for this command; after trimming ASCII spaces: 1Ã¢â‚¬â€œ200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
             "required": true,
             "schema": {
               "minLength": 1,
@@ -53097,7 +53097,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Unique key for this command; after trimming ASCII spaces: 1â€“200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
+            "description": "Unique key for this command; after trimming ASCII spaces: 1Ã¢â‚¬â€œ200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
             "required": true,
             "schema": {
               "minLength": 1,
@@ -61434,7 +61434,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Unique key for this command; after trimming ASCII spaces: 1â€“200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
+            "description": "Unique key for this command; after trimming ASCII spaces: 1Ã¢â‚¬â€œ200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
             "required": true,
             "schema": {
               "minLength": 1,
@@ -62014,7 +62014,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Unique key for this command; after trimming ASCII spaces: 1â€“200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
+            "description": "Unique key for this command; after trimming ASCII spaces: 1Ã¢â‚¬â€œ200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
             "required": true,
             "schema": {
               "minLength": 1,
@@ -62295,7 +62295,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Unique key for this command; after trimming ASCII spaces: 1â€“200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
+            "description": "Unique key for this command; after trimming ASCII spaces: 1Ã¢â‚¬â€œ200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
             "required": true,
             "schema": {
               "minLength": 1,
@@ -65932,7 +65932,7 @@
           {
             "name": "Idempotency-Key",
             "in": "header",
-            "description": "Unique key for this command; after trimming ASCII spaces: 1â€“200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
+            "description": "Unique key for this command; after trimming ASCII spaces: 1Ã¢â‚¬â€œ200 printable ASCII characters. Reuse only for an intentional replay of the same request.",
             "required": true,
             "schema": {
               "minLength": 1,
@@ -68870,6 +68870,249 @@
             "AntiforgeryCookie": [ ]
           }
         ]
+      }
+    },
+    "/api/v1/projects/{projectId}/repair-packages/eligibility": {
+      "get": {
+        "tags": [
+          "RepairPackages"
+        ],
+        "description": "Check a concrete formal repair scope before creation. Active, completed and unverified scopes block duplicates. No scope means eligibility is unknown; this does not authorize execution.",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "defectId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "PhysicalRoadId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "RouteVersionId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "SegmentSetId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "LayoutRevisionId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "SlabId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "FromMeters",
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          {
+            "name": "ToMeters",
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          {
+            "name": "OffsetFromMeters",
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          {
+            "name": "OffsetToMeters",
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "format": "double"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "Request correlation UUID, emitted by middleware on all responses.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FormalRepairEligibilityView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error codes: validation_error.",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "Request correlation UUID, emitted by middleware on all responses.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error codes: unauthorized.",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "Request correlation UUID, emitted by middleware on all responses.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error codes: access_forbidden.",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "Request correlation UUID, emitted by middleware on all responses.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error codes: not_found.",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "Request correlation UUID, emitted by middleware on all responses.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error codes: geometry_version_mismatch, physical_road_source_mismatch.",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "Request correlation UUID, emitted by middleware on all responses.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected exception; generic internal_error ProblemDetails. No internal implementation details are returned.",
+            "headers": {
+              "X-Correlation-ID": {
+                "description": "Request correlation UUID, emitted by middleware on all responses.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          },
+          {
+            "WebSession": [ ]
+          }
+        ],
+        "x-roadguard-api-id": "SWG-238",
+        "x-contract-evidence": "CURRENT_VERIFIED_SOURCE; execution and business prerequisites are separate."
       }
     }
   },
@@ -73471,6 +73714,15 @@
             "type": "string",
             "format": "uuid",
             "nullable": true
+          },
+          "aiSource": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ExportAiSourceFact"
+              }
+            ],
+            "description": "Pinned authoritative AI provenance; omitted in legacy snapshots. Annotation remains the approved label revision in normalized x,y,width,height.",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -74258,6 +74510,15 @@
               "$ref": "#/components/schemas/FieldEvidenceReferenceFact"
             },
             "description": "Immutable evidence link/file-version/hash lineage matched by captureOriginId. Server IDs are not inserted into a signed declaration; unavailable legacy provenance stays null."
+          },
+          "currentRepair": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FieldSubmissionCurrentRepairFact"
+              }
+            ],
+            "description": "Live authoritative current repair state on GET only; null for independent FIELD or intake receipt. Historical missingReasons and contentHash remain immutable.",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -81831,6 +82092,23 @@
           "summary": {
             "type": "string",
             "nullable": true
+          },
+          "actorId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "actorKind": {
+            "type": "string",
+            "nullable": true
+          },
+          "actorUnavailableReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "actorDisplaySemantics": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -85002,6 +85280,15 @@
               "$ref": "#/components/schemas/FieldEvidenceReference"
             },
             "description": "Immutable evidence link/file-version/hash lineage matched by captureOriginId. Server IDs are not inserted into a signed declaration; unavailable legacy provenance stays null."
+          },
+          "currentRepair": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FieldSubmissionCurrentRepair"
+              }
+            ],
+            "description": "Live authoritative current repair state on GET only; null for independent FIELD or intake receipt. Historical missingReasons and contentHash remain immutable.",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -86892,6 +87179,239 @@
           "observedChainageMeters": {
             "type": "number",
             "format": "double",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "FieldSubmissionCurrentRepair": {
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "itemVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "bindingId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "attemptId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "effectiveSubmissionId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "isEffectiveSubmission": {
+            "type": "boolean"
+          },
+          "reviewId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "reviewDecision": {
+            "type": "string",
+            "nullable": true
+          },
+          "reviewReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "itemStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "finalDecisionId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "finalDecisionResult": {
+            "type": "string",
+            "nullable": true
+          },
+          "missingReasons": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "FieldSubmissionCurrentRepairFact": {
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "itemVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "bindingId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "attemptId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "effectiveSubmissionId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "isEffectiveSubmission": {
+            "type": "boolean"
+          },
+          "reviewId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "reviewDecision": {
+            "type": "string",
+            "nullable": true
+          },
+          "reviewReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "itemStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "finalDecisionId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "finalDecisionResult": {
+            "type": "string",
+            "nullable": true
+          },
+          "missingReasons": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ExportAiSourceFact": {
+        "type": "object",
+        "properties": {
+          "workItemId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "attemptId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "resultId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "manifestHash": {
+            "type": "string",
+            "nullable": true
+          },
+          "resultHash": {
+            "type": "string",
+            "nullable": true
+          },
+          "contractVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "sourceVideoFileId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sourceVideoFileVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "timestampMs": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "frameWidth": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "frameHeight": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "coordinateConvention": {
+            "type": "string",
+            "nullable": true
+          },
+          "mockRunId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "FormalRepairEligibilityView": {
+        "type": "object",
+        "properties": {
+          "eligible": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "code": {
+            "type": "string",
+            "nullable": true
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "obligationId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "packageId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "itemId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "mode": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
             "nullable": true
           }
         },

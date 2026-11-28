@@ -48,4 +48,5 @@ public sealed record ReportingMetricFact(string Code, ReportingDimensionsFact Di
 public sealed record ReportingSourceRefFact(string Type, Guid Id, string Version);
 
 public sealed record ReportingTimelineItemFact(Guid EventId, DateTimeOffset OccurredAt, string? ActorDisplay, string Action,
-    ReportingSourceRefFact Source, string Summary);
+    ReportingSourceRefFact Source, string Summary, Guid? ActorId = null, string ActorKind = "UNKNOWN",
+    string? ActorUnavailableReason = null, string? ActorDisplaySemantics = null);

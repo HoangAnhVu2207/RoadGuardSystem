@@ -6,6 +6,7 @@ namespace RoadGuardSystem.Services.Repairs;
 
 public interface IRepairProducerService
 {
+    Task<RepairWorkflowResult> FormalScopeEligibilityAsync(Guid actor, UserRoleCode role, Guid project, Guid defect, RepairActualScopeInput? scope, CancellationToken token);
     Task<RepairWorkflowResult> ListTemporarySafetyAsync(Guid actor, UserRoleCode role, Guid project, Guid package, Guid item, CancellationToken token);
     Task<RepairWorkflowResult> AddTemporarySafetyAsync(Guid actor, UserRoleCode role, Guid project, Guid package, Guid item,
         TemporarySafetyObligationInput input, string? key, string? version, CancellationToken token);

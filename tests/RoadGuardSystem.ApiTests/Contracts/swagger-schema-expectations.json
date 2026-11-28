@@ -1,6 +1,6 @@
 {
   "baseline": "f7709a4ffd55b6d4aa6b1308e63aeaff5c66d94d",
-  "scope": "237 operations; current request-root schema graph plus source-safe explicit property/query corrections",
+  "scope": "238 operations; current request-root schema graph plus source-safe explicit property/query corrections",
   "sourceOnly": true,
   "operations": [
     {
@@ -1424,6 +1424,12 @@
       "tag": "WebAuth",
       "method": "POST",
       "route": "/api/v1/auth/web/logout"
+    },
+    {
+      "id": "SWG-238",
+      "tag": "RepairPackages",
+      "method": "GET",
+      "route": "/api/v1/projects/{projectId}/repair-packages/eligibility"
     }
   ],
   "requestRootSchemas": [
@@ -8050,6 +8056,24 @@
         "nullable": true
       },
       "requestReachable": true
+    },
+    {
+      "dto": "RoadGuardSystem.DTOs.Inspections.FieldSubmissionView",
+      "property": "currentRepair",
+      "nullable": true,
+      "description": "Live authoritative current repair state on GET only; null for independent FIELD or intake receipt. Historical missingReasons and contentHash remain immutable."
+    },
+    {
+      "dto": "RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldSubmissionViewFact",
+      "property": "currentRepair",
+      "nullable": true,
+      "description": "Live authoritative current repair state on GET only; null for independent FIELD or intake receipt. Historical missingReasons and contentHash remain immutable."
+    },
+    {
+      "dto": "RoadGuardSystem.DTOs.Exports.ExportLabelDto",
+      "property": "aiSource",
+      "nullable": true,
+      "description": "Pinned authoritative AI provenance; omitted in legacy snapshots. Annotation remains the approved label revision in normalized x,y,width,height."
     }
   ],
   "queryParameters": [

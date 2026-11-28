@@ -258,7 +258,9 @@ public sealed partial class FieldInspectionWorkflowRepository(RoadGuardDbContext
         {
             var id = c.Input is Guid input ? input : Guid.Empty;
             var row = await db.Set<FieldInspectionSubmission>().AsNoTracking().SingleOrDefaultAsync(x => x.Id == id && x.TaskId == task.Id, token);
-            if (row is null) Deny(404, "not_found"); return new(200, Value: await SubmissionViewAsync(row, token), Version: row.ContentHash);
+            if (row is null) Deny(404, "not_found");
+            var view = await SubmissionViewAsync(row, token, includeCurrent: true);
+            return new(200, Value: view, Version: view.CurrentRepair is null ? row.ContentHash : Hash(view));
         }
         if (c.Action == "verification-source") return await VerificationSourceAsync(c, task, token);
         if (c.Action == "geometry") return await GeometryAsync(task, token);
@@ -290,12 +292,12 @@ public sealed partial class FieldInspectionWorkflowRepository(RoadGuardDbContext
             task.SlabId, task.Purpose.ToString(), task.TaskMode, task.Status.ToString(), assignment?.Id, assignment?.AssignedToUserId,
             Convert.ToBase64String(task.RowVersion), start, latest, task.MapPublicationId, task.CrsProfileRevisionId, task.RequiredMeasurementType, task.MeasurementScope, task.Instructions, task.DueAt);
     }
-    private async Task<FieldSubmissionViewFact> SubmissionViewAsync(FieldInspectionSubmission row, CancellationToken token)
+    private async Task<FieldSubmissionViewFact> SubmissionViewAsync(FieldInspectionSubmission row, CancellationToken token, bool includeCurrent = false)
     {
         var payload = Decode<FieldSubmissionInputFact>(row.PayloadJson);
         var root = await db.Set<FieldInspectionSubmission>().AsNoTracking().SingleAsync(x => x.Id == row.RootId, token);
         return new(row.Id, row.TaskId, row.RootId, row.ParentId, row.Revision, row.ServerReceivedAt, root.ServerReceivedAt.AddHours(24), row.Readiness,
             Decode<string[]>(row.MissingReasonsJson), row.ContentHash, payload.Measurements ?? [], payload.Evidence ?? [], payload.CaptureType, payload.Repaired, payload.UnrepairedReason,
-            await SubmissionProofAsync(row, payload, token), await EvidenceReferencesAsync(row, payload, token));
+            await SubmissionProofAsync(row, payload, token), await EvidenceReferencesAsync(row, payload, token), includeCurrent ? await SubmissionCurrentRepairAsync(row, token) : null);
     }
 }

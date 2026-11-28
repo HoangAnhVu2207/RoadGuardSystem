@@ -106,7 +106,7 @@ public sealed class RealAiCandidateFactsReader(IRealAiCandidateRepository reposi
             frameId, frame.File.Checksum, frame.File.Checksum, frame.File.SizeBytes, frame.File.MimeType, timestamp,
             f.Detection.DefectTypeCode!, f.Detection.Confidence, new(box[0], box[1], box[2], box[3]),
             g!.RouteVersionId, g.SegmentSetId, null, g.GeometryVersion, "UNKNOWN", sourceVersion, f.Disposition, f.DispositionVersion)
-        { TelemetryReview = telemetry };
+        { TelemetryReview = telemetry, FrameWidth = frame.Proof.Width, FrameHeight = frame.Proof.Height };
     }
     private static AiTelemetryReviewSnapshotV1 CaptureTelemetry(RealAiCandidateReadFacts f)
     {

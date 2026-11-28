@@ -300,6 +300,7 @@ internal static class RepairContractMapping
         {
             Value = result.Value switch
             {
+                FormalRepairEligibilityFact value => new FormalRepairEligibilityView(value.Eligible, value.Code, value.Reason, value.ObligationId, value.PackageId, value.ItemId, value.Mode, value.Status),
                 TemporarySafetyObligationSourcesFact value => ToWire(value),
                 RepairAssessmentFact value => ToWire(value),
                 RepairAttemptHistoryFact value => ToWire(value),

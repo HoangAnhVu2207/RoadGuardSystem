@@ -7,6 +7,15 @@ namespace RoadGuardSystem.Services.Implementations.Repairs;
 
 public sealed class RepairProducerService(IRepairProducerRepository repository) : IRepairProducerService
 {
+    public Task<RepairWorkflowResult> FormalScopeEligibilityAsync(Guid actor, UserRoleCode role, Guid project, Guid defect, RepairActualScopeInput? scope, CancellationToken token)
+    {
+        if (actor == Guid.Empty || project == Guid.Empty || defect == Guid.Empty) return Error(400, "validation_error");
+        if (role != UserRoleCode.ProjectManager) return Error(403, "access_forbidden");
+        if (scope?.PhysicalRoadId == Guid.Empty) scope = null;
+        if (scope is not null && !Scope(scope)) return Error(400, "validation_error");
+        return RepairContractMapping.ToWireAsync(repository.FormalScopeEligibilityAsync(actor, role, project, defect,
+            scope is null ? null : RepairContractMapping.ToData(scope), token));
+    }
     public Task<RepairWorkflowResult> ListTemporarySafetyAsync(Guid actor, UserRoleCode role, Guid project, Guid package, Guid item, CancellationToken token)
         => RepairContractMapping.ToWireAsync(repository.ListTemporarySafetyAsync(actor, role, project, package, item, token));
     public Task<RepairWorkflowResult> AddTemporarySafetyAsync(Guid actor, UserRoleCode role, Guid project, Guid package, Guid item,

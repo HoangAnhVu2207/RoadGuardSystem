@@ -6657,6 +6657,24 @@
       "property": "evidenceReferences",
       "nullable": false,
       "description": "Immutable evidence link/file-version/hash lineage matched by captureOriginId. Server IDs are not inserted into a signed declaration; unavailable legacy provenance stays null."
+    },
+    {
+      "dto": "RoadGuardSystem.DTOs.Inspections.FieldSubmissionView",
+      "property": "currentRepair",
+      "nullable": true,
+      "description": "Live authoritative current repair state on GET only; null for independent FIELD or intake receipt. Historical missingReasons and contentHash remain immutable."
+    },
+    {
+      "dto": "RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldSubmissionViewFact",
+      "property": "currentRepair",
+      "nullable": true,
+      "description": "Live authoritative current repair state on GET only; null for independent FIELD or intake receipt. Historical missingReasons and contentHash remain immutable."
+    },
+    {
+      "dto": "RoadGuardSystem.DTOs.Exports.ExportLabelDto",
+      "property": "aiSource",
+      "nullable": true,
+      "description": "Pinned authoritative AI provenance; omitted in legacy snapshots. Annotation remains the approved label revision in normalized x,y,width,height."
     }
   ],
   "queryParameters": [
@@ -7033,6 +7051,14 @@
             }
           ],
           "nullable": true
+        },
+        "currentRepair": {
+          "allOf": [
+            {
+              "clrType": "RoadGuardSystem.DTOs.Inspections.FieldSubmissionCurrentRepair"
+            }
+          ],
+          "nullable": true
         }
       }
     },
@@ -7054,6 +7080,26 @@
           "allOf": [
             {
               "clrType": "RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldPositionProofInputFact"
+            }
+          ],
+          "nullable": true
+        },
+        "currentRepair": {
+          "allOf": [
+            {
+              "clrType": "RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldSubmissionCurrentRepairFact"
+            }
+          ],
+          "nullable": true
+        }
+      }
+    },
+    "RoadGuardSystem.DTOs.Exports.ExportLabelDto": {
+      "properties": {
+        "aiSource": {
+          "allOf": [
+            {
+              "clrType": "RoadGuardSystem.BusinessObjects.PersistenceFacts.Exports.ExportAiSourceFact"
             }
           ],
           "nullable": true

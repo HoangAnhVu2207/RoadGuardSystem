@@ -30,6 +30,7 @@ public sealed partial class Huy01ReporterReportsApiTests
     [InlineData("denied", 403)]
     [InlineData("wrong-segment", 422)]
     [InlineData("approved-fixture", 202)]
+    [InlineData("mixed-ai-contract-fixture", 202)]
     public async Task Anh02_training_consumer_observes_typed_contract_without_claiming_Huy_approval(string shape, int expected)
     {
         var reporter = await sql.CreateUserAsync($"label-source-{Guid.NewGuid():N}", "Current1!", UserRoleCode.Reporter);
@@ -62,6 +63,8 @@ public sealed partial class Huy01ReporterReportsApiTests
             Convert.ToHexString(SHA256.HashData([1, 2, 3, 4])).ToLowerInvariant(), 4, "image/jpeg", "REPORT", report, "fixture-source-v1", Guid.NewGuid(), manager.Id, DateTimeOffset.UtcNow, null, null, null, "REAL", null);
         var labels = shape switch
         {
+            // This is a typed consumer fixture only, not evidence of REAL/MOCK producer lineage.
+            "mixed-ai-contract-fixture" => new[] { label with { SourceKind = "AI_DETECTION", SourceId = Guid.NewGuid(), Mode = "REAL" }, label with { LabelId = Guid.NewGuid(), RevisionId = Guid.NewGuid(), SourceKind = "AI_DETECTION", SourceId = Guid.NewGuid(), Mode = "MOCK" } },
             "empty" => Array.Empty<ApprovedTrainingLabelV1>(),
             "foreign" => [label with { ProjectId = Guid.NewGuid() }],
             "duplicate-head" => [label, label with { Revision = 3, RevisionId = Guid.NewGuid() }],
@@ -71,7 +74,7 @@ public sealed partial class Huy01ReporterReportsApiTests
         state.Snapshot = shape == "unavailable" ? null : new("anh02.label-contract-fixture.v1", Guid.NewGuid(), new string('a', 64), DateTimeOffset.UtcNow, labels);
         await LoginAsync(client, manager.UserName!);
         var path = $"/api/v1/projects/{project}/exports"; var key = Guid.NewGuid().ToString();
-        var request = new { kind = "TRAINING", format = "ZIP", includeOriginalFiles = true, segmentIds = shape == "wrong-segment" ? new[] { Guid.NewGuid() } : Array.Empty<Guid>() };
+        var request = new { kind = "TRAINING", format = "ZIP", includeOriginalFiles = shape != "mixed-ai-contract-fixture", segmentIds = shape == "wrong-segment" ? new[] { Guid.NewGuid() } : Array.Empty<Guid>() };
         var response = await SendAsync(client, HttpMethod.Post, path, request, key);
         Assert.Equal(expected, (int)response.StatusCode); Assert.Equal(1, state.Captures);
         if (expected != 202)
@@ -95,9 +98,19 @@ public sealed partial class Huy01ReporterReportsApiTests
         var content = await client.GetAsync(path + $"/{id}/content"); Assert.Equal(HttpStatusCode.OK, content.StatusCode);
         using var zip = new ZipArchive(new MemoryStream(await content.Content.ReadAsByteArrayAsync()));
         using var reader = new StreamReader(zip.GetEntry("labels.jsonl")!.Open());
-        var storedLabel = JsonSerializer.Deserialize<JsonElement>((await reader.ReadToEndAsync()).Trim()); Assert.Equal(2, storedLabel.GetProperty("revision").GetInt32());
-        using var photo = zip.GetEntry("images/" + file.FileId.ToString("D") + ".jpg")?.Open();
-        Assert.NotNull(photo);
+        var storedLabels = (await reader.ReadToEndAsync()).Trim().Split('\n').Select(line => JsonSerializer.Deserialize<JsonElement>(line)).ToArray();
+        Assert.All(storedLabels, stored => Assert.Equal(2, stored.GetProperty("revision").GetInt32()));
+        if (shape == "mixed-ai-contract-fixture")
+        {
+            Assert.Equal(2, storedLabels.Length);
+            Assert.Equal(new[] { "MOCK", "REAL" }, storedLabels.Select(row => row.GetProperty("mode").GetString()).Order().ToArray());
+            Assert.DoesNotContain(zip.Entries, entry => entry.FullName.StartsWith("images/", StringComparison.Ordinal));
+        }
+        else
+        {
+            using var photo = zip.GetEntry("images/" + file.FileId.ToString("D") + ".jpg")?.Open();
+            Assert.NotNull(photo);
+        }
         await using (var db = sql.CreateDbContext()) await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE Users SET MustChangePassword=1 WHERE Id={manager.Id}");
         using (var scope = factory.Services.CreateScope())
         {

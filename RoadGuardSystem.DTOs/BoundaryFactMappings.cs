@@ -5,6 +5,7 @@ public static class BoundaryFactMappings
 {
     public static object? ToFacts(object? value) => value switch
     {
+        global::RoadGuardSystem.DTOs.Inspections.FieldSubmissionCurrentRepair item => (global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldSubmissionCurrentRepairFact)item,
         global::RoadGuardSystem.DTOs.Processing.AiMockRunView item => (global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Processing.AiMockRunViewFact)item,
         global::RoadGuardSystem.DTOs.Processing.AiMockRunView[] items => items.Select(item => (global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Processing.AiMockRunViewFact)item).ToArray(),
         global::RoadGuardSystem.DTOs.Processing.AiMockScopeRequest item => (global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Processing.AiMockScopeRequestFact)item,
@@ -247,6 +248,7 @@ public static class BoundaryFactMappings
     };
     public static object? ToWire(object? value) => value switch
     {
+        global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldSubmissionCurrentRepairFact item => (global::RoadGuardSystem.DTOs.Inspections.FieldSubmissionCurrentRepair)item,
         global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Processing.AiMockRunViewFact item => (global::RoadGuardSystem.DTOs.Processing.AiMockRunView)item,
         global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Processing.AiMockRunViewFact[] items => items.Select(item => (global::RoadGuardSystem.DTOs.Processing.AiMockRunView)item).ToArray(),
         global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Processing.AiMockScopeRequestFact item => (global::RoadGuardSystem.DTOs.Processing.AiMockScopeRequest)item,

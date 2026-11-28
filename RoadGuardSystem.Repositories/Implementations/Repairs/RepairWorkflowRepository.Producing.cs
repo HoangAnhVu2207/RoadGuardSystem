@@ -448,18 +448,7 @@ public sealed partial class RepairWorkflowRepository : IRepairProducerRepository
                 var obligations = new List<RepairObligation>();
                 foreach (var input in command.Input.Obligations)
                 {
-                    var physical = input.Scope;
-                    if (physical is null || physical.RouteVersionId != defect.RoadSectionVersionId) Deny(409, "geometry_version_mismatch");
-                    var route = await db.RoadSectionVersions.AsNoTracking().SingleAsync(row => row.Id == physical.RouteVersionId, ct);
-                    var road = await db.RoadSections.AsNoTracking().SingleAsync(row => row.Id == route.RoadSectionId, ct);
-                    if (road.ProjectId != command.ProjectId || physical.PhysicalRoadId != road.Id) Deny(409, "physical_road_source_mismatch");
-                    var locationInput = new RepairFieldTaskData(defect.Id, command.ExpectedDefectVersion, null, "REPORTER", route.Id,
-                        physical.SegmentSetId, physical.LayoutRevisionId, physical.SlabId, "POST_REPAIR", 1, "{}", null,
-                        command.ActorId, clock.GetUtcNow().AddDays(1));
-                    var native = await db.Set<NativeRouteVersionFacts>().AsNoTracking().SingleOrDefaultAsync(row => row.RoadSectionVersionId == route.Id, ct);
-                    locationInput = locationInput with { CrsProfileRevisionId = native?.CrsProfileRevisionId };
-                    var check = await FieldCore().ValidateRepairLocationPinsInTransactionAsync(command.ProjectId, locationInput, ct);
-                    if (check.Code is not null) Deny(check.Status, check.Code);
+                    var scope = await RequestedScopeAsync(command.ProjectId, command.ActorId, defect, command.ExpectedDefectVersion, input.Scope, ct);
                     var kind = input.Kind switch
                     {
                         "FORMAL_REPAIR" => RepairObligationKind.FormalRepair,
@@ -467,24 +456,14 @@ public sealed partial class RepairWorkflowRepository : IRepairProducerRepository
                         _ => (RepairObligationKind)0
                     };
                     if (kind == 0) Deny(400, "validation_error");
-                    var frame = "h4-frame-v1:" + SourceHash(new
-                    {
-                        routeVersionId = route.Id,
-                        physical.SegmentSetId,
-                        physical.LayoutRevisionId,
-                        physical.SlabId,
-                        crsProfileRevisionId = native?.CrsProfileRevisionId
-                    });
-                    RepairActualScope scope;
-                    try
-                    {
-                        scope = RepairActualScope.Create(Guid.NewGuid(), road.Id, frame, road.Code,
-                        physical.FromMeters, physical.ToMeters, physical.OffsetFromMeters, physical.OffsetToMeters);
-                    }
-                    catch (ArgumentException) { Deny(400, "validation_error"); throw; }
                     var existing = await db.Set<RepairObligation>().AsNoTracking().Include(row => row.Scope)
-                        .Where(row => row.DefectId == defect.Id && row.Kind == kind && row.EffectiveResolutionDecisionId == null && row.SafetyResolutionId == null).ToArrayAsync(ct);
-                    if (existing.Any(row => scope.Compare(row.Scope) != RepairScopeComparison.Disjoint) ||
+                        .Where(row => row.DefectId == defect.Id && row.Kind == kind && (kind == RepairObligationKind.FormalRepair || row.EffectiveResolutionDecisionId == null && row.SafetyResolutionId == null)).ToArrayAsync(ct);
+                    if (kind == RepairObligationKind.FormalRepair)
+                    {
+                        var conflict = FormalRepairScopeAdmission.Evaluate(scope, existing.Concat(obligations));
+                        if (conflict is not null) Deny(409, conflict.Code);
+                    }
+                    else if (existing.Any(row => scope.Compare(row.Scope) != RepairScopeComparison.Disjoint) ||
                         obligations.Where(row => row.Kind == kind).Any(row => scope.Compare(row.Scope) != RepairScopeComparison.Disjoint))
                         Deny(409, "active_scope_conflict");
                     obligations.Add(RepairObligation.Create(Guid.NewGuid(), command.ProjectId, defect.Id, kind, input.Mandatory, scope));
@@ -509,6 +488,10 @@ public sealed partial class RepairWorkflowRepository : IRepairProducerRepository
                     package.Items.Any(row => row.ObligationId == obligation.Id)) Deny(409, "explicit_successor_required");
                 var mode = command.Input.Mode switch { "NORMAL" => RepairMode.Normal, "FAST_TRACK" => RepairMode.FastTrack, _ => (RepairMode)0 };
                 if (mode == 0 || obligation.Kind != RepairObligationKind.FormalRepair) Deny(400, "validation_error");
+                var formalScopes = await db.Set<RepairObligation>().AsNoTracking().Include(row => row.Scope)
+                    .Where(row => row.DefectId == package.DefectId && row.Kind == RepairObligationKind.FormalRepair).ToArrayAsync(ct);
+                var conflict = FormalRepairScopeAdmission.Evaluate(obligation.Scope, formalScopes, obligation.Id);
+                if (conflict is not null) Deny(409, conflict.Code);
                 var now = clock.GetUtcNow(); var item = RepairItem.ProposeWithPlan(Guid.NewGuid(), obligation, mode,
                     command.ActorId, command.Role, now, new(command.Input.RepairPlan, command.Input.ChecklistVersion));
                 package.AddItem(item); Touch(package); await db.SaveChangesAsync(ct);

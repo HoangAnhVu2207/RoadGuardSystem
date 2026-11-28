@@ -192,14 +192,14 @@ public sealed record FieldSubmissionView(Guid Id, Guid TaskId, Guid RootId, Guid
     DateTimeOffset ServerReceivedAt, DateTimeOffset OriginalReviewDueAt, string Readiness,
     string[] MissingReasons, string ContentHash, FieldMeasurementInput[] Measurements,
     FieldEvidenceDeclaration[] Evidence, string CaptureType, bool? Repaired, string? UnrepairedReason,
-    FieldPositionProofInput? LocationProof = null, FieldEvidenceReference[]? EvidenceReferences = null)
+    FieldPositionProofInput? LocationProof = null, FieldEvidenceReference[]? EvidenceReferences = null, FieldSubmissionCurrentRepair? CurrentRepair = null)
 {
     [return: System.Diagnostics.CodeAnalysis.NotNullIfNotNull(nameof(value))]
     public static implicit operator global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldSubmissionViewFact?(FieldSubmissionView? value)
-        => value is null ? null! : new(value.Id, value.TaskId, value.RootId, value.ParentId, value.Revision, value.ServerReceivedAt, value.OriginalReviewDueAt, value.Readiness, value.MissingReasons, value.ContentHash, value.Measurements?.Select(item => (global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldMeasurementInputFact)item).ToArray()!, value.Evidence?.Select(item => (global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldEvidenceDeclarationFact)item).ToArray()!, value.CaptureType, value.Repaired, value.UnrepairedReason, value.LocationProof, value.EvidenceReferences?.Select(item => (global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldEvidenceReferenceFact)item).ToArray());
+        => value is null ? null! : new(value.Id, value.TaskId, value.RootId, value.ParentId, value.Revision, value.ServerReceivedAt, value.OriginalReviewDueAt, value.Readiness, value.MissingReasons, value.ContentHash, value.Measurements?.Select(item => (global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldMeasurementInputFact)item).ToArray()!, value.Evidence?.Select(item => (global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldEvidenceDeclarationFact)item).ToArray()!, value.CaptureType, value.Repaired, value.UnrepairedReason, value.LocationProof, value.EvidenceReferences?.Select(item => (global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldEvidenceReferenceFact)item).ToArray(), value.CurrentRepair);
     [return: System.Diagnostics.CodeAnalysis.NotNullIfNotNull(nameof(value))]
     public static implicit operator FieldSubmissionView?(global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldSubmissionViewFact? value)
-        => value is null ? null! : new(value.Id, value.TaskId, value.RootId, value.ParentId, value.Revision, value.ServerReceivedAt, value.OriginalReviewDueAt, value.Readiness, value.MissingReasons, value.ContentHash, value.Measurements?.Select(item => (global::RoadGuardSystem.DTOs.Inspections.FieldMeasurementInput)item).ToArray()!, value.Evidence?.Select(item => (global::RoadGuardSystem.DTOs.Inspections.FieldEvidenceDeclaration)item).ToArray()!, value.CaptureType, value.Repaired, value.UnrepairedReason, value.LocationProof, value.EvidenceReferences?.Select(item => (global::RoadGuardSystem.DTOs.Inspections.FieldEvidenceReference)item).ToArray());
+        => value is null ? null! : new(value.Id, value.TaskId, value.RootId, value.ParentId, value.Revision, value.ServerReceivedAt, value.OriginalReviewDueAt, value.Readiness, value.MissingReasons, value.ContentHash, value.Measurements?.Select(item => (global::RoadGuardSystem.DTOs.Inspections.FieldMeasurementInput)item).ToArray()!, value.Evidence?.Select(item => (global::RoadGuardSystem.DTOs.Inspections.FieldEvidenceDeclaration)item).ToArray()!, value.CaptureType, value.Repaired, value.UnrepairedReason, value.LocationProof, value.EvidenceReferences?.Select(item => (global::RoadGuardSystem.DTOs.Inspections.FieldEvidenceReference)item).ToArray(), value.CurrentRepair);
 }
 public sealed record FieldReviewView(Guid Id, Guid TaskId, Guid SubmissionId, string Decision, string ReceiptActivation)
 {
@@ -237,4 +237,16 @@ public sealed record FieldVerificationSourceFacts(Guid TaskId, Guid DefectId, Gu
     [return: System.Diagnostics.CodeAnalysis.NotNullIfNotNull(nameof(value))]
     public static implicit operator FieldVerificationSourceFacts?(global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldVerificationSourceFactsFact? value)
         => value is null ? null! : new(value.TaskId, value.DefectId, value.SubmissionId, value.ContentHash, value.Decision, value.EvidenceIds, value.RouteVersionId, value.SegmentSetId, value.LayoutRevisionId);
+}
+
+public sealed record FieldSubmissionCurrentRepair(Guid ItemId, string ItemVersion, Guid? BindingId, Guid? AttemptId,
+    Guid? EffectiveSubmissionId, bool IsEffectiveSubmission, Guid? ReviewId, string? ReviewDecision,
+    string? ReviewReason, string ItemStatus, Guid? FinalDecisionId, string? FinalDecisionResult, string[] MissingReasons)
+{
+    [return: System.Diagnostics.CodeAnalysis.NotNullIfNotNull(nameof(value))]
+    public static implicit operator global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldSubmissionCurrentRepairFact?(FieldSubmissionCurrentRepair? value)
+        => value is null ? null : new(value.ItemId, value.ItemVersion, value.BindingId, value.AttemptId, value.EffectiveSubmissionId, value.IsEffectiveSubmission, value.ReviewId, value.ReviewDecision, value.ReviewReason, value.ItemStatus, value.FinalDecisionId, value.FinalDecisionResult, value.MissingReasons);
+    [return: System.Diagnostics.CodeAnalysis.NotNullIfNotNull(nameof(value))]
+    public static implicit operator FieldSubmissionCurrentRepair?(global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Inspections.FieldSubmissionCurrentRepairFact? value)
+        => value is null ? null : new(value.ItemId, value.ItemVersion, value.BindingId, value.AttemptId, value.EffectiveSubmissionId, value.IsEffectiveSubmission, value.ReviewId, value.ReviewDecision, value.ReviewReason, value.ItemStatus, value.FinalDecisionId, value.FinalDecisionResult, value.MissingReasons);
 }

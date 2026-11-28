@@ -14,6 +14,7 @@ public sealed record RepairItemAssignCommand(Guid ActorId, UserRoleCode Role, Gu
 // Independent typed producing admission. Existing correction/request DTOs and committed hashes remain unchanged.
 public interface IRepairProducerRepository
 {
+    Task<RepairWorkflowResult> FormalScopeEligibilityAsync(Guid actor, UserRoleCode role, Guid project, Guid defectId, RepairActualScopeData? requested, CancellationToken token);
     Task<RepairWorkflowResult> ListTemporarySafetyAsync(Guid actor, UserRoleCode role, Guid project, Guid packageId, Guid itemId, CancellationToken token);
     Task<RepairWorkflowResult> AddTemporarySafetyAsync(TemporarySafetyObligationCommand command, CancellationToken token);
     Task<RepairWorkflowResult> CreatePackageAsync(RepairPackageCreateCommand command, CancellationToken cancellationToken);

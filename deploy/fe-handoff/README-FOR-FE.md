@@ -45,3 +45,5 @@ Draft [special cases](FE-CONTRACT-SPECIAL-CASES.md), [error diagnostics](FE-API-
 Current acceptance and missing work are recorded in [the kit checklist](FE-INTEGRATION-ACCEPTANCE-CHECKLIST.md). Source and document hashes are in [the preparation manifest](review-evidence/fe-integration-kit/PREPARATION-MANIFEST.json). This index is not `FE_HANDOFF_DELIVERED` or `FE_HANDOFF_VERIFIED`.
 
 Current functional integration entry points: [business flows](FE-BUSINESS-FLOW-GUIDE.md), [all API functions](FE-API-FUNCTIONAL-GUIDE.md), [test instructions](FE-API-TEST-GUIDE.md). Missing screen names do not block H02; missing mandatory contract, security or runtime evidence does.
+
+Focused 2026-11-28 BE contract: [FIELD current state, approved REAL export, project timeline and formal scope admission](FIELD-REAL-EXPORT-TIMELINE-FORMAL-GUARDS.md). Includes the GPS/proof contract already delivered in d800e35 and separates new read projections from historical snapshots.

@@ -42,7 +42,7 @@ public sealed record FieldSubmissionViewFact(Guid Id, Guid TaskId, Guid RootId, 
     DateTimeOffset ServerReceivedAt, DateTimeOffset OriginalReviewDueAt, string Readiness,
     string[] MissingReasons, string ContentHash, FieldMeasurementInputFact[] Measurements,
     FieldEvidenceDeclarationFact[] Evidence, string CaptureType, bool? Repaired, string? UnrepairedReason,
-    FieldPositionProofInputFact? LocationProof = null, FieldEvidenceReferenceFact[]? EvidenceReferences = null);
+    FieldPositionProofInputFact? LocationProof = null, FieldEvidenceReferenceFact[]? EvidenceReferences = null, FieldSubmissionCurrentRepairFact? CurrentRepair = null);
 
 public sealed record FieldTaskActionInputFact(string Reason, Guid? AssignedToUserId = null, FieldHandoverInputFact? Handover = null);
 
@@ -77,3 +77,7 @@ public sealed record FieldVerificationSourceFactsFact(Guid TaskId, Guid DefectId
 public sealed record FieldVerificationSourceQueryFact(Guid DefectId, Guid SubmissionId, string ExpectedContentHash);
 
 public sealed record FieldWorkflowResultFact(int Status, string? Code = null, object? Value = null, string? Version = null, bool Replayed = false);
+
+public sealed record FieldSubmissionCurrentRepairFact(Guid ItemId, string ItemVersion, Guid? BindingId, Guid? AttemptId,
+    Guid? EffectiveSubmissionId, bool IsEffectiveSubmission, Guid? ReviewId, string? ReviewDecision,
+    string? ReviewReason, string ItemStatus, Guid? FinalDecisionId, string? FinalDecisionResult, string[] MissingReasons);

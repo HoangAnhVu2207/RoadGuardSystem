@@ -63,6 +63,7 @@ public sealed class H4RepairProducerAdmissionTests
         };
     private sealed class Recording : IRepairProducerRepository
     {
+        public Task<RepairWorkflowResult> FormalScopeEligibilityAsync(Guid actor, UserRoleCode role, Guid project, Guid defectId, RepairActualScopeData? requested, CancellationToken token) => throw new NotSupportedException();
         public bool Called { get; private set; }
         public object? Command { get; private set; }
         public RepairWorkflowResult Result { get; } = new(201);

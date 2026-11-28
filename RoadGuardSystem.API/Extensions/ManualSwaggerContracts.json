@@ -4399,7 +4399,11 @@
           "export_invalid",
           "export_source_unavailable",
           "no_eligible_labels",
-          "producer_invalid"
+          "producer_invalid",
+          "export_ai_source_not_ready",
+          "export_ai_source_mode_unsupported",
+          "export_ai_source_version_mismatch",
+          "export_ai_segment_scope_unresolved"
         ],
         "description": "Emitted by source guards or action result mapping; exact branches retained in source excerpts."
       },
@@ -4427,7 +4431,7 @@
       }
     ],
     "wireLimitations": [],
-    "uiDescription": "Create exports resources. Permissions: PM / Supervisor."
+    "uiDescription": "Create an export. TRAINING ZIP pins approved label revisions and REAL/MOCK source provenance; source authority is rechecked by the worker and on download."
   },
   {
     "id": "SWG-037",
@@ -5653,7 +5657,35 @@
                 "spatialSrid": {
                   "type": "integer"
                 },
-                "wgs84Geometry": {"type": "object", "nullable": true, "description": "Display LineString in WGS84 [longitude, latitude]. Null for unavailable source geometry or unsupported CRS.", "properties": {"type": {"type": "string", "enum": ["LineString"]}, "coordinates": {"type": "array", "items": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "number", "format": "double"}}}}, "required": ["type", "coordinates"]},
+                "wgs84Geometry": {
+                  "type": "object",
+                  "nullable": true,
+                  "description": "Display LineString in WGS84 [longitude, latitude]. Null for unavailable source geometry or unsupported CRS.",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "LineString"
+                      ]
+                    },
+                    "coordinates": {
+                      "type": "array",
+                      "items": {
+                        "type": "array",
+                        "minItems": 2,
+                        "maxItems": 2,
+                        "items": {
+                          "type": "number",
+                          "format": "double"
+                        }
+                      }
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "coordinates"
+                  ]
+                },
                 "wkt": {
                   "type": "string"
                 },
@@ -5708,7 +5740,35 @@
                     "type": "integer",
                     "nullable": true
                   },
-                  "wgs84Geometry": {"type": "object", "nullable": true, "description": "Display LineString in WGS84 [longitude, latitude]. Null for unavailable source geometry or unsupported CRS.", "properties": {"type": {"type": "string", "enum": ["LineString"]}, "coordinates": {"type": "array", "items": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "number", "format": "double"}}}}, "required": ["type", "coordinates"]},
+                  "wgs84Geometry": {
+                    "type": "object",
+                    "nullable": true,
+                    "description": "Display LineString in WGS84 [longitude, latitude]. Null for unavailable source geometry or unsupported CRS.",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "enum": [
+                          "LineString"
+                        ]
+                      },
+                      "coordinates": {
+                        "type": "array",
+                        "items": {
+                          "type": "array",
+                          "minItems": 2,
+                          "maxItems": 2,
+                          "items": {
+                            "type": "number",
+                            "format": "double"
+                          }
+                        }
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "coordinates"
+                    ]
+                  },
                   "wkt": {
                     "type": "string",
                     "nullable": true
@@ -7272,10 +7332,10 @@
         "headers": [
           {
             "name": "ETag",
-            "description": "Current quoted content hash for response; mutation If-Match still uses task rowversion. Emitted only when current successful result supplies its version/contentHash.",
+            "description": "Opaque representation hash when currentRepair is present; otherwise immutable submission contentHash. FIELD commands still require task rowversion.",
             "format": null,
             "pattern": null,
-            "uiDescription": "Current strong quoted content-hash ETag."
+            "uiDescription": "Opaque quoted representation ETag. The body contentHash remains the immutable submission hash."
           }
         ],
         "mediaTypes": [
@@ -7339,7 +7399,7 @@
       "Crew actions require current assigned actor; start offline proof/position/time, submission capture and evidence declarations follow current business guards."
     ],
     "wireLimitations": [],
-    "uiDescription": "Submission field inspection workflow resources. Permissions: PM / Supervisor / assigned Crew."
+    "uiDescription": "Read the immutable submission and separate currentRepair state. Historical intake missingReasons remain unchanged; current review applies only to the effective submission."
   },
   {
     "id": "SWG-054",
@@ -24797,7 +24857,7 @@
     "instructions": "Caller: PM / Supervisor. Use legitimate current resources in this actor's own project. Source review only; no API request was executed by this audit. Current-value producer IDs: no verified public producer for every prerequisite; retain source blocker. Rebootstrap uses supported isolated seeder/application paths only; never SQL insertion or invented FK/hash.",
     "conditionalInputs": [],
     "wireLimitations": [],
-    "uiDescription": "Timeline reporting resources. Permissions: PM / Supervisor."
+    "uiDescription": "Read scoped timeline metadata. Project combines survey, FIELD, repair and recorded AI events; actor names are current account names. Coverage remains PARTIAL; old cursors return cursor_invalid."
   },
   {
     "id": "SWG-181",
@@ -29694,5 +29754,66 @@
     "conditionalInputs": [],
     "wireLimitations": [],
     "uiDescription": "Sign out of the current browser session. Supply its CSRF token and a new Idempotency-Key."
+  },
+  {
+    "id": "SWG-238",
+    "method": "GET",
+    "route": "/api/v1/projects/{projectId}/repair-packages/eligibility",
+    "headers": [],
+    "bodyRequired": false,
+    "bodyDescription": "No body. defectId and scope query bind the concrete pinned scope.",
+    "successResponses": [
+      {
+        "status": 200,
+        "type": "RoadGuardSystem.DTOs.Repairs.FormalRepairEligibilityView",
+        "description": "Formal scope admission only, not execution eligibility.",
+        "headers": [],
+        "mediaTypes": [
+          "application/json"
+        ]
+      }
+    ],
+    "errors": [
+      {
+        "status": 400,
+        "codes": [
+          "validation_error"
+        ],
+        "description": "Current scope and source guard."
+      },
+      {
+        "status": 401,
+        "codes": [
+          "unauthorized"
+        ],
+        "description": "Current scope and source guard."
+      },
+      {
+        "status": 403,
+        "codes": [
+          "access_forbidden"
+        ],
+        "description": "Current scope and source guard."
+      },
+      {
+        "status": 404,
+        "codes": [
+          "not_found"
+        ],
+        "description": "Current scope and source guard."
+      },
+      {
+        "status": 409,
+        "codes": [
+          "geometry_version_mismatch",
+          "physical_road_source_mismatch"
+        ],
+        "description": "Current scope and source guard."
+      }
+    ],
+    "instructions": "PM with current project authority. Missing concrete scope returns eligible:null. Conflicting resource IDs are only returned inside current responsibility. Mutation rechecks the same scope evaluator in SQL transaction.",
+    "conditionalInputs": [],
+    "wireLimitations": [],
+    "uiDescription": "Check a concrete formal repair scope before creation. Active, completed and unverified scopes block duplicates. No scope means eligibility is unknown; this does not authorize execution."
   }
 ]

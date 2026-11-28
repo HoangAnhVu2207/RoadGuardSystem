@@ -17,6 +17,7 @@ public sealed record ReportingReadResult(string Code, ReportingFacts? Facts = nu
 
 public interface IReportingRepository
 {
+    Task<ReportingTimelineItemFact[]> OperationalTimelineAsync(Guid project, ReportingFiltersFact filters, CancellationToken token);
     // Reuses an existing SERIALIZABLE/SNAPSHOT admission transaction on this scoped DbContext.
     // Otherwise owns a SERIALIZABLE read transaction, including authorization performed by the callback.
     Task<T> ReadConsistentlyAsync<T>(Func<CancellationToken, Task<T>> read, CancellationToken token);

@@ -109,14 +109,16 @@ public sealed partial class ExportService : IExportService
         }
         else
         {
-            if (_labels is null || request.IncludeOriginalFiles && _sourceAccess is null) return new("producer_unavailable", null);
-            var selection = await _labels.CaptureApprovedAsync(actor, role, project, new(request.SegmentIds!, request.DefectIds!, request.From, request.To), ct);
+            if (_labels is null || _sourceAccess is null) return new("producer_unavailable", null);
+            ApprovedLabelSnapshotV1? selection;
+            try { selection = await _labels.CaptureApprovedAsync(actor, role, project, new(request.SegmentIds!, request.DefectIds!, request.From, request.To), ct); }
+            catch (TrainingLabelExportSourceException error) { return new(error.Code, null); }
             if (selection is null) return new("producer_unavailable", null);
             if (selection.Labels is null || selection.SnapshotId == Guid.Empty || string.IsNullOrWhiteSpace(selection.SchemaVersion) || selection.Hash is not { Length: 64 } || !selection.Hash.All(c => c is >= '0' and <= '9' or >= 'a' and <= 'f')) return new("producer_invalid", null);
             if (selection.Labels.Count == 0) return new("no_eligible_labels", null);
             if (selection.Labels.Any(l => !ValidLabel(l, project)) || selection.Labels.Select(l => l.LabelId).Distinct().Count() != selection.Labels.Count) return new("producer_invalid", null);
             if (request.SegmentIds is { Length: > 0 } selectedSegments && selection.Labels.Any(l => l.SegmentId is null || !selectedSegments.Contains(l.SegmentId.Value))) return new("producer_invalid", null);
-            labels = selection.Labels.OrderBy(l => l.LabelId).ThenBy(l => l.Revision).Select(l => new ExportLabelDto(l.LabelId, l.Revision, l.RevisionId, l.ProjectId, l.TypeCode, l.Annotation.X, l.Annotation.Y, l.Annotation.Width, l.Annotation.Height, l.FileId, l.FileVersion, l.Sha256, l.SizeBytes, l.MediaType, l.SourceKind, l.SourceId, l.SourceVersion, l.ApprovalId, l.ApprovedBy, l.ApprovedAt.ToUniversalTime(), l.ProcessingJobId, l.ModelVersionId, l.DatasetVersionId, l.Mode, l.SegmentId)).ToArray();
+            labels = selection.Labels.OrderBy(l => l.LabelId).ThenBy(l => l.Revision).Select(l => new ExportLabelDto(l.LabelId, l.Revision, l.RevisionId, l.ProjectId, l.TypeCode, l.Annotation.X, l.Annotation.Y, l.Annotation.Width, l.Annotation.Height, l.FileId, l.FileVersion, l.Sha256, l.SizeBytes, l.MediaType, l.SourceKind, l.SourceId, l.SourceVersion, l.ApprovalId, l.ApprovedBy, l.ApprovedAt.ToUniversalTime(), l.ProcessingJobId, l.ModelVersionId, l.DatasetVersionId, l.Mode, l.SegmentId, l.AiSource)).ToArray();
             files = labels.GroupBy(l => l.FileId).OrderBy(g => g.Key).Select(g => { var l = g.First(); return new ExportFileDto(l.FileId, l.FileVersion, l.Sha256, l.SizeBytes, l.MediaType, request.IncludeOriginalFiles ? ExportArchive.FilePath(l.FileId, l.MediaType) : null, request.IncludeOriginalFiles, request.IncludeOriginalFiles ? null : "ORIGINALS_NOT_REQUESTED"); }).ToArray();
             foreach (var f in files)
             {
@@ -124,7 +126,7 @@ public sealed partial class ExportService : IExportService
                 if (original is null || original.Checksum != f.Sha256 || original.SizeBytes != f.SizeBytes || original.MimeType != f.MediaType) return new("export_source_unavailable", null);
                 if (labels.Where(l => l.FileId == f.FileId).Any(l => l.FileVersion != f.FileVersion || l.Sha256 != f.Sha256 || l.SizeBytes != f.SizeBytes || l.MediaType != f.MediaType)) return new("producer_invalid", null);
             }
-            if (request.IncludeOriginalFiles && !await _sourceAccess!.CanReadAsync(actor, role, project, files.Select(f => f.FileId).ToArray(), ct)) return new("forbidden", null);
+            if (!await _sourceAccess!.CanReadAsync(actor, role, project, files.Select(f => f.FileId).ToArray(), ct)) return new("forbidden", null);
             sections = [new("approvedLabels", "AVAILABLE", [])];
             revisions = labels.Select(l => new ExportSourceRevisionDto("labelRevision", l.RevisionId, l.Revision.ToString(System.Globalization.CultureInfo.InvariantCulture))).Append(new("approvedLabelSnapshot", selection.SnapshotId, selection.Hash)).ToArray();
             definitions = [selection.SchemaVersion];
@@ -149,7 +151,7 @@ public sealed partial class ExportService : IExportService
         if (data is null) return new("not_found");
         var payload = ExportSerialization.Read(data.Snapshot);
         return await CanReadSnapshotSourcesAsync(actorId, projectId, payload, ct) &&
-            (payload.RepairDossier is null || await CanReadFilesAsync(actorId, role.Value, projectId, payload.Manifest, ct))
+            (payload.RepairDossier is null && payload.Manifest.Kind != "TRAINING" || await CanReadFilesAsync(actorId, role.Value, projectId, payload.Manifest, ct))
             ? new("success", payload.Manifest with { SnapshotHash = data.Snapshot.Hash }) : new("forbidden");
     }
     public async Task<ExportResult<ExportContentDto>> ContentAsync(Guid actorId, Guid projectId, Guid exportId, CancellationToken ct)
@@ -206,7 +208,7 @@ public sealed partial class ExportService : IExportService
             }
             return true;
         }
-        var ids = manifest.Files.Where(f => f.Included).Select(f => f.FileId).ToArray();
+        var ids = manifest.Files.Where(f => manifest.Kind == "TRAINING" || f.Included).Select(f => f.FileId).Distinct().ToArray();
         if (ids.Length == 0) return true;
         if (manifest.Kind == "DOSSIER") return await _repo.CanReadSurveySourcesAsync(project, ids, ct);
         return _sourceAccess is not null && await _sourceAccess.CanReadAsync(actor, role, project, ids, ct);

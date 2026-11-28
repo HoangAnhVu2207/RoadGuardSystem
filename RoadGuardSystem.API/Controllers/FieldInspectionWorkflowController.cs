@@ -89,6 +89,7 @@ public sealed class FieldInspectionWorkflowController(IFieldInspectionWorkflowSe
         if (etag.Length > 0 && (etag.Length < 3 || etag[0] != '"' || etag[^1] != '"' || etag.Contains(','))) return Error(400, "validation_error");
         var result = await service.ExecuteAsync(actor, role, project, task, action, input, keys.Count == 1 ? keys[0] : null, etag.Length == 0 ? null : etag, cancellationToken);
         if (result.Status >= 400) return Error(result.Status, result.Code ?? "validation_error");
+        if (action == "submission") Response.Headers.CacheControl = "no-store";
         var value = JsonSerializer.SerializeToElement(result.Value, Json);
         string? version = result.Version;
         if (version is null && value.ValueKind == JsonValueKind.Object)

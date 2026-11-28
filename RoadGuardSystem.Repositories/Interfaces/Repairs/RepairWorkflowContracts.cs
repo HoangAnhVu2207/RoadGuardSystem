@@ -112,3 +112,5 @@ public sealed record RepairTaskBindingFact(Guid ItemId, Guid ObligationId, Guid 
 public sealed record RepairFieldSourceResult(int Status, string? Code = null);
 public sealed class RepairFieldCoreRejectedException(int status, string? code) : Exception("Repair FIELD source admission rejected.") { public int Status { get; } = status; public string? Code { get; } = code; }
 public sealed record RepairCorrectionOutboxEvent(int SchemaVersion, Guid EventId, Guid OriginEventId, Guid ProjectId, string Kind, string SourceKind, Guid SourceId, Guid SourceRevisionId, DateTimeOffset OccurredAtUtc, Guid ObligationId, Guid SupersedesDecisionId, string Result);
+
+public sealed record FormalRepairEligibilityFact(bool? Eligible, string? Code, string? Reason, Guid? ObligationId = null, Guid? PackageId = null, Guid? ItemId = null, string? Mode = null, string? Status = null);

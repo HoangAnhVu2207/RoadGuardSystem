@@ -78,3 +78,5 @@ public sealed record RepairItemSourceView(Guid OriginProjectId, Guid Responsibil
     Guid? RouteVersionId, SafetyObligationScopeView Scope, RepairTaskBindingView? Task);
 public sealed record RepairPackageView(Guid Id, Guid ProjectId, Guid DefectId, bool AllMandatoryResolved,
     Guid[] UnresolvedMandatoryObligationIds, RepairItemView[] Items, string Version);
+
+public sealed record FormalRepairEligibilityView(bool? Eligible, string? Code, string? Reason, Guid? ObligationId, Guid? PackageId, Guid? ItemId, string? Mode, string? Status);

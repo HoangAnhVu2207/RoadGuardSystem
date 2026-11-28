@@ -37,18 +37,21 @@ public sealed class TrainingLabelExportReader(ITrainingLabelRepository labelsRep
                     if (ai is null) return null;
                     var aiResult = await ai.ResolveAsync(actorId, role, projectId, row.Head.SourceId,
                         cancellationToken: ct);
-                    if (aiResult.Status != AnhHuyProducerStatus.Ready) return null;
+                    if (aiResult.Status != AnhHuyProducerStatus.Ready) throw new TrainingLabelExportSourceException("export_ai_source_not_ready");
                     await cases.GuardAsync(actorId, role, [], projectId,
                         async (project, token) => await scope.AuthorizeAsync(actorId, role, project, token) is not null, ct);
                     await candidates.LockAiSourceAsync(row.Head.SourceId, ct);
                     aiResult = await ai.ResolveAsync(actorId, role, projectId, row.Head.SourceId,
                         cancellationToken: ct);
-                    if (aiResult.Status != AnhHuyProducerStatus.Ready) return null;
+                    if (aiResult.Status != AnhHuyProducerStatus.Ready) throw new TrainingLabelExportSourceException("export_ai_source_not_ready");
                     var proof = aiResult.Facts!;
-                    if (proof.Mode != "MOCK/SYNTHETIC" || row.Revision.SourceVersion != proof.SourceVersion ||
+                    if (proof.Mode is not ("REAL" or "MOCK/SYNTHETIC")) throw new TrainingLabelExportSourceException("export_ai_source_mode_unsupported");
+                    if (row.Revision.SourceVersion != proof.SourceVersion ||
                         row.Revision.FileId != proof.FrameFileId || row.Revision.FileVersion != proof.FrameFileVersion ||
                         row.File.Checksum != proof.FrameSha256 || row.File.SizeBytes != proof.FrameSizeBytes ||
-                        row.File.MimeType != proof.FrameMediaType) return null;
+                        row.File.MimeType != proof.FrameMediaType) throw new TrainingLabelExportSourceException("export_ai_source_version_mismatch");
+                    if (proof.Mode == "REAL" && filters.SegmentIds.Length > 0 && proof.SegmentId is null)
+                        throw new TrainingLabelExportSourceException("export_ai_segment_scope_unresolved");
                     if (filters.SegmentIds.Length > 0 && (proof.SegmentId is not Guid segment || !filters.SegmentIds.Contains(segment)))
                         continue;
                     labels.Add(new(row.Head.Id, row.Revision.Revision, row.Revision.Id, projectId,
@@ -57,7 +60,9 @@ public sealed class TrainingLabelExportReader(ITrainingLabelRepository labelsRep
                         proof.FrameFileId, proof.FrameFileVersion, proof.FrameSha256, proof.FrameSizeBytes,
                         proof.FrameMediaType, "AI_DETECTION", row.Head.SourceId, proof.SourceVersion,
                         row.Review.Id, row.Review.ActorUserId, row.Review.ReviewedAt, proof.JobId,
-                        proof.ModelVersionId, proof.DatasetVersionId, "MOCK", proof.SegmentId));
+                        proof.ModelVersionId, proof.DatasetVersionId, proof.Mode == "REAL" ? "REAL" : "MOCK", proof.SegmentId,
+                        new(proof.Mode == "REAL" ? proof.RunId : null, proof.AttemptId, proof.ResultId, proof.ManifestHash, proof.ResultHash,
+                            proof.FixtureVersion, proof.SourceVideoFileId, proof.SourceVideoFileVersion, proof.TimestampMs, proof.FrameWidth, proof.FrameHeight, MockRunId: proof.Mode == "MOCK/SYNTHETIC" ? proof.RunId : null)));
                     continue;
                 }
                 if (row.Head.SourceKind != "REPORT") return null;
@@ -136,7 +141,7 @@ public sealed class TrainingLabelExportReader(ITrainingLabelRepository labelsRep
                                 cancellationToken: ct);
                             if (source.Status != AnhHuyProducerStatus.Ready) continue;
                             var proof = source.Facts!;
-                            permitted = proof.Mode == "MOCK/SYNTHETIC" && proof.SourceVersion == row.SourceVersion &&
+                            permitted = proof.Mode is ("REAL" or "MOCK/SYNTHETIC") && proof.SourceVersion == row.SourceVersion &&
                                 proof.FrameFileId == fileId && proof.FrameFileVersion == row.FileVersion &&
                                 proof.FrameSha256 == row.Checksum && proof.FrameSizeBytes == row.SizeBytes &&
                                 proof.FrameMediaType == row.MimeType;

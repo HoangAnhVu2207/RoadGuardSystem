@@ -16,6 +16,12 @@ namespace RoadGuardSystem.API.Controllers;
 [Route("api/v{version:apiVersion}/projects/{projectId:guid}/repair-packages")]
 public sealed class RepairPackagesController(IRepairProducerService service, IRepairExecutionService execution) : ControllerBase
 {
+    [HttpGet("eligibility")]
+    [ProducesResponseType<FormalRepairEligibilityView>(200)]
+    public Task<IActionResult> FormalScopeEligibility(Guid projectId, [FromQuery] Guid defectId,
+        [FromQuery] RepairActualScopeInput? scope, CancellationToken ct)
+        => Run((actor, role, _, _) => service.FormalScopeEligibilityAsync(actor, role, projectId, defectId, scope, ct));
+
     [HttpGet("{packageId:guid}/items/{itemId:guid}/temporary-safety-obligations")]
     [ProducesResponseType<TemporarySafetyObligationSourcesView>(200)]
     public Task<IActionResult> TemporarySafetySources(Guid projectId, Guid packageId, Guid itemId, CancellationToken ct)

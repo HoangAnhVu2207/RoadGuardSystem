@@ -87,7 +87,7 @@ public sealed class ReportingService(IReportingRepository repository, IIdentityR
         if (aggregateType is not ("Project" or "SurveyRequest" or "SurveyDataVersion" or "DatasetAssessment" or "BaselineSelection") || aggregateId == Guid.Empty ||
             pageSize is < 1 or > 200 || !TryNormalize(filters, out var normalized) || normalized.RouteVersionId.HasValue || normalized.SegmentSetId.HasValue || normalized.SegmentIds!.Length > 0)
             return new("validation_error");
-        var hash = ReportingCursor.FilterHash(project, normalized, "timeline", aggregateType, aggregateId);
+        var hash = ReportingCursor.FilterHash(project, normalized, "timeline.v2", aggregateType, aggregateId);
         if (!ReportingCursor.TryDecode(cursor, hash, out var key)) return new("cursor_invalid");
         return await repository.ReadConsistentlyAsync(async ct =>
         {
@@ -98,13 +98,17 @@ public sealed class ReportingService(IReportingRepository repository, IIdentityR
             if (aggregateType == "Project")
             {
                 var facts = await repository.CaptureAsync(project, normalized, ct);
-                rows = (facts.Facts?.Timeline ?? []).Where(i => key is null || i.OccurredAt > key.Time || i.OccurredAt == key.Time && new SqlGuid(i.EventId).CompareTo(new SqlGuid(key.Id)) > 0)
-                    .OrderBy(i => i.OccurredAt).ThenBy(i => new SqlGuid(i.EventId)).Take(pageSize + 1).Select(item => (ReportingTimelineItemDto)item).ToArray();
+                rows = (facts.Facts?.Timeline ?? []).Concat(await repository.OperationalTimelineAsync(project, normalized, ct))
+                    .DistinctBy(i => (i.Source.Type, i.EventId))
+                    .Where(i => key is null || i.OccurredAt > key.Time || i.OccurredAt == key.Time &&
+                        (new SqlGuid(i.EventId).CompareTo(new SqlGuid(key.Id)) > 0 || i.EventId == key.Id && string.CompareOrdinal(i.Source.Type, key.Source) > 0))
+                    .OrderBy(i => i.OccurredAt).ThenBy(i => new SqlGuid(i.EventId)).ThenBy(i => i.Source.Type, StringComparer.Ordinal).Take(pageSize + 1).Select(item => (ReportingTimelineItemDto)item).ToArray();
             }
             else rows = (await repository.TimelineAsync(aggregateType, aggregateId, normalized, key?.Time, key?.Id, pageSize + 1, ct)).Select(item => (ReportingTimelineItemDto)item).ToArray();
             var page = rows.Take(pageSize).ToArray();
             return new ReportingResult<ReportingTimelinePageDto>("success", new(ReportingDefinitions.Schema, readAt, page,
-                rows.Length > pageSize ? ReportingCursor.Encode(hash, page[^1].OccurredAt, page[^1].EventId) : null, ReportingDefinitions.TimelineAvailability));
+                rows.Length > pageSize ? ReportingCursor.Encode(hash, page[^1].OccurredAt, page[^1].EventId, page[^1].Source.Type) : null,
+                aggregateType == "Project" ? new("PARTIAL", ["CASE_CANDIDATE_HISTORY_NOT_INCLUDED", "REAL_AI_NONTERMINAL_HISTORY_NOT_RECORDED"]) : ReportingDefinitions.TimelineAvailability));
         }, token);
     }
     private async Task<bool> Authorized(Guid actor, Guid project, CancellationToken token)

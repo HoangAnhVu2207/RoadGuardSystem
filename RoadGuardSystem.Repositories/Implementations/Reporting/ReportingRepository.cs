@@ -161,23 +161,23 @@ public sealed partial class ReportingRepository(RoadGuardDbContext db) : IReport
         if (filters.To is { } to) query = query.Where(a => a.OccurredAtUtc < to);
         if (afterTime is { } time && afterId is { } eventId) query = query.Where(a => a.OccurredAtUtc > time || a.OccurredAtUtc == time && a.Id.CompareTo(eventId) > 0);
         var rows = await query.OrderBy(a => a.OccurredAtUtc).ThenBy(a => a.Id).Take(take).ToArrayAsync(token);
-        return rows.Select(ToTimeline).ToArray();
+        return await ResolveTimelineActorsAsync(rows.Select(ToTimeline).ToArray(), token);
     }
     private static IQueryable<RoadGuardSystem.BusinessObjects.Auditing.AuditLog> Allowed(IQueryable<RoadGuardSystem.BusinessObjects.Auditing.AuditLog> q) =>
         q.Where(a => a.EntityType == "SurveyRequest" && (a.EventType == "survey_task_created" || a.EventType == "survey_task_accept" || a.EventType == "survey_task_cancel" ||
             a.EventType == "survey_task_decline" || a.EventType == "survey_task_reassign" || a.EventType == "survey_task_supplement") ||
             a.EntityType == "SurveyDataVersion" && a.EventType == "survey_dataset_submitted" ||
             a.EntityType == "SurveyAssessment" && (a.EventType == "dataset_assessment_created" || a.EventType == "baseline_selected"));
-    private static async Task<ReportingTimelineItemFact[]> MapTimeline(IQueryable<RoadGuardSystem.BusinessObjects.Auditing.AuditLog> query, ReportingFiltersFact filters, CancellationToken token)
+    private async Task<ReportingTimelineItemFact[]> MapTimeline(IQueryable<RoadGuardSystem.BusinessObjects.Auditing.AuditLog> query, ReportingFiltersFact filters, CancellationToken token)
     {
         query = Allowed(query);
         if (filters.From is { } from) query = query.Where(a => a.OccurredAtUtc >= from);
         if (filters.To is { } to) query = query.Where(a => a.OccurredAtUtc < to);
-        return (await query.OrderBy(a => a.OccurredAtUtc).ThenBy(a => a.Id).ToArrayAsync(token)).Select(ToTimeline).ToArray();
+        return await ResolveTimelineActorsAsync((await query.OrderBy(a => a.OccurredAtUtc).ThenBy(a => a.Id).ToArrayAsync(token)).Select(ToTimeline).ToArray(), token);
     }
     private static ReportingTimelineItemFact ToTimeline(RoadGuardSystem.BusinessObjects.Auditing.AuditLog a) =>
         new(a.Id, a.OccurredAtUtc, null, a.EventType, new(a.EventType == "baseline_selected" ? "BaselineSelection" : a.EventType == "dataset_assessment_created" ? "DatasetAssessment" : a.EntityType, a.EntityId, a.Id.ToString("N")),
-            a.EventType switch { "dataset_assessment_created" => "Manual dataset assessment recorded.", "baseline_selected" => "Baseline selection recorded.", "survey_dataset_submitted" => "Dataset submitted.", _ => "Survey task workflow recorded." });
+            a.EventType switch { "dataset_assessment_created" => "Manual dataset assessment recorded.", "baseline_selected" => "Baseline selection recorded.", "survey_dataset_submitted" => "Dataset submitted.", _ => "Survey task workflow recorded." }, a.ActorUserId);
     private static bool MatchesScope(Guid route, Guid set, string idsJson, ReportingFiltersFact f, HashSet<string> warnings)
     {
         try

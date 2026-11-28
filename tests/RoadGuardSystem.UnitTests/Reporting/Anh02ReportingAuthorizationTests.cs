@@ -64,6 +64,7 @@ public sealed class Anh02ReportingAuthorizationTests
     }
     private sealed class Repository : IReportingRepository
     {
+        public Task<ReportingTimelineItemFact[]> OperationalTimelineAsync(Guid project, ReportingFiltersFact filters, CancellationToken token) => throw new NotSupportedException();
         public bool Captured { get; private set; }
         public Task<T> ReadConsistentlyAsync<T>(Func<CancellationToken, Task<T>> read, CancellationToken token) => read(token);
         public Task<CaseDefectSnapshotV1Fact?> CaptureCaseDefectAsync(Guid actorId, UserRoleCode role, Guid projectId, ReportingFiltersFact filters, CancellationToken token)

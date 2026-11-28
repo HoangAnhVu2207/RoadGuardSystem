@@ -23,7 +23,9 @@ public sealed record ApprovedTrainingLabelV1(Guid LabelId, int Revision, Guid Re
     string TypeCode, NormalizedBoundingBoxV1 Annotation, Guid FileId, string FileVersion, string Sha256,
     long SizeBytes, string MediaType, string SourceKind, Guid SourceId, string SourceVersion,
     Guid ApprovalId, Guid ApprovedBy, DateTimeOffset ApprovedAt, Guid? ProcessingJobId,
-    Guid? ModelVersionId, Guid? DatasetVersionId, string Mode, Guid? SegmentId);
+    Guid? ModelVersionId, Guid? DatasetVersionId, string Mode, Guid? SegmentId,
+    [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    RoadGuardSystem.BusinessObjects.PersistenceFacts.Exports.ExportAiSourceFact? AiSource = null);
 public sealed record ApprovedLabelSnapshotV1(string SchemaVersion, Guid SnapshotId, string Hash,
     DateTimeOffset CapturedAt, IReadOnlyList<ApprovedTrainingLabelV1> Labels);
 // Capture under the exporter's scoped SQL transaction or return a durable
@@ -67,6 +69,10 @@ public sealed record AiCandidateFactsV1(string SchemaVersion, Guid DetectionId, 
 {
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     public AiTelemetryReviewSnapshotV1? TelemetryReview { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore]
+    public int? FrameWidth { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore]
+    public int? FrameHeight { get; init; }
 }
 // Immutable evidence references; GPS is a drone reference and never a ground defect location.
 public sealed record AiTelemetryReviewSnapshotV1(Guid HeadRevisionId, Guid MeasuredRevisionId,
@@ -78,4 +84,9 @@ public interface IAiCandidateFactsReader
         Guid projectId, Guid detectionId, string? expectedSourceVersion = null,
         string? expectedGeometryVersion = null, string? expectedDispositionVersion = null,
         CancellationToken cancellationToken = default);
+}
+
+public sealed class TrainingLabelExportSourceException(string code) : Exception(code)
+{
+    public string Code { get; } = code;
 }

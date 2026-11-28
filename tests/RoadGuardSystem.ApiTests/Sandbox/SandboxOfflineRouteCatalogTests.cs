@@ -54,6 +54,7 @@ public sealed class SandboxOfflineRouteCatalogTests
         // Other source-verified additions below predate this task and remain outside that snapshot.
         var additions = new HashSet<(string, string)>
         {
+            ("GET", "/api/v1/projects/{projectId}/repair-packages/eligibility"),
             ("GET", "/api/v1/projects/{projectId}/reports/{reportId}/matching-location"),
             ("POST", "/api/v1/projects/{projectId}/reports/{reportId}/matching-location"),
             ("GET", "/api/v1/projects/{projectId}/repair-packages/{packageId}/items/{itemId}/source-evidence/{evidenceId}/content"),

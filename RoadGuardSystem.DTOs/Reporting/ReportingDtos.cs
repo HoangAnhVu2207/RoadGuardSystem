@@ -82,14 +82,15 @@ public sealed record ReportingFileDto(Guid FileId, string Version, string Sha256
         => value is null ? null! : new(value.FileId, value.Version, value.Sha256, value.SizeBytes, value.MediaType);
 }
 public sealed record ReportingTimelineItemDto(Guid EventId, DateTimeOffset OccurredAt, string? ActorDisplay, string Action,
-    ReportingSourceRefDto Source, string Summary)
+    ReportingSourceRefDto Source, string Summary, Guid? ActorId = null, string ActorKind = "UNKNOWN",
+    string? ActorUnavailableReason = null, string? ActorDisplaySemantics = null)
 {
     [return: System.Diagnostics.CodeAnalysis.NotNullIfNotNull(nameof(value))]
     public static implicit operator global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Reporting.ReportingTimelineItemFact?(ReportingTimelineItemDto? value)
-        => value is null ? null! : new(value.EventId, value.OccurredAt, value.ActorDisplay, value.Action, (global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Reporting.ReportingSourceRefFact)value.Source, value.Summary);
+        => value is null ? null! : new(value.EventId, value.OccurredAt, value.ActorDisplay, value.Action, (global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Reporting.ReportingSourceRefFact)value.Source, value.Summary, value.ActorId, value.ActorKind, value.ActorUnavailableReason, value.ActorDisplaySemantics);
     [return: System.Diagnostics.CodeAnalysis.NotNullIfNotNull(nameof(value))]
     public static implicit operator ReportingTimelineItemDto?(global::RoadGuardSystem.BusinessObjects.PersistenceFacts.Reporting.ReportingTimelineItemFact? value)
-        => value is null ? null! : new(value.EventId, value.OccurredAt, value.ActorDisplay, value.Action, (global::RoadGuardSystem.DTOs.Reporting.ReportingSourceRefDto)value.Source, value.Summary);
+        => value is null ? null! : new(value.EventId, value.OccurredAt, value.ActorDisplay, value.Action, (global::RoadGuardSystem.DTOs.Reporting.ReportingSourceRefDto)value.Source, value.Summary, value.ActorId, value.ActorKind, value.ActorUnavailableReason, value.ActorDisplaySemantics);
 }
 public sealed record ReportingAvailabilityDto(string Availability, string[] ReasonCodes)
 {

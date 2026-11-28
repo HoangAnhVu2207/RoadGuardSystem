@@ -11,6 +11,28 @@ namespace RoadGuardSystem.ApiTests.Authentication;
 public sealed class ManualSwaggerContractTests
 {
     [Fact]
+    public async Task FieldCurrentRepairRealExportTimelineAndScopeEligibilityMatchRuntimeContract()
+    {
+        using var document = await Document();
+        if (Environment.GetEnvironmentVariable("RG_FOUR_GROUP_SWAGGER") is { } output)
+            await File.WriteAllTextAsync(output, document.RootElement.GetRawText());
+        var schemas = document.RootElement.GetProperty("components").GetProperty("schemas");
+        var current = schemas.GetProperty("FieldSubmissionViewFact").GetProperty("properties").GetProperty("currentRepair");
+        Assert.True(current.GetProperty("nullable").GetBoolean());
+        var repair = schemas.GetProperty("FieldSubmissionCurrentRepairFact").GetProperty("properties");
+        foreach (var name in new[] { "bindingId", "attemptId", "effectiveSubmissionId", "reviewId", "reviewDecision", "reviewReason", "finalDecisionId", "finalDecisionResult" })
+            Assert.True(repair.GetProperty(name).GetProperty("nullable").GetBoolean(), name);
+        Assert.True(schemas.GetProperty("ExportLabelDto").GetProperty("properties").TryGetProperty("aiSource", out _));
+        foreach (var field in new[] { "actorId", "actorKind", "actorUnavailableReason", "actorDisplaySemantics" })
+            Assert.True(schemas.GetProperty("ReportingTimelineItemDto").GetProperty("properties").TryGetProperty(field, out _), field);
+        var operation = document.RootElement.GetProperty("paths").GetProperty("/api/v1/projects/{projectId}/repair-packages/eligibility").GetProperty("get");
+        Assert.Equal("SWG-238", operation.GetProperty("x-roadguard-api-id").GetString());
+        Assert.Contains(operation.GetProperty("security").EnumerateArray(), x => x.TryGetProperty("Bearer", out _));
+        Assert.Contains(operation.GetProperty("security").EnumerateArray(), x => x.TryGetProperty("WebSession", out _));
+        Assert.DoesNotContain(operation.GetProperty("parameters").EnumerateArray(), x => x.GetProperty("name").GetString() == "X-CSRF-TOKEN");
+    }
+
+    [Fact]
     public async Task FieldCaptureGpsAndSubmissionProofExposeTypedIndependentReadback()
     {
         using var document = await Document();
@@ -135,10 +157,11 @@ public sealed class ManualSwaggerContractTests
     }
 
     [Theory]
-    [InlineData("/api/v1/reporter-evidence/uploads/{uploadId}/cancel", false)]
-    [InlineData("/api/v1/uploads/{uploadId}/cancel", true)]
+    [InlineData("reporter", false)]
+    [InlineData("crew", true)]
     public async Task UploadCancelAdvertisesBearerAndTerminalResponse(string route, bool crew)
     {
+        route = route == "reporter" ? "/api/v1/reporter-evidence/uploads/{uploadId}/cancel" : "/api/v1/uploads/{uploadId}/cancel";
         using var document = await Document();
         var root = document.RootElement;
         var paths = root.GetProperty("paths");
@@ -667,7 +690,7 @@ public sealed class ManualSwaggerContractTests
             .SelectMany(path => path.Value.EnumerateObject())
             .Where(method => method.Value.TryGetProperty("x-roadguard-api-id", out _))
             .Select(method => method.Value).ToArray();
-        operations.Should().HaveCount(237);
+        operations.Should().HaveCount(238);
         foreach (var operation in operations)
         {
             var id = operation.GetProperty("x-roadguard-api-id").GetString();
@@ -738,8 +761,8 @@ public sealed class ManualSwaggerContractTests
         using var expected = JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "Contracts", "swagger-source-expectations.json")));
         using var document = await Document();
         var rows = expected.RootElement.EnumerateArray().ToArray();
-        rows.Should().HaveCount(237);
-        rows.Select(x => x.GetProperty("id").GetString()).Distinct().Should().HaveCount(237);
+        rows.Should().HaveCount(238);
+        rows.Select(x => x.GetProperty("id").GetString()).Distinct().Should().HaveCount(238);
         var paths = document.RootElement.GetProperty("paths");
         foreach (var row in rows)
         {
@@ -937,7 +960,7 @@ public sealed class ManualSwaggerContractTests
         rows.GroupBy(x => x.GetProperty("owner").GetString()).ToDictionary(x => x.Key!, x => x.Count())
             .Should().BeEquivalentTo(new Dictionary<string, int>
             {
-                ["HUY"] = 121,
+                ["HUY"] = 122,
                 ["ANH"] = 93,
                 ["SHARED_SETUP"] = 19,
                 ["SPECIAL_EXTERNAL_OR_NONMANUAL"] = 4
@@ -947,8 +970,8 @@ public sealed class ManualSwaggerContractTests
                 .Where(method => method.Value.TryGetProperty("x-roadguard-api-id", out _))
                 .Select(method => (Route: path.Name, Method: method.Name.ToUpperInvariant(), Id: method.Value.GetProperty("x-roadguard-api-id").GetString()!)))
             .ToArray();
-        live.Should().HaveCount(237);
-        live.Select(x => x.Id).Distinct().Should().HaveCount(237);
+        live.Should().HaveCount(238);
+        live.Select(x => x.Id).Distinct().Should().HaveCount(238);
         live.Select(x => (x.Route, x.Method, x.Id))
             .Should().BeEquivalentTo(rows.Select(x => (Route: x.GetProperty("route").GetString()!, Method: x.GetProperty("method").GetString()!, Id: x.GetProperty("id").GetString()!)));
 

@@ -4,7 +4,7 @@ using RoadGuardSystem.DTOs.Reporting;
 
 namespace RoadGuardSystem.Services.Reporting;
 
-public sealed record ReportingCursorKey(string FilterHash, DateTimeOffset Time, Guid Id);
+public sealed record ReportingCursorKey(string FilterHash, DateTimeOffset Time, Guid Id, string? Source = null);
 public static class ReportingCursor
 {
     public static string FilterHash(Guid project, ReportingFiltersDto filters, string metric, string? type = null, Guid? aggregate = null) =>
@@ -20,7 +20,7 @@ public static class ReportingCursor
             type,
             aggregate
         }))).ToLowerInvariant();
-    public static string Encode(string hash, DateTimeOffset time, Guid id) => Convert.ToBase64String(JsonSerializer.SerializeToUtf8Bytes(new ReportingCursorKey(hash, time, id)));
+    public static string Encode(string hash, DateTimeOffset time, Guid id, string? source = null) => Convert.ToBase64String(JsonSerializer.SerializeToUtf8Bytes(new ReportingCursorKey(hash, time, id, source)));
     public static bool TryDecode(string? cursor, string hash, out ReportingCursorKey? key)
     {
         key = null; if (cursor is null) return true; if (cursor.Length > 2048) return false;

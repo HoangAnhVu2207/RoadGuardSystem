@@ -185,6 +185,7 @@
     "dbo.SurveyAssignments",
     "dbo.SurveyDataVersions",
     "dbo.SurveyFiles",
+    "dbo.SurveyPlanOccurrences",
     "dbo.SurveyPlanPostponements",
     "dbo.SurveyPlanScopes",
     "dbo.SurveyPlans",
@@ -223,9 +224,10 @@
     "20261123093100_InitialTemporarySafetyResponsibility",
     "20261125053521_ReportMatchingLocationConfirmation",
     "20261125072411_TemporarySafetyResolution",
-    "20261126090000_ReporterRoutingMap"
+    "20261126090000_ReporterRoutingMap",
+    "20261128023637_SurveyWarrantySchedule"
   ],
-  "Signature": "F98464ECC69892658D8CDA054233A02A5E648B7C73A470C4464049AB78427DD2",
+  "Signature": "61E2D3297D8507D2359516A3EAEB824EAC50140271DDD523A1DD8113B67BC236",
   "Classifications": [
     {
       "Table": "dbo.AIDetections",
@@ -1444,6 +1446,12 @@
       "Category": "NOT_COVERED",
       "Reason": "Supervisor intake routing decisions require explicit case evidence and source-backed attestation. The sandbox seed does not make or inherit those decisions.",
       "Evidence": "planning/development/REPORTER-ROUTING-MAP.md; RoadGuardSystem.Repositories/Implementations/Cases/RoutingMapRepository.Decisions.cs"
+    },
+    {
+      "Table": "dbo.SurveyPlanOccurrences",
+      "Category": "NOT_COVERED",
+      "Reason": "Only explicit recurring warranty schedules create occurrences. Historical plans retain their original schedule.",
+      "Evidence": "SurveyWarrantyCalendar.Generate and SurveyWarrantyScheduleMigrationTests"
     }
   ]
 }

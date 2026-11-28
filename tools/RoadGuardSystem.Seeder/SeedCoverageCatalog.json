@@ -3804,5 +3804,19 @@
       "RoadGuardSystem.Repositories/Implementations/Cases/RoutingMapRepository.Decisions.cs",
       "RoadGuardSystem.Services/Implementations/Cases/RoutingMapService.cs"
     ]
+  },
+  {
+    "Table": "dbo.SurveyPlanOccurrences",
+    "Group": "surveys",
+    "DependencyOrder": 71,
+    "Prerequisites": [
+      "dbo.SurveyPlans"
+    ],
+    "Producer": "SurveyWarrantyCalendar.Generate",
+    "EmptyReason": "Development plans do not request recurring warranty schedules.",
+    "Scenario": "Create a weekly or monthly plan within a warranty window and read its occurrences.",
+    "Source": [
+      "RoadGuardSystem.BusinessObjects/Surveys/SurveyWarrantyCalendar.cs"
+    ]
   }
 ]
